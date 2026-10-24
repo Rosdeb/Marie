@@ -1,0 +1,2139 @@
+{
+  "info": {
+    "_postman_id": "e2194ae2-b6e7-4793-92f8-b3b2980fec40",
+    "name": "IPro — Mobile App API",
+    "description": "# IPro — Mobile App API\n\nEverything the IPro mobile app needs, grouped by the Figma sections so a\nfolder matches the screens you are building.\n\n## Before you start\n\nRun **01 · Account › Sign in**. It stores `accessToken` for you and every\nother request picks it up automatically. Nothing else to set up.\n\nTest login: `devsushil25@gmail.com` / `12345678`\n\n## Where baseUrl points\n\n`https://sabbir2004.ssh.bd/api/v1` is a tunnel to the development machine,\nnot a hosted server. It answers only while that machine is running the\nbackend; when it is off you will get a **502**, which means \"nobody is\nlistening\", not \"your request was wrong\".\n\nRunning the backend yourself? Change the collection variable `baseUrl` to\n`http://localhost:2004/api/v1`.\n\n## The two rules that shape this API\n\n**The paywall is the office.** A subscription unlocks offices, never levels\nand never disciplines. Every plan includes all four levels (Beginner,\nIntermediate, Advanced, Expert) and every discipline of the offices it\ngrants. Read what a user may open from `GET /subscription/my-access`:\n`officeCodes` is the union of every plan they hold.\n\n**A session is always 20 questions.** What changes with the level is the time\nallowed: Beginner 20 min, Intermediate 30, Advanced 40, Expert 50. The only\nexception is a pool with fewer than 20 questions, where the response carries\n`isShortSession: true` and a `note` you should show the user.\n\n## Profiles\n\nAt sign-up a user chooses **Paralegal** or **Attorney**. A paralegal never\nsees a question marked Attorney — about 22% of the catalogue — so menus,\ncounts and pools all differ by profile. The demo asks for it before it\nstarts, since there is no account yet.\n\n## Privacy\n\nA user's profile picture is never visible to another user, anywhere. First\nname and profession may be shared only if the user switches them on\n(`PATCH /user/privacy-settings`), and both start off. Everything else —\nsurname, e-mail, phone, date of birth — is the user's alone. Use\n`GET /user/public/:id` whenever you show one user to another.\n\n## What is in the database right now\n\nOne office is imported: **IPI (Switzerland)**, 2,400 questions across 12\nsheets — Patents, Trademarks and Designs, four levels each. The other\nfourteen offices are listed by the catalogue with `isAvailable: false`\nuntil their workbooks are imported, so a request for them answers \"no\nquestions yet\". That is correct behaviour, not a bug.\n\n## Requests that change data\n\nMost of this collection only reads. These do not — read the note on each\nbefore sending, and do **not** use \"Run collection\" on the whole thing:\n\n| Request | What it does |\n|---|---|\n| 01 · Sign up | creates a user |\n| 01 · Change password | changes the password you signed in with |\n| 01 · Sign out | invalidates the token |\n| 02 · Update my profile | overwrites profile fields |\n| 02 · Set profile type | changes which questions the user sees |\n| 02 · Privacy settings — update | changes sharing |\n| 02 · Delete my account | deletes the account |\n| 03/04 · Submit a session | scores it and records mistakes |\n| 06 · Choose offices | allowed once per billing period |\n| 06 · Sync from RevenueCat | rewrites the user's subscriptions |\n| 07 · Claim the 10% discount | issues a promo code |\n| 10 · Send a report | files a real report for the content team |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36973469"
+  },
+  "item": [
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Sign in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", j.data.accessToken);",
+                  "    pm.collectionVariables.set(\"userId\", j.data.results && j.data.results._id);",
+                  "    console.log(\"accessToken saved\");",
+                  "}",
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"devsushil25@gmail.com\",\n  \"password\": \"12345678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Returns `data.results` (the user), `data.accessToken` and `data.refreshToken`. The token is saved to the collection automatically."
+          },
+          "response": [
+            {
+              "name": "Sign in",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"devsushil25@gmail.com\",\n  \"password\": \"12345678\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "200"
+                },
+                {
+                  "key": "date",
+                  "value": "Sat, 24 Oct 2026 10:09:49 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "cross-origin-opener-policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "cross-origin-resource-policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "etag",
+                  "value": "W/\"4d0-H9ZO5TjDf5eex+1SdbkG6sHGbyE\""
+                },
+                {
+                  "key": "origin-agent-cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "ratelimit-limit",
+                  "value": "200"
+                },
+                {
+                  "key": "ratelimit-policy",
+                  "value": "200;w=900"
+                },
+                {
+                  "key": "ratelimit-remaining",
+                  "value": "199"
+                },
+                {
+                  "key": "ratelimit-reset",
+                  "value": "900"
+                },
+                {
+                  "key": "referrer-policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "set-cookie",
+                  "value": "refreshToken={{json_web_token}}; Max-Age=31536000; Path=/; Expires=Sun, 24 Oct 2027 10:09:46 GMT; HttpOnly"
+                },
+                {
+                  "key": "set-cookie",
+                  "value": "token={{json_web_token}}; Max-Age=3600; Path=/; Expires=Sat, 24 Oct 2026 11:09:46 GMT; HttpOnly"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "x-content-type-options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "x-dns-prefetch-control",
+                  "value": "off"
+                },
+                {
+                  "key": "x-download-options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "x-frame-options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "x-permitted-cross-domain-policies",
+                  "value": "none"
+                },
+                {
+                  "key": "x-xss-protection",
+                  "value": "0"
+                },
+                {
+                  "key": "cf-cache-status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "nel",
+                  "value": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=LN9doOWb5BZOmOeBON6%2F1asP9BNGTVkEtprW8IPA%2BB%2FWM4ymIsXMKpFnjVSh3Jm8uEquL3RiUV%2F1IqSi6S3kVi2s1WdwduxWe8XZOSmd2rAv4uwztixv4BiYB%2FmdcVqZpkyxRQ%3D%3D\"}]}"
+                },
+                {
+                  "key": "content-encoding",
+                  "value": "br"
+                },
+                {
+                  "key": "server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "cf-ray",
+                  "value": "a4f83027a8490eed-DAC"
+                },
+                {
+                  "key": "alt-svc",
+                  "value": "h3=\":443\"; ma=86400"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"Login successfully.\",\n  \"data\": {\n    \"results\": {\n      \"_id\": \"6ac36c558cc0bb1c3e9d4ce8\",\n      \"name\": \"Admin User\",\n      \"email\": \"devsushil25@gmail.com\",\n      \"role\": \"admin\",\n      \"dateOfBirth\": \"2000-01-01\",\n      \"phoneNumber\": \"017671224977\",\n      \"profileUrl\": \"https://iter-bene.s3.eu-north-1.amazonaws.com/15206766-215b-415e-8016-dd1bd32c4ad6.png\",\n      \"coach\": null,\n      \"handicap\": null,\n      \"startingHandicap\": null,\n      \"handicapUpdatedAt\": null,\n      \"longestPracticeStreak\": 0,\n      \"isDeleted\": false,\n      \"status\": \"active\",\n      \"subscription\": null,\n      \"createdAt\": \"2026-10-05T09:22:29.330Z\",\n      \"updatedAt\": \"2026-10-21T06:11:58.358Z\",\n      \"__v\": 0,\n      \"profileVisibility\": {\n        \"showFirstName\": false\n      },\n      \"profileType\": \"Paralegal\",\n      \"firstName\": \"Sayed\",\n      \"lastName\": \"Rahman\",\n      \"profession\": \"Patent Attorney\"\n    },\n    \"accessToken\": \"{{json_web_token}}\",\n    \"refreshToken\": \"{{json_web_token}}\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Sign up",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"Passw0rd123\",\n  \"profileType\": \"Attorney\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Creates the account and e-mails a 6-digit OTP. The account is not usable until **Verify OTP**.\n\n`profileType` is the Paralegal / Attorney choice from the sign-up screen. It decides which questions this user will ever see, so ask for it before calling this."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP (activate account)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-otp"
+              ]
+            },
+            "description": "Send the token returned by Sign up as `Authorization: Bearer <token>`, and the 6 digits from the e-mail."
+          },
+          "response": []
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "resend-otp"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot password — send OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"devsushil25@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Returns `data.token`, a 15-minute reset token. Send it as the Bearer token on the next two calls — **not** the normal access token."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot password — verify OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-otp-verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-otp-verify"
+              ]
+            },
+            "description": "Bearer token = the reset token from the previous call."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"NewPassw0rd\",\n  \"confirmPassword\": \"NewPassw0rd\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Bearer token = the reset token. Screen: \"Set New Password\"."
+          },
+          "response": []
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"12345678\",\n  \"newPassword\": \"NewPassw0rd\",\n  \"confirmPassword\": \"NewPassw0rd\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Figma: Settings › Change Password."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh access token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            },
+            "description": "Reads the refreshToken cookie set at sign-in."
+          },
+          "response": []
+        },
+        {
+          "name": "Sign out",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **login** section (5 screens) and the sign-up screens of **Demo quiz**.\n\nSign in first: it stores `accessToken` for the whole collection."
+    },
+    {
+      "name": "Profile & privacy",
+      "item": [
+        {
+          "name": "My profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/get-my-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "get-my-profile"
+              ]
+            },
+            "description": "The signed-in user’s own record, in full."
+          },
+          "response": []
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/update-my-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "update-my-profile"
+              ]
+            },
+            "description": "**multipart/form-data**, not JSON — the route runs an upload handler.\n\nFields: `name`, `firstName`, `lastName`, `profession`, `email`, `phoneNumber`, and `profile` for the picture file. Do not set Content-Type by hand; let the client add the multipart boundary."
+          },
+          "response": []
+        },
+        {
+          "name": "Set profile type (Paralegal / Attorney)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileType\": \"Attorney\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/profile-type",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "profile-type"
+              ]
+            },
+            "description": "Decides the question pool for everything the user does. A paralegal never sees a question marked Attorney."
+          },
+          "response": []
+        },
+        {
+          "name": "Privacy settings — read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/privacy-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "privacy-settings"
+              ]
+            },
+            "description": "Both switches start **off**.\n\n`neverShared` lists what cannot be shared at all, so the app does not have to hard-code the rule."
+          },
+          "response": []
+        },
+        {
+          "name": "Privacy settings — update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showFirstName\": true,\n  \"showProfession\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/privacy-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "privacy-settings"
+              ]
+            },
+            "description": "Only these two may ever be switched on. There is deliberately no flag for the picture, the surname or the e-mail."
+          },
+          "response": []
+        },
+        {
+          "name": "Another user’s public profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/public/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "public",
+                "{{userId}}"
+              ]
+            },
+            "description": "What one user may see of another: first name and profession, and only where that user switched them on. Never the picture, never the e-mail.\n\nUse this anywhere you show one user to another."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete my account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/delete/my-account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "delete",
+                "my-account"
+              ]
+            },
+            "description": "Figma: Settings › Delete Account."
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **Profile Section** (19 screens).\n\nPrivacy is a legal requirement here, not a preference: GDPR Art. 25(2) and\nthe Swiss DPA Art. 7. Nothing in a profile is visible to another user unless\nthat user switched it on, and the picture is never shareable at all."
+    },
+    {
+      "name": "Demo (no account)",
+      "item": [
+        {
+          "name": "Choose your demo — office catalogue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/offices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "offices"
+              ]
+            },
+            "description": "All 15 offices with their disciplines, sheet counts and question counts, derived from the imported content. `isAvailable: false` means nothing is imported for that office yet — do not offer it."
+          },
+          "response": []
+        },
+        {
+          "name": "Start the demo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}",
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"demo\",\n  \"office\": \"{{office}}\",\n  \"profileType\": \"Paralegal\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "Returns the 20 questions, already shuffled, **without the answer key**.\n\nEach question carries the header line the screen needs: `office`, `discipline`, `level`, `theme`, `progress` (\"7 / 20\")."
+          },
+          "response": []
+        },
+        {
+          "name": "Resume the demo",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/session/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Closing the app suspends a session; this returns it with whatever was already ticked (`selectedKey`)."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit the demo",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"<id from the start response>\",\n      \"selectedKey\": \"C\",\n      \"timeSpentSeconds\": 45\n    },\n    {\n      \"questionId\": \"<another id>\",\n      \"selectedKey\": null\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session/{{sessionId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session",
+                "{{sessionId}}",
+                "submit"
+              ]
+            },
+            "description": "Send every question. `selectedKey: null` means left unanswered, which counts as wrong — and it still appears in the review with the correct answer."
+          },
+          "response": []
+        },
+        {
+          "name": "Review the demo",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/session/{{sessionId}}/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session",
+                "{{sessionId}}",
+                "review"
+              ]
+            },
+            "description": "Runs to the full 20, unanswered questions included.\n\nEach question lists its four options **once each**, marking in place the one the user chose (`isChosen`) and the correct one (`isCorrect`), plus the explanation and the legal basis. The legal basis is text with no link — the workbooks carry no URL."
+          },
+          "response": []
+        },
+        {
+          "name": "Report a problem (anonymous)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"IPI-Patents_Beginner-1\",\n  \"message\": \"Option C and option D say almost the same thing.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report"
+              ]
+            },
+            "description": "Works with or without a token. The office, sheet and Case_No are read from the stored question, so the content team can find the row in the workbook immediately.\n\nSend either `question` (our id) or `questionId` (the readable one)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **Demo quiz** section (20 screens).\n\nEvery request here works without a token. The demo asks \"Paralegal or\nattorney?\" first and sends the answer as `profileType`, because there is no\naccount to read it from.\n\nA demo is 20 questions in 20 minutes drawn across all four levels — it is\n**not** a Beginner quiz and must not be presented as one."
+    },
+    {
+      "name": "Practice",
+      "item": [
+        {
+          "name": "Office catalogue (15 offices)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/offices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "offices"
+              ]
+            },
+            "description": "`hasAccess` says whether this user’s subscription includes the office — that is the only paywall."
+          },
+          "response": []
+        },
+        {
+          "name": "Disciplines of an office",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/offices/{{office}}/disciplines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "offices",
+                "{{office}}",
+                "disciplines"
+              ]
+            },
+            "description": "Derived from the content, so the EPO shows patents only and the EUIPO trade marks and designs only. Each level carries its question count and its time limit."
+          },
+          "response": []
+        },
+        {
+          "name": "Themes of a discipline",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/offices/{{office}}/disciplines/{{subject}}/themes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "offices",
+                "{{office}}",
+                "disciplines",
+                "{{subject}}",
+                "themes"
+              ]
+            },
+            "description": "A theme with fewer than 20 questions returns `isShortSession: true` and the exact sentence to show: \"This theme has 13 questions: this session has 13.\"\n\nFor a paralegal, a theme with fewer than 5 questions is left out entirely."
+          },
+          "response": []
+        },
+        {
+          "name": "Themes across offices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/themes/cross-office?subject={{subject}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "themes",
+                "cross-office"
+              ],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": "{{subject}}"
+                }
+              ]
+            },
+            "description": "WIPO and the UPC are excluded: their theme lists are their own and cannot be compared with the others."
+          },
+          "response": []
+        },
+        {
+          "name": "Start — by level",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}",
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"by_level\",\n  \"office\": \"{{office}}\",\n  \"subject\": \"{{subject}}\",\n  \"level\": \"Beginner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "20 questions from one sheet. Time limit follows the level."
+          },
+          "response": []
+        },
+        {
+          "name": "Start — by theme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"by_theme\",\n  \"office\": \"{{office}}\",\n  \"subject\": \"{{subject}}\",\n  \"theme\": \"{{theme}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "Across all four levels. Sending `level` as well is refused on purpose."
+          },
+          "response": []
+        },
+        {
+          "name": "Start — random",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"random\",\n  \"office\": \"{{office}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "The whole office. Add `subject` to narrow it to one discipline."
+          },
+          "response": []
+        },
+        {
+          "name": "Start — theme across offices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"theme_across_offices\",\n  \"subject\": \"{{subject}}\",\n  \"theme\": \"{{theme}}\",\n  \"offices\": [\n    \"IPI\",\n    \"USPTO\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "At least two offices, and neither may be WIPO or the UPC."
+          },
+          "response": []
+        },
+        {
+          "name": "Start — review my mistakes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"review_mistakes\",\n  \"office\": \"{{office}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "Questions answered wrongly before and not yet answered correctly since. Returns 404 with a clear message when there are none."
+          },
+          "response": []
+        },
+        {
+          "name": "Start — learning path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.sessionId) {",
+                  "    pm.collectionVariables.set(\"sessionId\", j.data.sessionId);",
+                  "    console.log(\"sessionId =\", j.data.sessionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"learning_path\",\n  \"office\": \"{{office}}\",\n  \"subject\": \"{{subject}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "Step order, 20 at a time, resuming where the user stopped. A session stops at the end of a level even if that is fewer than 20."
+          },
+          "response": []
+        },
+        {
+          "name": "Resume a session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/session/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Returns the questions with `selectedKey` for whatever was already answered."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit a session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"<id>\",\n      \"selectedKey\": \"C\",\n      \"timeSpentSeconds\": 45\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session/{{sessionId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session",
+                "{{sessionId}}",
+                "submit"
+              ]
+            },
+            "description": "Scores it, updates the mistakes pool and advances the learning path. 7 right out of 20 is reported as 35%."
+          },
+          "response": []
+        },
+        {
+          "name": "Review a session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/session/{{sessionId}}/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session",
+                "{{sessionId}}",
+                "review"
+              ]
+            },
+            "description": "The full question-by-question breakdown."
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **practice section** (11 screens).\n\nThe flow is: office → discipline → level (or theme) → session. All seven\nmodes go through the same `POST /practice/session`; only `mode` and the\nfields it needs change.\n\n| mode | needs | pool |\n|---|---|---|\n| `by_level` | office, subject, level | one sheet |\n| `by_theme` | office, subject, theme | that theme, all four levels |\n| `random` | office (+ optional subject) | the whole office |\n| `theme_across_offices` | subject, theme, offices[] | that theme in those offices |\n| `review_mistakes` | optional office | what the user got wrong and has not since got right |\n| `learning_path` | office, subject | Step order, resuming where they stopped |\n| `demo` | office, profileType | the 20 demo questions |\n\nA theme quiz never takes a level: it always runs across all four."
+    },
+    {
+      "name": "Progress",
+      "item": [
+        {
+          "name": "My history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/history?page=1&limit=10&mode=&office=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "mode",
+                  "value": "",
+                  "description": "optional: filter by mode"
+                },
+                {
+                  "key": "office",
+                  "value": "",
+                  "description": "optional"
+                }
+              ]
+            },
+            "description": "Completed sessions, newest first."
+          },
+          "response": []
+        },
+        {
+          "name": "Learning path progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/learning-path",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "learning-path"
+              ]
+            },
+            "description": "Where the user stands in each office + discipline they have started: `lastStepCompleted` out of `totalQuestions`."
+          },
+          "response": []
+        },
+        {
+          "name": "Outstanding mistakes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/practice/mistakes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "mistakes"
+              ]
+            },
+            "description": "How many questions the user got wrong and has not since got right, per office. Drives the \"Review my mistakes\" entry point."
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **review section** (3 screens) and the Profile screens that show progress."
+    },
+    {
+      "name": "Subscription",
+      "item": [
+        {
+          "name": "Plans (no account needed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscription/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription",
+                "plans"
+              ]
+            },
+            "description": "The four plans with CHF prices, office counts and which choices each one expects. Render the Plans screen from this rather than hard-coding it."
+          },
+          "response": []
+        },
+        {
+          "name": "Offices (grouped)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscription/offices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription",
+                "offices"
+              ]
+            },
+            "description": "`{ all, international, regional, national }`. The Track selection screen needs the regional and national groups."
+          },
+          "response": []
+        },
+        {
+          "name": "My access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data && j.data.subscriptions && j.data.subscriptions[0]) {",
+                  "    pm.collectionVariables.set(\"subscriptionId\", j.data.subscriptions[0].id);",
+                  "}",
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscription/my-access",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription",
+                "my-access"
+              ]
+            },
+            "description": "**The endpoint that decides what to unlock.** `officeCodes` is the union of the offices of every plan held.\n\n`needsOfficeSelection: true` means a plan is paid for but has no office chosen yet — send the user to the selection screen before anything else."
+          },
+          "response": []
+        },
+        {
+          "name": "Sync from RevenueCat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscription/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription",
+                "sync"
+              ]
+            },
+            "description": "Call right after `purchasePackage()` or `restorePurchases()`. Returns the refreshed access, so you do not wait for the webhook."
+          },
+          "response": []
+        },
+        {
+          "name": "Choose offices (Focus / Track)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national\": \"USPTO\",\n  \"regional\": \"EPO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscription/{{subscriptionId}}/offices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription",
+                "{{subscriptionId}}",
+                "offices"
+              ]
+            },
+            "description": "Focus sends `{ \"single\": \"CNIPA\" }`. Track sends `{ \"national\": \"...\", \"regional\": \"...\" }` — WIPO comes with Track automatically, do not send it.\n\nAllowed **once per billing period**; `canChangeOffices` on my-access says whether the button should be enabled."
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: the subscription screens in **Demo quiz** and **Profile Section**.\n\n**The purchase happens in your app**, through App Store / Google Play billing\nwith the RevenueCat SDK. This server never charges anyone — it tells you what\nthe user holds.\n\nCall `Purchases.logIn()` with our Mongo user id so RevenueCat's\n`app_user_id` matches, then call **Sync** after any purchase or restore."
+    },
+    {
+      "name": "Referral (LinkedIn)",
+      "item": [
+        {
+          "name": "Share preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/referral/share-preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referral",
+                "share-preview"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "LinkedIn status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/referral/linkedin/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referral",
+                "linkedin",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Connect LinkedIn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/referral/linkedin/connect",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referral",
+                "linkedin",
+                "connect"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Share on LinkedIn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/referral/linkedin/share",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referral",
+                "linkedin",
+                "share"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Claim the 10% discount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/referral/claim-discount",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referral",
+                "claim-discount"
+              ]
+            },
+            "description": "Issues the promo code tied to the account."
+          },
+          "response": []
+        },
+        {
+          "name": "Validate a promo code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"IPRO-LI-9X2A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/referral/validate-code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referral",
+                "validate-code"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **Referral section** (4 screens). 10% off for sharing IPro on LinkedIn."
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notification/get-all?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                "get-all"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unread count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notification/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                "unread-count"
+              ]
+            },
+            "description": "Drives the badge."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark all as read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notification/mark-as-read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                "mark-as-read"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: the bell on the home screen and the notifications list."
+    },
+    {
+      "name": "Legal & support",
+      "item": [
+        {
+          "name": "Privacy policy",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/common/privacy-policy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "common",
+                "privacy-policy"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Terms & conditions",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/common/terms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "common",
+                "terms"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "About",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/common/about",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "common",
+                "about"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Support contact",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/common/support",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "common",
+                "support"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: Settings › Privacy policy / Legal notice / EULA.\n\nAll public: the app must be able to show these before anyone signs in."
+    },
+    {
+      "name": "Report a problem",
+      "item": [
+        {
+          "name": "Send a report (signed in)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200/201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));\npm.test(\"success is true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"IPI-Patents_Beginner-1\",\n  \"message\": \"The legal basis cites an article repealed in 2023.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report"
+              ]
+            },
+            "description": "The response echoes `office`, `sheet`, `caseNo` and `contentVersion` so the acknowledgement screen can show what was attached."
+          },
+          "response": []
+        },
+        {
+          "name": "Send a report (from the demo, no account)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"IPI-Patents_Beginner-1\",\n  \"message\": \"Two options say the same thing.\",\n  \"reporterEmail\": \"optional@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report"
+              ]
+            },
+            "description": "Recorded as anonymous. `reporterEmail` is optional."
+          },
+          "response": []
+        }
+      ],
+      "description": "Figma: **report-form-screen** and **report-ack-screen**.\n\nEvery report carries the office, the sheet and the Case_No of the question,\nso the content team can find the exact row in the workbook. Those three are\nread from the stored question — you only send the question and the comment."
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sabbir2004.ssh.bd/api/v1",
+      "description": "The IPro backend. For a local server use http://localhost:2004/api/v1"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "description": "Set by \"Sign in\""
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "description": "Set by \"Sign in\""
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "description": "Set when a practice session starts"
+    },
+    {
+      "key": "office",
+      "value": "IPI",
+      "description": "Office code used by the examples"
+    },
+    {
+      "key": "subject",
+      "value": "Patents"
+    },
+    {
+      "key": "theme",
+      "value": "Priority"
+    },
+    {
+      "key": "questionId",
+      "value": "",
+      "description": "Set by a session start"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "description": "Set by my-access"
+    }
+  ]
+}
