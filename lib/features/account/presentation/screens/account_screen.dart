@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_avatar.dart';
+import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/account_provider.dart';
@@ -57,11 +59,13 @@ class AccountScreen extends ConsumerWidget {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(dialogContext);
-                ref.read(authProvider.notifier).logout();
-                FloatingSuccessBar.show(context, message: 'Logged out successfully');
-                context.go('/onboarding');
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  FloatingSuccessBar.show(context, message: 'Logged out successfully');
+                  context.go('/onboarding');
+                }
               },
               child: const Text(
                 'Log Out',
@@ -93,14 +97,18 @@ class AccountScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          children: [
+        child: RefreshIndicator(
+          onRefresh: () => ref.read(accountProvider.notifier).fetchProfile(),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            children: [
             const SizedBox(height: 20),
 
             // Profile Card (Modern Borderless Shadow)
-            Container(
-              decoration: BoxDecoration(
+            profile.isLoading
+                ? const ProfileCardShimmer()
+                : Container(
+                    decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
@@ -121,10 +129,10 @@ class AccountScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(18),
                     child: Row(
                       children: [
-                        CircleAvatar(
+                        AppAvatar(
                           radius: 30,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                          backgroundImage: NetworkImage(profile.avatarUrl),
+                          imageUrl: profile.avatarUrl,
+                          name: profile.name,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -147,6 +155,28 @@ class AccountScreen extends ConsumerWidget {
                                   color: AppColors.textSecondary,
                                 ),
                               ),
+                              if (profile.profession.isNotEmpty || profile.profileType.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        profile.profession.isNotEmpty ? profile.profession : profile.profileType,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -252,7 +282,7 @@ class AccountScreen extends ConsumerWidget {
             _buildSingleLineTile(
               icon: Icons.help_outline,
               title: 'Help & Support',
-              onTap: () {},
+              onTap: () => context.push('/support'),
             ),
             const SizedBox(height: 32),
 
@@ -286,7 +316,8 @@ class AccountScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSingleLineTile({

@@ -6,10 +6,16 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
+import '../../../account/presentation/providers/account_provider.dart';
 import '../providers/auth_provider.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
-  const OtpVerificationScreen({super.key});
+  final bool isForgotPassword;
+
+  const OtpVerificationScreen({
+    super.key,
+    this.isForgotPassword = false,
+  });
 
   @override
   ConsumerState<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -35,10 +41,52 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).verifyOtp(otp);
-    if (success && mounted) {
-      FloatingSuccessBar.show(context, message: 'OTP verified successfully');
-      context.push('/reset-password');
+    bool success;
+    if (widget.isForgotPassword) {
+      success = await ref.read(authProvider.notifier).verifyForgotOtp(otp);
+      if (!mounted) return;
+      if (success) {
+        FloatingSuccessBar.show(context, message: 'OTP verified successfully');
+        context.push('/reset-password');
+      } else {
+        final err = ref.read(authProvider).errorMessage ?? 'Invalid OTP code';
+        FloatingErrorBar.show(context, message: err);
+      }
+    } else {
+      success = await ref.read(authProvider.notifier).verifyOtp(otp);
+      if (!mounted) return;
+      if (success) {
+        FloatingSuccessBar.show(context, message: 'Account activated successfully');
+        ref.read(accountProvider.notifier).fetchProfile();
+        context.push('/subscription');
+      } else {
+        final err = ref.read(authProvider).errorMessage ?? 'Invalid OTP code';
+        FloatingErrorBar.show(context, message: err);
+      }
+    }
+  }
+
+  void _onResend() async {
+    final authState = ref.read(authProvider);
+    final email = authState.email;
+    if (email == null || email.isEmpty) {
+      FloatingErrorBar.show(context, message: 'Email address not found');
+      return;
+    }
+
+    bool ok;
+    if (widget.isForgotPassword) {
+      ok = await ref.read(authProvider.notifier).sendOtp(email);
+    } else {
+      ok = await ref.read(authProvider.notifier).resendOtp(email);
+    }
+
+    if (!mounted) return;
+    if (ok) {
+      FloatingSuccessBar.show(context, message: 'A new verification code has been sent');
+    } else {
+      final err = ref.read(authProvider).errorMessage ?? 'Failed to resend code';
+      FloatingErrorBar.show(context, message: err);
     }
   }
 
@@ -72,9 +120,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-              const Text(
-                'Verify Your Email',
-                style: TextStyle(
+              Text(
+                widget.isForgotPassword ? 'Reset Password OTP' : 'Verify Your Email',
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
@@ -105,12 +153,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               const SizedBox(height: 16),
               Center(
                 child: TextButton(
-                  onPressed: () {
-                    if (authState.email != null) {
-                      ref.read(authProvider.notifier).sendOtp(authState.email!);
-                      FloatingSuccessBar.show(context, message: 'New OTP code sent!');
-                    }
-                  },
+                  onPressed: _onResend,
                   child: const Text(
                     'Resend Code',
                     style: TextStyle(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../account/presentation/providers/account_provider.dart';
+import '../../../auth/data/repositories/auth_repository_impl.dart';
 import '../providers/splash_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -44,7 +46,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   void _navigateNext() async {
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
+    if (!mounted) return;
+    final isAuth = await ref.read(authRepositoryProvider).isAuthenticated();
+    if (!mounted) return;
+    if (isAuth) {
+      ref.read(accountProvider.notifier).fetchProfile();
+      context.go('/main');
+    } else {
       context.go('/onboarding');
     }
   }

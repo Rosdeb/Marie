@@ -22,6 +22,44 @@ class NotificationItem {
     this.isRead = false,
   });
 
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    final typeStr = (json['type'] ?? '').toString().toLowerCase();
+    NotificationType nType = NotificationType.systemUpdate;
+    if (typeStr.contains('quiz') || typeStr.contains('practice')) {
+      nType = NotificationType.quizReminder;
+    } else if (typeStr.contains('referral') || typeStr.contains('bonus')) {
+      nType = NotificationType.referralBonus;
+    } else if (typeStr.contains('streak')) {
+      nType = NotificationType.streakAlert;
+    }
+
+    String timeAgo = 'Just now';
+    if (json['createdAt'] != null) {
+      try {
+        final date = DateTime.parse(json['createdAt'].toString());
+        final diff = DateTime.now().difference(date);
+        if (diff.inDays > 0) {
+          timeAgo = '${diff.inDays}d ago';
+        } else if (diff.inHours > 0) {
+          timeAgo = '${diff.inHours}h ago';
+        } else if (diff.inMinutes > 0) {
+          timeAgo = '${diff.inMinutes}m ago';
+        } else {
+          timeAgo = 'Just now';
+        }
+      } catch (_) {}
+    }
+
+    return NotificationItem(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      title: (json['title'] ?? 'Notification').toString(),
+      message: (json['message'] ?? '').toString(),
+      timeAgo: timeAgo,
+      type: nType,
+      isRead: json['isRead'] == true || json['read'] == true,
+    );
+  }
+
   NotificationItem copyWith({
     String? id,
     String? title,

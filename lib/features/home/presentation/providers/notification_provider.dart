@@ -1,68 +1,130 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/network/api_client.dart';
 import '../../data/models/notification_model.dart';
 
-class NotificationNotifier extends Notifier<List<NotificationItem>> {
+class NotificationState {
+  final List<NotificationItem> items;
+  final int unreadCount;
+  final bool isLoading;
+  final String? errorMessage;
+
+  const NotificationState({
+    this.items = const [],
+    this.unreadCount = 0,
+    this.isLoading = false,
+    this.errorMessage,
+  });
+
+  NotificationState copyWith({
+    List<NotificationItem>? items,
+    int? unreadCount,
+    bool? isLoading,
+    String? errorMessage,
+  }) {
+    return NotificationState(
+      items: items ?? this.items,
+      unreadCount: unreadCount ?? this.unreadCount,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+class NotificationNotifier extends Notifier<NotificationState> {
+  late final ApiClient _apiClient;
+
   @override
-  List<NotificationItem> build() {
-    return const [
-      NotificationItem(
-        id: '1',
-        title: 'Daily Practice Reminder',
-        message: 'Your daily quiz in Human Anatomy is waiting. Keep up your study streak!',
-        timeAgo: '15m ago',
-        type: NotificationType.quizReminder,
-        isRead: false,
-      ),
-      NotificationItem(
-        id: '2',
-        title: 'Referral Bonus Earned',
-        message: 'Your colleague joined using your code. \$5 study credits added to your wallet.',
-        timeAgo: '2h ago',
-        type: NotificationType.referralBonus,
-        isRead: false,
-      ),
-      NotificationItem(
-        id: '3',
-        title: '3-Day Study Streak!',
-        message: 'You have completed quizzes 3 days in a row. Great momentum!',
-        timeAgo: '1d ago',
-        type: NotificationType.streakAlert,
-        isRead: true,
-      ),
-      NotificationItem(
-        id: '4',
-        title: 'New Questions Added',
-        message: '50 new Patent & Trademark questions have been added to the library.',
-        timeAgo: '2d ago',
-        type: NotificationType.systemUpdate,
-        isRead: true,
-      ),
-    ];
+  NotificationState build() {
+    _apiClient = ref.watch(apiClientProvider);
+    Future.microtask(() => fetchNotifications());
+    return const NotificationState(isLoading: true);
+  }
+
+  Future<void> fetchNotifications() async {
+    if (!state.isLoading) {
+      state = state.copyWith(isLoading: true);
+    }
+    try {
+      final response = await _apiClient.get(
+        ApiConstants.notifications,
+        queryParams: {'page': '1', 'limit': '20'},
+        requiresAuth: true,
+      );
+
+      final List<NotificationItem> loadedItems = [];
+      if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
+        final data = response['data'] as Map<String, dynamic>;
+        if (data['results'] is List) {
+          for (final item in (data['results'] as List)) {
+            if (item is Map<String, dynamic>) {
+              loadedItems.add(NotificationItem.fromJson(item));
+            }
+          }
+        }
+      }
+
+      int unread = loadedItems.where((i) => !i.isRead).length;
+      try {
+        final unreadResp = await _apiClient.get(
+          ApiConstants.notificationUnreadCount,
+          requiresAuth: true,
+        );
+        if (unreadResp is Map<String, dynamic> && unreadResp['data'] is Map<String, dynamic>) {
+          unread = (unreadResp['data']['count'] as num?)?.toInt() ?? unread;
+        }
+      } catch (_) {}
+
+      state = state.copyWith(
+        items: loadedItems,
+        unreadCount: unread,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> markAllAsRead() async {
+    try {
+      await _apiClient.patch(
+        ApiConstants.notificationMarkAsRead,
+        body: {},
+        requiresAuth: true,
+      );
+    } catch (_) {}
+
+    state = state.copyWith(
+      items: state.items.map((item) => item.copyWith(isRead: true)).toList(),
+      unreadCount: 0,
+    );
   }
 
   void markAsRead(String id) {
-    state = state.map((item) {
-      if (item.id == id) {
-        return item.copyWith(isRead: true);
-      }
-      return item;
-    }).toList();
-  }
-
-  void markAllAsRead() {
-    state = state.map((item) => item.copyWith(isRead: true)).toList();
+    state = state.copyWith(
+      items: state.items.map((item) {
+        if (item.id == id) {
+          return item.copyWith(isRead: true);
+        }
+        return item;
+      }).toList(),
+      unreadCount: state.unreadCount > 0 ? state.unreadCount - 1 : 0,
+    );
   }
 
   void clearAll() {
-    state = [];
+    state = state.copyWith(items: const [], unreadCount: 0);
   }
 }
 
 final notificationProvider =
-    NotifierProvider<NotificationNotifier, List<NotificationItem>>(
+    NotifierProvider<NotificationNotifier, NotificationState>(
         NotificationNotifier.new);
 
 final unreadNotificationCountProvider = Provider<int>((ref) {
-  final list = ref.watch(notificationProvider);
-  return list.where((item) => !item.isRead).length;
+  final notifState = ref.watch(notificationProvider);
+  return notifState.unreadCount;
 });

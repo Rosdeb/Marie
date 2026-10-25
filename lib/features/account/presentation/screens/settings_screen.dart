@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
+import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/account_provider.dart';
 
@@ -70,12 +72,16 @@ class SettingsScreen extends ConsumerWidget {
                     .read(accountProvider.notifier)
                     .deleteAccount();
                 if (success && context.mounted) {
-                  ref.read(authProvider.notifier).logout();
+                  await ref.read(authProvider.notifier).logout();
+                  if (!context.mounted) return;
                   FloatingErrorBar.show(
                     context,
                     message: 'Your account has been deleted.',
                   );
                   context.go('/onboarding');
+                } else if (context.mounted) {
+                  final err = ref.read(accountProvider).errorMessage ?? 'Failed to delete account';
+                  FloatingErrorBar.show(context, message: err);
                 }
               },
               child: const Text(
@@ -91,6 +97,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(accountProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -118,10 +126,106 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
+            _buildSectionHeader('Profile & Track'),
+            const SizedBox(height: 8),
+
+            // Profile Type Selector (Attorney / Paralegal)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.badge_outlined, color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'Profile Type',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  DropdownButton<String>(
+                    value: profile.profileType.isNotEmpty ? profile.profileType : 'Attorney',
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 'Attorney', child: Text('Attorney')),
+                      DropdownMenuItem(value: 'Paralegal', child: Text('Paralegal')),
+                    ],
+                    onChanged: (val) async {
+                      if (val != null) {
+                        final ok = await ref.read(accountProvider.notifier).setProfileType(val);
+                        if (ok && context.mounted) {
+                          FloatingSuccessBar.show(context, message: 'Profile type updated to $val');
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            _buildSectionHeader('Privacy Controls'),
+            const SizedBox(height: 8),
+
+            // Show First Name Switch
+            _buildSwitchTile(
+              icon: Icons.visibility_outlined,
+              title: 'Show First Name Publicly',
+              value: profile.showFirstName,
+              onChanged: (val) async {
+                final ok = await ref.read(accountProvider.notifier).updatePrivacySettings(
+                      showFirstName: val,
+                      showProfession: profile.showProfession,
+                    );
+                if (ok && context.mounted) {
+                  FloatingSuccessBar.show(context, message: 'Privacy setting updated');
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Show Profession Switch
+            _buildSwitchTile(
+              icon: Icons.work_outline,
+              title: 'Show Profession Publicly',
+              value: profile.showProfession,
+              onChanged: (val) async {
+                final ok = await ref.read(accountProvider.notifier).updatePrivacySettings(
+                      showFirstName: profile.showFirstName,
+                      showProfession: val,
+                    );
+                if (ok && context.mounted) {
+                  FloatingSuccessBar.show(context, message: 'Privacy setting updated');
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+
             _buildSectionHeader('Security'),
             const SizedBox(height: 8),
 
-            // Change Password (Compact 1-line card)
+            // Change Password
             _buildSingleLineCard(
               icon: Icons.lock_outline,
               title: 'Change Password',
@@ -132,7 +236,7 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionHeader('Legal & Policies'),
             const SizedBox(height: 8),
 
-            // Privacy Policy (Compact 1-line card)
+            // Privacy Policy
             _buildSingleLineCard(
               icon: Icons.privacy_tip_outlined,
               title: 'Privacy Policy',
@@ -140,7 +244,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
 
-            // Legal Notice (Compact 1-line card)
+            // Legal Notice
             _buildSingleLineCard(
               icon: Icons.gavel_outlined,
               title: 'Legal Notice',
@@ -148,7 +252,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
 
-            // EULA (Compact 1-line card)
+            // EULA
             _buildSingleLineCard(
               icon: Icons.description_outlined,
               title: 'End User License Agreement',
@@ -159,7 +263,7 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionHeader('Danger Zone'),
             const SizedBox(height: 10),
 
-            // Primary-style Delete Account Button
+            // Delete Account Button
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -174,7 +278,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 onPressed: () => _showDeleteAccountDialog(context, ref),
-                child: Text(
+                child: const Text(
                   'Delete Account',
                   style: TextStyle(
                     fontSize: 15,
@@ -205,6 +309,62 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Transform.scale(
+            scaleX: 0.7,
+            scaleY: 0.7,
+            child: CupertinoSwitch(
+              value: value,
+              activeTrackColor: AppColors.primary,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSingleLineCard({
     required IconData icon,
     required String title,
@@ -219,7 +379,6 @@ class SettingsScreen extends ConsumerWidget {
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
-            spreadRadius: 0,
           ),
         ],
       ),

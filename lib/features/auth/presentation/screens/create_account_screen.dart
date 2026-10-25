@@ -19,6 +19,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String _selectedProfileType = 'Attorney';
 
   @override
   void dispose() {
@@ -54,10 +55,19 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).signUp(name, email, password);
-    if (success && mounted) {
-      FloatingSuccessBar.show(context, message: 'Account created successfully');
-      context.push('/subscription');
+    final success = await ref.read(authProvider.notifier).signUp(
+          name: name,
+          email: email,
+          password: password,
+          profileType: _selectedProfileType,
+        );
+    if (!mounted) return;
+    if (success) {
+      FloatingSuccessBar.show(context, message: 'Verification code sent to your email');
+      context.push('/otp-verification');
+    } else {
+      final error = ref.read(authProvider).errorMessage ?? 'Registration failed';
+      FloatingErrorBar.show(context, message: error);
     }
   }
 
@@ -130,6 +140,37 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 controller: _passwordController,
                 prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
               ),
+              const SizedBox(height: 16),
+              const Text(
+                'Profile Type',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildProfileTypeOption(
+                      title: 'Attorney',
+                      subtitle: 'Legal practitioner',
+                      isSelected: _selectedProfileType == 'Attorney',
+                      onTap: () => setState(() => _selectedProfileType = 'Attorney'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildProfileTypeOption(
+                      title: 'Paralegal',
+                      subtitle: 'Legal assistant',
+                      isSelected: _selectedProfileType == 'Paralegal',
+                      onTap: () => setState(() => _selectedProfileType = 'Paralegal'),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 28),
               CustomButton(
                 text: 'Sign Up',
@@ -158,6 +199,61 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileTypeOption({
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            width: isSelected ? 1.8 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

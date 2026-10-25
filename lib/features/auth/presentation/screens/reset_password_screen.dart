@@ -45,12 +45,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).resetPassword(newPass);
-    if (success && mounted) {
+    final success = await ref.read(authProvider.notifier).resetPassword(newPass, confirmPass);
+    if (!mounted) return;
+    if (success) {
       FloatingSuccessBar.show(context, message: 'Password reset successfully');
       setState(() {
         _isSuccess = true;
       });
+    } else {
+      final error = ref.read(authProvider).errorMessage ?? 'Failed to reset password';
+      FloatingErrorBar.show(context, message: error);
     }
   }
 

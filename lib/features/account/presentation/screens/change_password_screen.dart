@@ -6,7 +6,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
-import '../providers/account_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -50,20 +50,25 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       return;
     }
 
-    final success = await ref.read(accountProvider.notifier).changePassword(
-          currentPassword: currentPass,
+    final success = await ref.read(authProvider.notifier).changePassword(
+          oldPassword: currentPass,
           newPassword: newPass,
+          confirmPassword: confirmPass,
         );
 
-    if (success && mounted) {
+    if (!mounted) return;
+    if (success) {
       FloatingSuccessBar.show(context, message: 'Password updated successfully!');
       context.pop();
+    } else {
+      final error = ref.read(authProvider).errorMessage ?? 'Failed to update password';
+      FloatingErrorBar.show(context, message: error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(accountProvider);
+    final authState = ref.watch(authProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -101,40 +106,44 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Enter your current password followed by your new password.',
+                'Enter your current password and choose a strong new password.',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
+
               CustomTextField(
                 label: 'Current Password',
-                hint: 'Enter your current password',
+                hint: 'Enter current password',
                 isPassword: true,
                 controller: _currentPasswordController,
                 prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+
               CustomTextField(
                 label: 'New Password',
-                hint: 'Enter your new password',
+                hint: 'Enter new password',
                 isPassword: true,
                 controller: _newPasswordController,
-                prefixIcon: const Icon(Icons.lock_reset, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(Icons.lock_reset_outlined, color: AppColors.textSecondary, size: 20),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+
               CustomTextField(
                 label: 'Confirm New Password',
-                hint: 'Confirm your new password',
+                hint: 'Re-enter new password',
                 isPassword: true,
                 controller: _confirmPasswordController,
-                prefixIcon: const Icon(Icons.lock_reset, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(Icons.lock_reset_outlined, color: AppColors.textSecondary, size: 20),
               ),
               const SizedBox(height: 32),
+
               CustomButton(
                 text: 'Update Password',
-                isLoading: profile.isLoading,
+                isLoading: authState.isLoading,
                 onPressed: _onChangePassword,
               ),
             ],

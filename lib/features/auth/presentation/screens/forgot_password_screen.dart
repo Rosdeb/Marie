@@ -36,9 +36,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     }
 
     final success = await ref.read(authProvider.notifier).sendOtp(email);
-    if (success && mounted) {
+    if (!mounted) return;
+    if (success) {
       FloatingSuccessBar.show(context, message: 'OTP verification code sent to your email');
-      context.push('/otp-verification');
+      context.push('/otp-verification?mode=forgot');
+    } else {
+      final error = ref.read(authProvider).errorMessage ?? 'Failed to send OTP code';
+      FloatingErrorBar.show(context, message: error);
     }
   }
 

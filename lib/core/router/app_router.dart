@@ -16,6 +16,7 @@ import '../../features/account/presentation/screens/referral_screen.dart';
 import '../../features/account/presentation/screens/settings_screen.dart';
 import '../../features/account/presentation/screens/change_password_screen.dart';
 import '../../features/account/presentation/screens/legal_content_screen.dart';
+import '../../features/account/presentation/screens/support_report_screen.dart';
 import '../../features/home/presentation/screens/demo_config_screen.dart';
 import '../../features/home/presentation/screens/notification_screen.dart';
 import '../../features/home/presentation/screens/share_preview_screen.dart';
@@ -77,7 +78,10 @@ class AppRouter {
       GoRoute(
         path: '/otp-verification',
         name: 'otpVerification',
-        builder: (context, state) => const OtpVerificationScreen(),
+        builder: (context, state) {
+          final isForgot = state.uri.queryParameters['mode'] == 'forgot' || state.extra == 'forgot';
+          return OtpVerificationScreen(isForgotPassword: isForgot);
+        },
       ),
       GoRoute(
         path: '/reset-password',
@@ -143,6 +147,11 @@ class AppRouter {
         path: '/eula',
         name: 'eula',
         builder: (context, state) => const LegalContentScreen(type: LegalType.eula),
+      ),
+      GoRoute(
+        path: '/support',
+        name: 'support',
+        builder: (context, state) => const SupportReportScreen(),
       ),
       // Practice Flow Routes
       GoRoute(

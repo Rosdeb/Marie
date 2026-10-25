@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_shimmer.dart';
 
 enum LegalType {
   privacyPolicy,
@@ -8,7 +12,7 @@ enum LegalType {
   eula,
 }
 
-class LegalContentScreen extends StatelessWidget {
+class LegalContentScreen extends ConsumerStatefulWidget {
   final LegalType type;
 
   const LegalContentScreen({
@@ -16,19 +20,60 @@ class LegalContentScreen extends StatelessWidget {
     required this.type,
   });
 
+  @override
+  ConsumerState<LegalContentScreen> createState() => _LegalContentScreenState();
+}
+
+class _LegalContentScreenState extends ConsumerState<LegalContentScreen> {
+  String? _serverContent;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchContent();
+  }
+
+  Future<void> _fetchContent() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      String endpoint = ApiConstants.privacyPolicy;
+      if (widget.type == LegalType.legalNotice || widget.type == LegalType.eula) {
+        endpoint = ApiConstants.terms;
+      }
+      final response = await apiClient.get(endpoint, requiresAuth: false);
+      if (response is Map<String, dynamic> && response['data'] != null) {
+        final data = response['data'];
+        if (data is String && data.isNotEmpty) {
+          _serverContent = data;
+        } else if (data is Map<String, dynamic> && data['content'] != null) {
+          _serverContent = data['content'].toString();
+        } else if (data is List && data.isNotEmpty) {
+          _serverContent = data.map((e) => e.toString()).join('\n\n');
+        }
+      }
+    } catch (_) {
+      // Fallback to static text
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   String get _title {
-    switch (type) {
+    switch (widget.type) {
       case LegalType.privacyPolicy:
         return 'Privacy Policy';
       case LegalType.legalNotice:
         return 'Legal Notice';
       case LegalType.eula:
-        return 'End User License Agreement';
+        return 'Terms & Conditions (EULA)';
     }
   }
 
-  String get _content {
-    switch (type) {
+  String get _fallbackContent {
+    switch (widget.type) {
       case LegalType.privacyPolicy:
         return '''
 Last updated: January 2026
@@ -101,39 +146,36 @@ This agreement is effective until terminated by you or the company. Upon account
         centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+        child: _isLoading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: ContentDocumentShimmer(),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    _serverContent ?? _fallbackContent,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                      height: 1.6,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  _content,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.6,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }
