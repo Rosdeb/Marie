@@ -11,9 +11,11 @@ class QuizResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quizState = ref.watch(quizProvider);
-    final percentage = quizState.questions.isNotEmpty
-        ? ((quizState.score / quizState.questions.length) * 100).round()
-        : 0;
+    final percentage = quizState.percentageFromApi > 0
+        ? quizState.percentageFromApi
+        : (quizState.questions.isNotEmpty
+            ? ((quizState.score / quizState.questions.length) * 100).round()
+            : 0);
 
     return Scaffold(
       backgroundColor: AppColors.background,

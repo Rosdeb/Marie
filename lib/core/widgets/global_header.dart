@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/providers/notification_provider.dart';
+import 'auth_gate_bottom_sheet.dart';
 
 class GlobalHeader extends ConsumerWidget {
   final String title;
@@ -54,7 +56,15 @@ class GlobalHeader extends ConsumerWidget {
                   children: [
                     _buildHeaderIconButton(
                       icon: Icons.notifications,
-                      onTap: onNotificationTap ?? () => context.push('/notifications'),
+                      onTap: onNotificationTap ??
+                          () {
+                            final isAuth = ref.read(authProvider).isAuthenticated;
+                            if (!isAuth) {
+                              AuthGateBottomSheet.show(context, targetFeature: 'Notifications');
+                              return;
+                            }
+                            context.push('/notifications');
+                          },
                     ),
                     if (unreadNotifications > 0)
                       Positioned(
@@ -76,7 +86,15 @@ class GlobalHeader extends ConsumerWidget {
               if (showProfile)
                 _buildHeaderIconButton(
                   icon: Icons.person,
-                  onTap: onProfileTap ?? () => context.push('/edit-profile'),
+                  onTap: onProfileTap ??
+                      () {
+                        final isAuth = ref.read(authProvider).isAuthenticated;
+                        if (!isAuth) {
+                          AuthGateBottomSheet.show(context, targetFeature: 'Profile');
+                          return;
+                        }
+                        context.push('/edit-profile');
+                      },
                 ),
             ],
           ),

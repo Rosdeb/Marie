@@ -11,6 +11,72 @@ import '../providers/account_provider.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Colors.redAccent, size: 24),
+              SizedBox(width: 10),
+              Text(
+                'Log Out',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  FloatingSuccessBar.show(context, message: 'Logged out successfully');
+                  context.go('/onboarding');
+                }
+              },
+              child: const Text(
+                'Log Out',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -258,7 +324,18 @@ class SettingsScreen extends ConsumerWidget {
               title: 'End User License Agreement',
               onTap: () => context.push('/eula'),
             ),
-            const SizedBox(height: 36),
+            const SizedBox(height: 24),
+
+            _buildSectionHeader('Account Actions'),
+            const SizedBox(height: 8),
+
+            // Log Out
+            _buildSingleLineCard(
+              icon: Icons.logout_rounded,
+              title: 'Log Out',
+              onTap: () => _showLogoutDialog(context, ref),
+            ),
+            const SizedBox(height: 28),
 
             _buildSectionHeader('Danger Zone'),
             const SizedBox(height: 10),

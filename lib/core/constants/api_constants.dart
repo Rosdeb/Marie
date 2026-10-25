@@ -35,6 +35,13 @@ class ApiConstants {
   // Report a problem
   static const String reportProblem = '/report';
 
+  // Practice & Demo endpoints
+  static const String practiceOffices = '/practice/offices';
+  static const String practiceSession = '/practice/session';
+  static String practiceSessionSubmit(String sessionId) => '/practice/session/$sessionId/submit';
+  static String practiceSessionReview(String sessionId) => '/practice/session/$sessionId/review';
+  static String practiceSessionResume(String sessionId) => '/practice/session/$sessionId';
+
   // Referral (LinkedIn)
   static const String sharePreview = '/referral/share-preview';
   static const String linkedinStatus = '/referral/linkedin/status';

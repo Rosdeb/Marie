@@ -11,6 +11,9 @@ class AnswerReviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quizState = ref.watch(quizProvider);
+    final displayQuestions = quizState.reviewQuestions.isNotEmpty
+        ? quizState.reviewQuestions
+        : quizState.questions;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,10 +44,10 @@ class AnswerReviewScreen extends ConsumerWidget {
       body: SafeArea(
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          itemCount: quizState.questions.length,
+          itemCount: displayQuestions.length,
           separatorBuilder: (_, _) => const SizedBox(height: 18),
           itemBuilder: (context, qIndex) {
-            final question = quizState.questions[qIndex];
+            final question = displayQuestions[qIndex];
             final userChoice = quizState.userAnswers[qIndex];
 
             return Container(
@@ -74,8 +77,9 @@ class AnswerReviewScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   ...List.generate(question.options.length, (optIndex) {
-                    final isCorrect = optIndex == question.correctOptionIndex;
-                    final isUserChoice = optIndex == userChoice;
+                    final option = question.options[optIndex];
+                    final isCorrect = option.isCorrect || optIndex == question.correctOptionIndex;
+                    final isUserChoice = option.isChosen || optIndex == userChoice;
 
                     Color optionBg = AppColors.background;
                     Color borderColor = Colors.transparent;
@@ -98,12 +102,34 @@ class AnswerReviewScreen extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isCorrect
+                                  ? AppColors.success
+                                  : (isUserChoice ? AppColors.error : Colors.grey.shade300),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              option.key.isNotEmpty
+                                  ? option.key
+                                  : String.fromCharCode(65 + optIndex),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              question.options[optIndex],
+                              option.text,
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w400,
+                                fontWeight: FontWeight.w500,
                                 color: isCorrect
                                     ? AppColors.success
                                     : (isUserChoice ? AppColors.error : AppColors.textPrimary),
@@ -118,23 +144,74 @@ class AnswerReviewScreen extends ConsumerWidget {
                       ),
                     );
                   }),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Explanation: ${question.explanation}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        height: 1.35,
+                  if (question.explanation.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Explanation',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            question.explanation,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                  ],
+                  if (question.legalBasis.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F4FF),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFD6E4FF)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Legal Basis',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            question.legalBasis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primaryDeep,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );

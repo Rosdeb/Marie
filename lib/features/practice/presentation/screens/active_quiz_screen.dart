@@ -74,7 +74,11 @@ class ActiveQuizScreen extends ConsumerWidget {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
-              child: _buildTimerBadge(quizState.remainingSeconds, quizState.totalSeconds),
+              child: _buildTimerBadge(
+                quizState.elapsedSeconds,
+                quizState.remainingSeconds,
+                quizState.totalSeconds,
+              ),
             ),
           ],
         ),
@@ -94,7 +98,90 @@ class ActiveQuizScreen extends ConsumerWidget {
                     minHeight: 6,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
+
+                // Question Metadata Header Row
+                Row(
+                  children: [
+                    if (question.office.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDeep,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          question.office,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    if (question.discipline.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          question.discipline,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    if (question.level.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          question.level,
+                          style: const TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    const Spacer(),
+                    Text(
+                      question.progress.isNotEmpty
+                          ? question.progress
+                          : '${quizState.currentIndex + 1} / ${quizState.questions.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (question.theme.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    question.theme,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
 
                 // Question Card
                 Container(
@@ -114,14 +201,14 @@ class ActiveQuizScreen extends ConsumerWidget {
                   child: Text(
                     question.questionText,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      height: 1.2,
+                      height: 1.35,
                       color: AppColors.textPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // Answer Options
                 Expanded(
@@ -130,6 +217,11 @@ class ActiveQuizScreen extends ConsumerWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final isSelected = selectedOption == index;
+                      final option = question.options[index];
+                      final optionKey = option.key.isNotEmpty
+                          ? option.key
+                          : String.fromCharCode(65 + index);
+
                       return Container(
                         decoration: BoxDecoration(
                           color: isSelected ? AppColors.primaryLight : Colors.white,
@@ -168,7 +260,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       shape: BoxShape.circle,
                                     ),
                                     child: Text(
-                                      String.fromCharCode(65 + index), // A, B, C, D
+                                      optionKey,
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
@@ -179,7 +271,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      question.options[index],
+                                      option.text,
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w400,
@@ -219,10 +311,10 @@ class ActiveQuizScreen extends ConsumerWidget {
                         text: quizState.currentIndex == quizState.questions.length - 1
                             ? 'Submit'
                             : 'Next',
+                        isLoading: quizState.isSubmitting,
                         onPressed: () {
                           if (quizState.currentIndex == quizState.questions.length - 1) {
                             ref.read(quizProvider.notifier).submitQuiz();
-                            context.pushReplacement('/practice/quiz-result');
                           } else {
                             ref.read(quizProvider.notifier).nextQuestion();
                           }
@@ -240,13 +332,13 @@ class ActiveQuizScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTimerBadge(int remainingSeconds, int totalSeconds) {
-    final minutes = (remainingSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (remainingSeconds % 60).toString().padLeft(2, '0');
+  Widget _buildTimerBadge(int elapsedSeconds, int remainingSeconds, int totalSeconds) {
+    final minutes = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (elapsedSeconds % 60).toString().padLeft(2, '0');
     final timeText = '$minutes:$seconds';
 
-    final isLowTime = remainingSeconds <= 10;
-    final isWarningTime = remainingSeconds <= 20 && !isLowTime;
+    final isLowTime = remainingSeconds <= 30;
+    final isWarningTime = remainingSeconds <= 120 && !isLowTime;
 
     Color textColor;
     Color bgColor;

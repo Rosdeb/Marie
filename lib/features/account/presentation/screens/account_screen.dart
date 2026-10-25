@@ -21,7 +21,7 @@ class AccountScreen extends ConsumerWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
-              Icon(Icons.logout, color: AppColors.primary, size: 24),
+              Icon(Icons.logout_rounded, color: Colors.redAccent, size: 24),
               SizedBox(width: 10),
               Text(
                 'Log Out',
@@ -54,7 +54,7 @@ class AccountScreen extends ConsumerWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -81,6 +81,7 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(accountProvider);
+    final isAuth = ref.watch(authProvider).isAuthenticated;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -98,95 +99,102 @@ class AccountScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => ref.read(accountProvider.notifier).fetchProfile(),
+          onRefresh: () async {
+            if (isAuth) {
+              await ref.read(accountProvider.notifier).fetchProfile();
+            }
+          },
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             children: [
-            const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-            // Profile Card (Modern Borderless Shadow)
-            profile.isLoading
-                ? const ProfileCardShimmer()
-                : Container(
-                    decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
+              // Profile Card (Modern Borderless Shadow)
+              if (!isAuth)
+                _buildGuestProfileCard(context)
+              else if (profile.isLoading)
+                const ProfileCardShimmer()
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => context.push('/edit-profile'),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Row(
-                      children: [
-                        AppAvatar(
-                          radius: 30,
-                          imageUrl: profile.avatarUrl,
-                          name: profile.name,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                profile.name,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                profile.email,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              if (profile.profession.isNotEmpty || profile.profileType.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        profile.profession.isNotEmpty ? profile.profession : profile.profileType,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primary,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => context.push('/edit-profile'),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Row(
+                          children: [
+                            AppAvatar(
+                              radius: 30,
+                              imageUrl: profile.avatarUrl,
+                              name: profile.name,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    profile.name.isNotEmpty ? profile.name : 'IP Law Scholar',
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    profile.email,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  if (profile.profession.isNotEmpty || profile.profileType.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            profile.profession.isNotEmpty ? profile.profession : profile.profileType,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ],
-                                ),
-                              ],
-                            ],
-                          ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+                          ],
                         ),
-                        const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
             const SizedBox(height: 30),
             // Notifications Toggle Tile (Single-line)
@@ -286,22 +294,23 @@ class AccountScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
 
-            // Log Out Button with Dialog Confirmation
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red,width: 1.2),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: () => _showLogoutDialog(context, ref),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.logout, color: Colors.redAccent, size: 20),
-                  SizedBox(width: 8),
-                  Text(
+            // Log Out Button (Authenticated) or Sign In Button (Guest)
+            if (isAuth)
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Color(0xFFFFCDD2), width: 1.4),
+                    //backgroundColor: const Color(0xFFFFF5F5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () => _showLogoutDialog(context, ref),
+                  icon: const Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
+                  label: const Text(
                     'Log Out',
                     style: TextStyle(
                       color: Colors.redAccent,
@@ -309,15 +318,109 @@ class AccountScreen extends ConsumerWidget {
                       fontSize: 15,
                     ),
                   ),
-                ],
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () => context.push('/sign-in'),
+                  icon: const Icon(Icons.login_rounded, size: 20, color: Colors.white),
+                  label: const Text(
+                    'Sign In to Account',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
               ),
-            ),
             const SizedBox(height: 24),
           ],
         ),
       ),
     ),
   );
+  }
+
+  Widget _buildGuestProfileCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person_outline_rounded,
+                size: 30,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Guest User',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Sign in to save quizzes & settings',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.push('/sign-in'),
+              child: const Text(
+                'Sign In',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSingleLineTile({

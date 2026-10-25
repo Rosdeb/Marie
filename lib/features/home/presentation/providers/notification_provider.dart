@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../data/models/notification_model.dart';
 
 class NotificationState {
@@ -42,6 +43,12 @@ class NotificationNotifier extends Notifier<NotificationState> {
   }
 
   Future<void> fetchNotifications() async {
+    final token = await ref.read(localStorageProvider).getAccessToken();
+    if (token == null || token.isEmpty) {
+      state = const NotificationState(isLoading: false, items: [], unreadCount: 0);
+      return;
+    }
+
     if (!state.isLoading) {
       state = state.copyWith(isLoading: true);
     }

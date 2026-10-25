@@ -408,3 +408,75 @@ class SharePreviewShimmer extends StatelessWidget {
     );
   }
 }
+
+/// Pre-built Office Catalogue Shimmer Loading Skeleton
+class OfficeCatalogueShimmer extends StatelessWidget {
+  final int count;
+
+  const OfficeCatalogueShimmer({super.key, this.count = 5});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomShimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        itemCount: count,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) => Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFF0F0F2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      ShimmerBox(width: 44, height: 28, borderRadius: 8),
+                      SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerBox(width: 110, height: 16, borderRadius: 4),
+                          SizedBox(height: 6),
+                          ShimmerBox(width: 80, height: 12, borderRadius: 4),
+                        ],
+                      ),
+                    ],
+                  ),
+                  ShimmerBox(width: 80, height: 24, borderRadius: 12),
+                ],
+              ),
+              SizedBox(height: 14),
+              Row(
+                children: [
+                  ShimmerBox(width: 60, height: 20, borderRadius: 6),
+                  SizedBox(width: 8),
+                  ShimmerBox(width: 60, height: 20, borderRadius: 6),
+                  SizedBox(width: 8),
+                  ShimmerBox(width: 70, height: 20, borderRadius: 6),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerBox(width: 100, height: 14, borderRadius: 4),
+                  ShimmerBox(width: 80, height: 32, borderRadius: 8),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

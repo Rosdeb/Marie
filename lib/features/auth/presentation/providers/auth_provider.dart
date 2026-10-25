@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../../account/presentation/providers/account_provider.dart';
+import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
+import '../../../home/presentation/providers/notification_provider.dart';
 
 enum AuthMode {
   initial,
@@ -306,6 +309,9 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     await _authRepository.signOut();
     state = AuthState();
+    ref.read(accountProvider.notifier).clear();
+    ref.read(notificationProvider.notifier).clearAll();
+    ref.read(bottomNavProvider.notifier).changeIndex(0);
   }
 }
 

@@ -1,0 +1,104 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/network/api_client.dart';
+import '../models/office_model.dart';
+
+abstract class PracticeRemoteDataSource {
+  Future<List<OfficeModel>> getOffices();
+  Future<Map<String, dynamic>> startDemoSession({
+    required String office,
+    String? profileType,
+  });
+  Future<Map<String, dynamic>> submitSession({
+    required String sessionId,
+    required List<Map<String, dynamic>> answers,
+  });
+  Future<List<Map<String, dynamic>>> reviewSession({
+    required String sessionId,
+  });
+}
+
+class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
+  final ApiClient apiClient;
+
+  PracticeRemoteDataSourceImpl({required this.apiClient});
+
+  @override
+  Future<List<OfficeModel>> getOffices() async {
+    final response = await apiClient.get(
+      ApiConstants.practiceOffices,
+      requiresAuth: false,
+    );
+
+    if (response is Map<String, dynamic> && response['data'] is List) {
+      final list = response['data'] as List<dynamic>;
+      return list
+          .map((item) => OfficeModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<Map<String, dynamic>> startDemoSession({
+    required String office,
+    String? profileType,
+  }) async {
+    final body = {
+      'mode': 'demo',
+      'office': office,
+      if (profileType != null && profileType.isNotEmpty)
+        'profileType': profileType,
+    };
+
+    final response = await apiClient.post(
+      ApiConstants.practiceSession,
+      body: body,
+      requiresAuth: false,
+    );
+
+    if (response is Map<String, dynamic>) {
+      return response;
+    }
+    return {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> submitSession({
+    required String sessionId,
+    required List<Map<String, dynamic>> answers,
+  }) async {
+    final response = await apiClient.post(
+      ApiConstants.practiceSessionSubmit(sessionId),
+      body: {'answers': answers},
+      requiresAuth: false,
+    );
+
+    if (response is Map<String, dynamic>) {
+      return response;
+    }
+    return {};
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> reviewSession({
+    required String sessionId,
+  }) async {
+    final response = await apiClient.get(
+      ApiConstants.practiceSessionReview(sessionId),
+      requiresAuth: false,
+    );
+
+    if (response is Map<String, dynamic> && response['data'] is List) {
+      final list = response['data'] as List<dynamic>;
+      return list.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+}
+
+final practiceRemoteDataSourceProvider =
+    Provider<PracticeRemoteDataSource>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return PracticeRemoteDataSourceImpl(apiClient: apiClient);
+});

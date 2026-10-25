@@ -193,7 +193,27 @@ class OnboardingScreen extends ConsumerWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  // Explore as Guest Button
+                  TextButton.icon(
+                    onPressed: () => context.go('/main'),
+                    icon: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    label: const Text(
+                      'Explore Free Demo as Guest',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
                 ],
               ),
             ),

@@ -1,16 +1,31 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'nav_item.dart';
 
 class CustomBottomNav extends ConsumerWidget {
   const CustomBottomNav({super.key});
 
+  void _onTabSelected(BuildContext context, WidgetRef ref, int index, String label) {
+    if (index != 0) {
+      final isAuth = ref.read(authProvider).isAuthenticated;
+      if (!isAuth) {
+        AuthGateBottomSheet.show(
+          context,
+          targetFeature: '$label mode',
+        );
+        return;
+      }
+    }
+    ref.read(bottomNavProvider.notifier).changeIndex(index);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavProvider);
-    final notifier = ref.read(bottomNavProvider.notifier);
 
     return Container(
       height: 72,
@@ -39,7 +54,7 @@ class CustomBottomNav extends ConsumerWidget {
             label: 'Home',
             index: 0,
             isSelected: currentIndex == 0,
-            onTap: () => notifier.changeIndex(0),
+            onTap: () => _onTabSelected(context, ref, 0, 'Home'),
           ),
           NavItem(
             icon: currentIndex == 1
@@ -48,7 +63,7 @@ class CustomBottomNav extends ConsumerWidget {
             label: 'Practice',
             index: 1,
             isSelected: currentIndex == 1,
-            onTap: () => notifier.changeIndex(1),
+            onTap: () => _onTabSelected(context, ref, 1, 'Practice'),
           ),
           NavItem(
             icon: currentIndex == 2
@@ -57,7 +72,7 @@ class CustomBottomNav extends ConsumerWidget {
             label: 'Review',
             index: 2,
             isSelected: currentIndex == 2,
-            onTap: () => notifier.changeIndex(2),
+            onTap: () => _onTabSelected(context, ref, 2, 'Review'),
           ),
           NavItem(
             icon: currentIndex == 3
@@ -66,7 +81,7 @@ class CustomBottomNav extends ConsumerWidget {
             label: 'Account',
             index: 3,
             isSelected: currentIndex == 3,
-            onTap: () => notifier.changeIndex(3),
+            onTap: () => _onTabSelected(context, ref, 3, 'Account'),
           ),
         ],
       ),

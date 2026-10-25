@@ -141,6 +141,10 @@ class AccountNotifier extends Notifier<ProfileState> {
     state = state.copyWith(notificationsEnabled: value);
   }
 
+  void clear() {
+    state = ProfileState();
+  }
+
   Future<bool> updateProfile({
     required String name,
     required String email,

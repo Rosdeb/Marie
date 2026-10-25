@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../../core/widgets/global_header.dart';
-import '../../data/models/demo_model.dart';
+import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
-import '../providers/demo_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -167,26 +167,10 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // 3. Try Free Demo Cards (1 to 5)
-                    ...List.generate(
-                      5,
-                      (index) => _buildDemoCard(
-                        context,
-                        ref,
-                        DemoItem(
-                          id: 'demo_${index + 1}',
-                          title: 'Try Free Demo ${index + 1}',
-                          questions: 20,
-                          minutes: 25,
-                          subdiscipline: 'IP Law Core Set ${index + 1}',
-                          level: index == 0
-                              ? 'Beginner'
-                              : (index < 3 ? 'Intermediate' : 'Advanced'),
-                        ),
-                      ),
-                    ),
+                    // 3. Featured Try Free Demo Card (Moves to Demo Offices Catalogue)
+                    _buildTryFreeDemoCard(context, ref),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
 
                     // 4. Topics Section Header
                     const Text(
@@ -340,8 +324,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Demo Card Builder Helper
-  Widget _buildDemoCard(BuildContext context, WidgetRef ref, DemoItem demo) {
+  // Featured Demo Card using the previous design pointing to the dedicated Demo Offices catalogue
+  Widget _buildTryFreeDemoCard(BuildContext context, WidgetRef ref) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -360,9 +344,9 @@ class HomeScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            demo.title,
-            style: const TextStyle(
+          const Text(
+            'Try Free Demo',
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -386,8 +370,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               onPressed: () {
-                ref.read(selectedDemoProvider.notifier).selectDemo(demo);
-                context.push('/home/demo-config');
+                context.push('/home/demo-offices');
               },
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -440,6 +423,11 @@ class HomeScreen extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            final isAuth = ref.read(authProvider).isAuthenticated;
+            if (!isAuth) {
+              AuthGateBottomSheet.show(context, targetFeature: '$title Practice');
+              return;
+            }
             ref.read(practiceProvider.notifier).setTopic(title);
             context.push('/practice/choose-jurisdiction');
           },
