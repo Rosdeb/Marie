@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/question_report_dialog.dart';
 import '../../data/models/quiz_models.dart';
 import '../providers/quiz_provider.dart';
 
@@ -167,6 +168,24 @@ class ActiveQuizScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.flag_outlined,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Report question',
+                      onPressed: () {
+                        QuestionReportDialog.show(
+                          context,
+                          ref,
+                          questionId: question.id,
+                        );
+                      },
                     ),
                   ],
                 ),

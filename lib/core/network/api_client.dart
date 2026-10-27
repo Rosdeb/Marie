@@ -41,12 +41,21 @@ class ApiClient {
     };
 
     if (customToken != null && customToken.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $customToken';
+      headers['Authorization'] = customToken.startsWith('Bearer ')
+          ? customToken
+          : 'Bearer $customToken';
     } else if (requiresAuth) {
       final token = await localStorage.getAccessToken();
       if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
+        headers['Authorization'] = token.startsWith('Bearer ')
+            ? token
+            : 'Bearer $token';
       }
+    }
+
+    final refreshToken = await localStorage.getRefreshToken();
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      headers['Cookie'] = 'refreshToken=$refreshToken';
     }
 
     if (extraHeaders != null) {

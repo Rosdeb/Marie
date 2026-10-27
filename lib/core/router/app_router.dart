@@ -4,7 +4,6 @@ import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/auth/presentation/screens/create_account_screen.dart';
-import '../../features/auth/presentation/screens/subscription_screen.dart';
 import '../../features/auth/presentation/screens/confirm_subscription_screen.dart';
 import '../../features/auth/presentation/screens/subscription_success_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -30,6 +29,9 @@ import '../../features/practice/presentation/screens/quiz_setup_screen.dart';
 import '../../features/practice/presentation/screens/active_quiz_screen.dart';
 import '../../features/practice/presentation/screens/quiz_result_screen.dart';
 import '../../features/practice/presentation/screens/answer_review_screen.dart';
+import '../../features/subscription/presentation/screens/plans_screen.dart';
+import '../../features/subscription/presentation/screens/office_selection_screen.dart';
+import '../../features/subscription/presentation/screens/how_subscriptions_work_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -58,7 +60,22 @@ class AppRouter {
       GoRoute(
         path: '/subscription',
         name: 'subscription',
-        builder: (context, state) => const SubscriptionScreen(),
+        builder: (context, state) => const PlansScreen(),
+      ),
+      GoRoute(
+        path: '/subscription/plans',
+        name: 'subscriptionPlans',
+        builder: (context, state) => const PlansScreen(),
+      ),
+      GoRoute(
+        path: '/subscription/office-selection',
+        name: 'officeSelection',
+        builder: (context, state) => const OfficeSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/subscription/how-it-works',
+        name: 'howSubscriptionsWork',
+        builder: (context, state) => const HowSubscriptionsWorkScreen(),
       ),
       GoRoute(
         path: '/confirm-subscription',

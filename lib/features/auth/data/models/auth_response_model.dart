@@ -39,6 +39,8 @@ class AuthResponseModel {
       accessToken = (data['accessToken'] ?? data['token'])?.toString();
       refreshToken = data['refreshToken']?.toString();
       tempToken = (data['token'] ?? data['resetToken'] ?? data['signupToken'])?.toString();
+    } else if (data is String && data.isNotEmpty) {
+      tempToken = data;
     }
 
     return AuthResponseModel(

@@ -5,6 +5,8 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../../account/presentation/providers/account_provider.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../home/presentation/providers/notification_provider.dart';
+import '../../../subscription/data/services/revenuecat_purchase_service.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
 
 enum AuthMode {
   initial,
@@ -89,6 +91,9 @@ class AuthNotifier extends Notifier<AuthState> {
     final isAuth = await _authRepository.isAuthenticated();
     if (isAuth) {
       final user = await _authRepository.getCurrentUser();
+      if (user != null && user.id.isNotEmpty) {
+        ref.read(revenueCatServiceProvider).logIn(user.id);
+      }
       state = state.copyWith(
         isAuthenticated: true,
         currentUser: user,
@@ -117,6 +122,9 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(isLoading: true, email: email, clearError: true);
     try {
       final user = await _authRepository.signIn(email: email, password: password);
+      if (user.id.isNotEmpty) {
+        ref.read(revenueCatServiceProvider).logIn(user.id);
+      }
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
@@ -214,11 +222,13 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> verifyForgotOtp(String otp) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final token = state.tempToken ?? await _authRepository.getTempToken();
       final success = await _authRepository.forgotOtpVerify(
         otp: otp,
-        resetToken: state.tempToken,
+        resetToken: token,
       );
-      state = state.copyWith(isLoading: false);
+      final updatedToken = await _authRepository.getTempToken() ?? token;
+      state = state.copyWith(isLoading: false, tempToken: updatedToken);
       return success;
     } catch (e) {
       state = state.copyWith(
@@ -232,12 +242,13 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> resetPassword(String newPassword, [String? confirmPassword]) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final token = state.tempToken ?? await _authRepository.getTempToken();
       final success = await _authRepository.resetPassword(
         newPassword: newPassword,
         confirmPassword: confirmPassword ?? newPassword,
-        resetToken: state.tempToken,
+        resetToken: token,
       );
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, tempToken: null);
       return success;
     } catch (e) {
       state = state.copyWith(
@@ -308,9 +319,11 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await _authRepository.signOut();
+    ref.read(revenueCatServiceProvider).logOut();
     state = AuthState();
     ref.read(accountProvider.notifier).clear();
     ref.read(notificationProvider.notifier).clearAll();
+    ref.read(entitlementProvider.notifier).clear();
     ref.read(bottomNavProvider.notifier).changeIndex(0);
   }
 }

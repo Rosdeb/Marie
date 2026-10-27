@@ -25,7 +25,7 @@ abstract class AuthRemoteDataSource {
     required String newPassword,
     required String confirmPassword,
   });
-  Future<void> refreshToken();
+  Future<AuthResponseModel> refreshToken();
   Future<void> logout();
 }
 
@@ -100,11 +100,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<AuthResponseModel> forgotOtpVerify({required String otp, String? resetToken}) async {
+    final token = (resetToken != null && resetToken.isNotEmpty)
+        ? resetToken
+        : await apiClient.localStorage.getTempToken();
     final response = await apiClient.post(
       ApiConstants.forgotOtpVerify,
       body: {'otp': otp},
-      customToken: resetToken,
-      requiresAuth: resetToken == null,
+      customToken: token,
+      requiresAuth: false,
     );
     return AuthResponseModel.fromJson(response as Map<String, dynamic>);
   }
@@ -115,14 +118,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String confirmPassword,
     String? resetToken,
   }) async {
+    final token = (resetToken != null && resetToken.isNotEmpty)
+        ? resetToken
+        : await apiClient.localStorage.getTempToken();
     final response = await apiClient.post(
       ApiConstants.resetPassword,
       body: {
         'newPassword': newPassword,
         'confirmPassword': confirmPassword,
       },
-      customToken: resetToken,
-      requiresAuth: resetToken == null,
+      customToken: token,
+      requiresAuth: false,
     );
     return AuthResponseModel.fromJson(response as Map<String, dynamic>);
   }
@@ -146,11 +152,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> refreshToken() async {
-    await apiClient.post(
+  Future<AuthResponseModel> refreshToken() async {
+    final response = await apiClient.post(
       ApiConstants.refreshToken,
       requiresAuth: true,
     );
+    return AuthResponseModel.fromJson(response as Map<String, dynamic>);
   }
 
   @override

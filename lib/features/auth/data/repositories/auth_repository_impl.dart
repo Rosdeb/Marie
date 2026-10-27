@@ -87,7 +87,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
   }) async {
     final response = await remoteDataSource.forgotPassword(email);
-    if (response.tempToken != null) {
+    if (response.tempToken != null && response.tempToken!.isNotEmpty) {
       await localStorage.saveTempToken(response.tempToken!);
     }
     return response.tempToken;
@@ -98,8 +98,13 @@ class AuthRepositoryImpl implements AuthRepository {
     required String otp,
     String? resetToken,
   }) async {
-    final token = resetToken ?? await localStorage.getTempToken();
+    final token = (resetToken != null && resetToken.isNotEmpty)
+        ? resetToken
+        : await localStorage.getTempToken();
     final response = await remoteDataSource.forgotOtpVerify(otp: otp, resetToken: token);
+    if (response.tempToken != null && response.tempToken!.isNotEmpty) {
+      await localStorage.saveTempToken(response.tempToken!);
+    }
     return response.success;
   }
 
@@ -109,7 +114,9 @@ class AuthRepositoryImpl implements AuthRepository {
     required String confirmPassword,
     String? resetToken,
   }) async {
-    final token = resetToken ?? await localStorage.getTempToken();
+    final token = (resetToken != null && resetToken.isNotEmpty)
+        ? resetToken
+        : await localStorage.getTempToken();
     final response = await remoteDataSource.resetPassword(
       newPassword: newPassword,
       confirmPassword: confirmPassword,
@@ -135,8 +142,23 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> refreshToken() async {
-    await remoteDataSource.refreshToken();
+    final response = await remoteDataSource.refreshToken();
+    if (response.accessToken != null && response.accessToken!.isNotEmpty) {
+      await localStorage.saveAccessToken(response.accessToken!);
+    }
+    if (response.refreshToken != null && response.refreshToken!.isNotEmpty) {
+      await localStorage.saveRefreshToken(response.refreshToken!);
+    }
   }
+
+  @override
+  Future<String?> getTempToken() => localStorage.getTempToken();
+
+  @override
+  Future<void> saveTempToken(String token) => localStorage.saveTempToken(token);
+
+  @override
+  Future<void> clearTempToken() => localStorage.clearTempToken();
 
   @override
   Future<void> signOut() async {

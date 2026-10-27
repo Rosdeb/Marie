@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/question_report_dialog.dart';
 import '../providers/quiz_provider.dart';
 
 class AnswerReviewScreen extends ConsumerWidget {
@@ -66,14 +67,39 @@ class AnswerReviewScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${qIndex + 1}. ${question.questionText}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      height: 1.4,
-                      color: AppColors.textPrimary,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${qIndex + 1}. ${question.questionText}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            height: 1.4,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.flag_outlined,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Report question',
+                        onPressed: () {
+                          QuestionReportDialog.show(
+                            context,
+                            ref,
+                            questionId: question.id,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   ...List.generate(question.options.length, (optIndex) {

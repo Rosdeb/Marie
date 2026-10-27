@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../data/models/discipline_theme_models.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
 
@@ -13,13 +14,38 @@ class ChooseLevelScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selection = ref.watch(practiceProvider);
 
+    final currentDiscipline = selection.disciplines.firstWhere(
+      (d) => d.name.toLowerCase() == (selection.topic ?? '').toLowerCase(),
+      orElse: () => DisciplineDetailModel(name: selection.topic ?? 'Patents'),
+    );
+
+    LevelDetailModel getLevelInfo(String levelName, int defaultMinutes) {
+      return currentDiscipline.levels.firstWhere(
+        (l) => l.level.toLowerCase() == levelName.toLowerCase(),
+        orElse: () => LevelDetailModel(
+          level: levelName,
+          questions: 200,
+          minutes: defaultMinutes,
+        ),
+      );
+    }
+
+    final beginner = getLevelInfo('Beginner', 20);
+    final intermediate = getLevelInfo('Intermediate', 30);
+    final advanced = getLevelInfo('Advanced', 40);
+    final expert = getLevelInfo('Expert', 50);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textPrimary, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: AppColors.textPrimary,
+            size: 18,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -33,118 +59,110 @@ class ChooseLevelScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       body: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                children: [
-                  Text(
-                    '${selection.topic ?? "Patents"} • ${selection.jurisdiction ?? "EPO"}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              children: [
+                Text(
+                  '${selection.topic ?? "Patents"} • ${selection.jurisdiction ?? "IPI"}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Select difficulty level for your practice session.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Select difficulty level for your practice session.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 20),
 
-                  // Tier 1 Section (Unlocked)
-                  _buildTierHeader(
-                    title: 'Tier 1 — Foundation',
-                    isLocked: false,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildLevelCard(
-                    context: context,
-                    ref: ref,
-                    title: 'Beginner',
-                    subtitle: 'Basic fundamental principles and core legal definitions',
-                    questionBadge: '20',
-                    isSelected: selection.level == 'Beginner',
-                    isLocked: false,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildLevelCard(
-                    context: context,
-                    ref: ref,
-                    title: 'Intermediate',
-                    subtitle: 'Applied procedural scenarios and standard filing guidelines',
-                    questionBadge: '20',
-                    isSelected: selection.level == 'Intermediate',
-                    isLocked: false,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Tier 2 Section (Locked)
-                  _buildTierHeader(
-                    title: 'Tier 2 — Advanced Mastery',
-                    isLocked: true,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildLevelCard(
-                    context: context,
-                    ref: ref,
-                    title: 'Advanced',
-                    subtitle: 'Complex case examination and multi-jurisdictional rules',
-                    questionBadge: '60',
-                    tierIncludeBadge: 'Includes Tier 1',
-                    isSelected: selection.level == 'Advanced',
-                    isLocked: true,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildLevelCard(
-                    context: context,
-                    ref: ref,
-                    title: 'Expert',
-                    subtitle: 'Exhaustive precedent analysis and bar exam level questions',
-                    questionBadge: '60',
-                    tierIncludeBadge: 'Includes Tier 1',
-                    isSelected: selection.level == 'Expert',
-                    isLocked: true,
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+                _buildTierHeader(
+                  title: 'Practice Levels',
+                  isLocked: false,
+                ),
+                const SizedBox(height: 10),
+                _buildLevelCard(
+                  context: context,
+                  ref: ref,
+                  title: 'Beginner',
+                  subtitle: 'Basic fundamental principles and core legal definitions',
+                  questionBadge: '${beginner.questions > 0 ? beginner.questions : 20}',
+                  durationMinutes: beginner.minutes,
+                  isSelected: selection.level == 'Beginner',
+                  isLocked: false,
+                ),
+                const SizedBox(height: 10),
+                _buildLevelCard(
+                  context: context,
+                  ref: ref,
+                  title: 'Intermediate',
+                  subtitle: 'Applied procedural scenarios and standard filing guidelines',
+                  questionBadge: '${intermediate.questions > 0 ? intermediate.questions : 20}',
+                  durationMinutes: intermediate.minutes,
+                  isSelected: selection.level == 'Intermediate',
+                  isLocked: false,
+                ),
+                const SizedBox(height: 10),
+                _buildLevelCard(
+                  context: context,
+                  ref: ref,
+                  title: 'Advanced',
+                  subtitle: 'Complex case examination and multi-jurisdictional rules',
+                  questionBadge: '${advanced.questions > 0 ? advanced.questions : 20}',
+                  durationMinutes: advanced.minutes,
+                  isSelected: selection.level == 'Advanced',
+                  isLocked: false,
+                ),
+                const SizedBox(height: 10),
+                _buildLevelCard(
+                  context: context,
+                  ref: ref,
+                  title: 'Expert',
+                  subtitle: 'Exhaustive precedent analysis and bar exam level questions',
+                  questionBadge: '${expert.questions > 0 ? expert.questions : 20}',
+                  durationMinutes: expert.minutes,
+                  isSelected: selection.level == 'Expert',
+                  isLocked: false,
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  CustomButton(
-                    text: 'Continue',
-                    onPressed: selection.level != null &&
-                            selection.level != 'Advanced' &&
-                            selection.level != 'Expert'
-                        ? () {
-                            ref.read(quizProvider.notifier).setLevel(selection.level!);
-                            context.push('/practice/exam-ready');
-                          }
-                        : null,
-                  ),
-                  const SizedBox(height: 15,),
-                ],
-              ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, -3),
+                ),
+              ],
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                CustomButton(
+                  text: 'Continue',
+                  onPressed: selection.level != null
+                      ? () {
+                          ref.read(quizProvider.notifier).setLevel(selection.level!);
+                          context.push('/practice/exam-ready');
+                        }
+                      : null,
+                ),
+                const SizedBox(height: 15),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -160,29 +178,6 @@ class ChooseLevelScreen extends ConsumerWidget {
             color: AppColors.textPrimary,
           ),
         ),
-        if (isLocked)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.accentWarning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lock_outline_rounded, size: 12, color: AppColors.error),
-                SizedBox(width: 4),
-                Text(
-                  'Locked',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }
@@ -193,7 +188,7 @@ class ChooseLevelScreen extends ConsumerWidget {
     required String title,
     required String subtitle,
     required String questionBadge,
-    String? tierIncludeBadge,
+    required int durationMinutes,
     required bool isSelected,
     required bool isLocked,
   }) {
@@ -219,23 +214,6 @@ class ChooseLevelScreen extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            if (isLocked) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '$title level is available in the Tier 2 Pro Plan.',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  action: SnackBarAction(
-                    label: 'Upgrade',
-                    textColor: Colors.white,
-                    onPressed: () => context.push('/subscription'),
-                  ),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-              return;
-            }
             ref.read(practiceProvider.notifier).setLevel(title);
             ref.read(quizProvider.notifier).setLevel(title);
           },
@@ -256,22 +234,23 @@ class ChooseLevelScreen extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: isLocked
-                                  ? AppColors.textSecondary
-                                  : isSelected
-                                      ? AppColors.primary
-                                      : AppColors.textPrimary,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '$questionBadge Qs',
+                              '$durationMinutes min',
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -279,24 +258,25 @@ class ChooseLevelScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          if (tierIncludeBadge != null) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.border.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                tierIncludeBadge,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '$questionBadge pool',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
                               ),
                             ),
-                          ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -312,24 +292,16 @@ class ChooseLevelScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                if (isLocked)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 2),
-                    child: Icon(
-                      Icons.lock_rounded,
-                      size: 20,
-                      color: AppColors.textSecondary,
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Icon(
-                      isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                      size: 22,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
+                    size: 22,
                   ),
+                ),
               ],
             ),
           ),

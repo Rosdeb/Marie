@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/global_header.dart';
+import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
+import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
 import '../../data/models/review_model.dart';
 import '../providers/review_provider.dart';
 
@@ -12,8 +15,43 @@ class ReviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final reviewState = ref.watch(reviewStateProvider);
     final filteredSessions = ref.watch(filteredReviewSessionsProvider);
     final currentFilter = ref.watch(reviewFilterProvider);
+    final practiceSelection = ref.watch(practiceProvider);
+    final entitlement = ref.watch(entitlementProvider);
+
+    final defaultOffice = practiceSelection.jurisdiction ??
+        (entitlement.includedOffices.isNotEmpty
+            ? entitlement.includedOffices.first
+            : 'IPI');
+
+    // Calculate aggregated stats (from backend meta.summary if available, otherwise session fold)
+    final summary = reviewState.summary;
+    final totalReviewed = summary?.questionsAnswered ??
+        reviewState.sessions.fold<int>(
+          0,
+          (sum, s) => sum + s.totalQuestions,
+        );
+    final totalCorrect = summary?.correctAnswers ??
+        reviewState.sessions.fold<int>(
+          0,
+          (sum, s) => sum + s.correctCount,
+        );
+    final avgAccuracy = summary != null
+        ? summary.averageScorePercentage
+        : (totalReviewed > 0
+            ? (totalCorrect / totalReviewed) * 100
+            : (reviewState.sessions.isNotEmpty ? 75.0 : 0.0));
+
+    final totalMistakes = summary != null
+        ? summary.wrongAnswers
+        : (reviewState.mistakes.total > 0
+            ? reviewState.mistakes.total
+            : reviewState.sessions.fold<int>(
+                0,
+                (sum, s) => sum + s.flaggedCount,
+              ));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -22,228 +60,266 @@ class ReviewScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fixed Top App Bar Section
             const GlobalHeader(title: 'Review'),
-
-
-            // Scrollable Content
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20.0, 4.0, 20.0, 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 2. Flagged Review Hero Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20.0),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryDeep, AppColors.primaryDeep],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.22),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'QUICK REVIEW',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                              const Icon(
-                                Icons.bookmark_added_outlined,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+              child: RefreshIndicator(
+                onRefresh: () =>
+                    ref.read(reviewStateProvider.notifier).fetchReviewData(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(20.0, 4.0, 20.0, 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Flagged & Mistakes Hero Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20.0),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              AppColors.primaryDeep,
+                              AppColors.primaryDeep
                             ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Flagged & Saved Questions',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.22),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '17 questions saved across Patents and Trademarks for focused review.',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.85),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 42,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppColors.primary,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () {
-                                ref.read(quizProvider.notifier).startQuiz();
-                                context.push('/practice/answer-review');
-                              },
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Review Flagged Items',
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'PRACTICE MISTAKES',
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      color: Colors.white,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
-                                  SizedBox(width: 6),
-                                  Icon(Icons.arrow_forward_rounded, size: 16),
-                                ],
+                                ),
+                                const Icon(
+                                  Icons.bookmark_added_outlined,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Outstanding Mistakes',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
                               ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '$totalMistakes questions identified for focused review and mastery.',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 42,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.primary,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  if (!entitlement.canAccessOffice(defaultOffice)) {
+                                    PlanUpsellBottomSheet.show(
+                                      context,
+                                      officeCode: defaultOffice,
+                                      officeName: defaultOffice,
+                                      territory: 'Official IP Office',
+                                    );
+                                    return;
+                                  }
+
+                                  final success = await ref
+                                      .read(quizProvider.notifier)
+                                      .startPracticeSession(
+                                        office: defaultOffice,
+                                        mode: 'review_mistakes',
+                                      );
+
+                                  if (context.mounted) {
+                                    if (success) {
+                                      context.push('/practice/active-quiz');
+                                    } else {
+                                      final err = ref.read(quizProvider).errorMessage ??
+                                          'Failed to start mistake review session';
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(err),
+                                          backgroundColor: AppColors.error,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Practice Mistakes Now',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(width: 6),
+                                    Icon(Icons.arrow_forward_rounded, size: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // 2. Stats Overview Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatMiniCard(
+                              label: 'Reviewed',
+                              value: '$totalReviewed Qs',
+                              color: AppColors.primary,
+                              icon: Icons.checklist_rounded,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildStatMiniCard(
+                              label: 'Avg Accuracy',
+                              value: '${avgAccuracy.toStringAsFixed(0)}%',
+                              color: avgAccuracy >= 70
+                                  ? Colors.green
+                                  : AppColors.accentWarning,
+                              icon: Icons.trending_up_rounded,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildStatMiniCard(
+                              label: 'Mistakes',
+                              color: totalMistakes > 0
+                                  ? AppColors.error
+                                  : AppColors.textPrimary,
+                              value: '$totalMistakes',
+                              icon: Icons.flag_outlined,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // 3. Stats Overview Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatMiniCard(
-                            label: 'Reviewed',
-                            value: '80 Qs',
-                            color: AppColors.textPrimary,
-                            icon: Icons.checklist_rounded,
-                          ),
+                      // 3. Filter Pills
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            _buildFilterPill(
+                              ref: ref,
+                              label: 'All Sessions (${reviewState.sessions.length})',
+                              filter: ReviewFilter.all,
+                              isSelected: currentFilter == ReviewFilter.all,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterPill(
+                              ref: ref,
+                              label: 'Needs Focus',
+                              filter: ReviewFilter.incorrect,
+                              isSelected: currentFilter == ReviewFilter.incorrect,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterPill(
+                              ref: ref,
+                              label: 'Completed',
+                              filter: ReviewFilter.completed,
+                              isSelected: currentFilter == ReviewFilter.completed,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildStatMiniCard(
-                            label: 'Avg Accuracy',
-                            value: '78%',
-                            color: Colors.green,
-                            icon: Icons.trending_up_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildStatMiniCard(
-                            label: 'Flagged',
-                            color: AppColors.textPrimary,
-                            value: '17',
-                            icon: Icons.flag_outlined,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 4. Filter Pills
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _buildFilterPill(
-                            ref: ref,
-                            label: 'All Sessions',
-                            filter: ReviewFilter.all,
-                            isSelected: currentFilter == ReviewFilter.all,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterPill(
-                            ref: ref,
-                            label: 'Flagged (3)',
-                            filter: ReviewFilter.flagged,
-                            isSelected: currentFilter == ReviewFilter.flagged,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterPill(
-                            ref: ref,
-                            label: 'Needs Focus (3)',
-                            filter: ReviewFilter.incorrect,
-                            isSelected: currentFilter == ReviewFilter.incorrect,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterPill(
-                            ref: ref,
-                            label: 'Completed',
-                            filter: ReviewFilter.completed,
-                            isSelected: currentFilter == ReviewFilter.completed,
-                          ),
-                        ],
                       ),
-                    ),
-                    const SizedBox(height: 18),
+                      const SizedBox(height: 18),
 
-                    // 5. Session List Header
-                    const Text(
-                      'Past Exam Sessions',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 6. Session Cards List
-                    if (filteredSessions.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(28.0),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'No sessions match the selected filter.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
+                      // 4. Session List Header
+                      const Text(
+                        'Past Exam Sessions',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
-                      )
-                    else
-                      ...filteredSessions.map(
-                        (session) => _buildSessionCard(context, ref, session),
                       ),
+                      const SizedBox(height: 12),
 
-                    const SizedBox(height: 20),
-                  ],
+                      // 5. Session Cards List
+                      if (reviewState.isLoading && reviewState.sessions.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (filteredSessions.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(28.0),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'No sessions match the selected filter.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        )
+                      else
+                        ...filteredSessions.map(
+                          (session) => _buildSessionCard(context, ref, session),
+                        ),
+
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -353,9 +429,20 @@ class ReviewScreen extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
+          onTap: () async {
+            if (session.sessionId.isNotEmpty) {
+              final ok = await ref
+                  .read(quizProvider.notifier)
+                  .loadPastSessionReview(session.sessionId);
+              if (context.mounted && ok) {
+                context.push('/practice/answer-review');
+                return;
+              }
+            }
             ref.read(quizProvider.notifier).startQuiz();
-            context.push('/practice/answer-review');
+            if (context.mounted) {
+              context.push('/practice/answer-review');
+            }
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -366,42 +453,80 @@ class ReviewScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Text(
                             session.jurisdiction,
                             style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primaryDeep,
                             ),
                           ),
-                        const SizedBox(width: 6),
-                        Text(
-                            session.level,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
+                          if (session.discipline.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                '• ${session.discipline}',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ),
-                          ),
-                      ],
+                          ],
+                          if (session.level.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.badgeBg,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                session.level,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (session.timeTaken.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '• ${session.timeTaken}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                     Text(
                       session.completedDate,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.black,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   session.title,
                   style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -412,22 +537,23 @@ class ReviewScreen extends ConsumerWidget {
                     Row(
                       children: [
                         Text(
-                          '${session.correctCount}/${session.totalQuestions} Correct (${session.accuracy.toStringAsFixed(0)}%)',
+                          '${session.formatted.isNotEmpty ? session.formatted : "${session.correctCount}/${session.totalQuestions}"} Correct (${session.accuracy.toStringAsFixed(0)}%)',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: session.accuracy >= 75
+                            color: session.accuracy >= 70
                                 ? AppColors.success
                                 : AppColors.accentWarning,
                           ),
                         ),
-                        if (session.flaggedCount > 0) ...[
+                        if (session.incorrectCount > 0) ...[
                           const SizedBox(width: 8),
                           Text(
-                            '• ${session.flaggedCount} flagged',
+                            '• ${session.incorrectCount} mistakes',
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black,
+                              fontSize: 11,
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -440,14 +566,14 @@ class ReviewScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primaryDeep,
+                            color: AppColors.primary,
                           ),
                         ),
                         SizedBox(width: 4),
                         Icon(
                           Icons.arrow_forward_ios_rounded,
-                          size: 12,
-                          color: AppColors.blue,
+                          size: 11,
+                          color: AppColors.primary,
                         ),
                       ],
                     ),

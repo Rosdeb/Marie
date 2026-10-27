@@ -45,6 +45,12 @@ abstract class AuthRepository {
 
   Future<void> refreshToken();
 
+  Future<String?> getTempToken();
+
+  Future<void> saveTempToken(String token);
+
+  Future<void> clearTempToken();
+
   Future<void> signOut();
 
   Future<UserEntity?> getCurrentUser();

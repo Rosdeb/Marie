@@ -1,66 +1,108 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/review_model.dart';
+import '../../data/repositories/review_repository_impl.dart';
+import '../../domain/repositories/review_repository.dart';
 
 enum ReviewFilter { all, flagged, incorrect, completed }
 
-class ReviewNotifier extends Notifier<List<ReviewSession>> {
-  @override
-  List<ReviewSession> build() {
-    return const [
-      ReviewSession(
-        id: '1',
-        title: 'EPO Patents Foundation Exam',
-        topic: 'Patents',
-        jurisdiction: 'EPO',
-        level: 'Beginner',
-        totalQuestions: 20,
-        correctCount: 16,
-        flaggedCount: 4,
-        completedDate: 'Today, 11:20 AM',
-        isFlagged: true,
-      ),
-      ReviewSession(
-        id: '2',
-        title: 'Madrid System Trademarks Core',
-        topic: 'Trademarks',
-        jurisdiction: 'Madrid System',
-        level: 'Intermediate',
-        totalQuestions: 20,
-        correctCount: 14,
-        flaggedCount: 6,
-        completedDate: 'Yesterday',
-        isFlagged: true,
-      ),
-      ReviewSession(
-        id: '3',
-        title: 'Hague System Design Filing',
-        topic: 'Designs',
-        jurisdiction: 'Hague System',
-        level: 'Beginner',
-        totalQuestions: 20,
-        correctCount: 18,
-        flaggedCount: 2,
-        completedDate: 'Sep 22, 2026',
-        isFlagged: false,
-      ),
-      ReviewSession(
-        id: '4',
-        title: 'PCT International Patent Rules',
-        topic: 'Patents',
-        jurisdiction: 'PCT',
-        level: 'Intermediate',
-        totalQuestions: 20,
-        correctCount: 15,
-        flaggedCount: 5,
-        completedDate: 'Sep 20, 2026',
-        isFlagged: true,
-      ),
-    ];
+class ReviewState {
+  final List<ReviewSession> sessions;
+  final PracticeHistoryMeta? meta;
+  final MistakesSummary mistakes;
+  final List<Map<String, dynamic>> learningPath;
+  final bool isLoading;
+  final String? errorMessage;
+  final String? mode;
+  final String? office;
+
+  const ReviewState({
+    this.sessions = const [],
+    this.meta,
+    this.mistakes = const MistakesSummary(),
+    this.learningPath = const [],
+    this.isLoading = false,
+    this.errorMessage,
+    this.mode,
+    this.office,
+  });
+
+  PracticeHistorySummary? get summary => meta?.summary;
+
+  ReviewState copyWith({
+    List<ReviewSession>? sessions,
+    PracticeHistoryMeta? meta,
+    MistakesSummary? mistakes,
+    List<Map<String, dynamic>>? learningPath,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+    String? mode,
+    String? office,
+  }) {
+    return ReviewState(
+      sessions: sessions ?? this.sessions,
+      meta: meta ?? this.meta,
+      mistakes: mistakes ?? this.mistakes,
+      learningPath: learningPath ?? this.learningPath,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      mode: mode ?? this.mode,
+      office: office ?? this.office,
+    );
   }
 }
 
-final reviewSessionsProvider =
-    NotifierProvider<ReviewNotifier, List<ReviewSession>>(ReviewNotifier.new);
+class ReviewNotifier extends Notifier<ReviewState> {
+  late final ReviewRepository _repository;
+
+  @override
+  ReviewState build() {
+    _repository = ref.watch(reviewRepositoryProvider);
+    Future.microtask(() => fetchReviewData());
+    return const ReviewState(isLoading: true);
+  }
+
+  Future<void> fetchReviewData({
+    String? mode,
+    String? office,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final historyResult = await _repository.getHistory(
+        page: page,
+        limit: limit,
+        mode: mode ?? state.mode,
+        office: office ?? state.office,
+      );
+      final mistakes = await _repository.getMistakes();
+      final learningPath = await _repository.getLearningPath();
+
+      state = state.copyWith(
+        sessions: historyResult.sessions,
+        meta: historyResult.meta,
+        mistakes: mistakes,
+        learningPath: learningPath,
+        mode: mode ?? state.mode,
+        office: office ?? state.office,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+}
+
+final reviewStateProvider =
+    NotifierProvider<ReviewNotifier, ReviewState>(ReviewNotifier.new);
+
+final reviewSessionsProvider = Provider<List<ReviewSession>>((ref) {
+  return ref.watch(reviewStateProvider).sessions;
+});
 
 class ReviewFilterNotifier extends Notifier<ReviewFilter> {
   @override
@@ -72,20 +114,25 @@ class ReviewFilterNotifier extends Notifier<ReviewFilter> {
 }
 
 final reviewFilterProvider =
-    NotifierProvider<ReviewFilterNotifier, ReviewFilter>(ReviewFilterNotifier.new);
+    NotifierProvider<ReviewFilterNotifier, ReviewFilter>(
+        ReviewFilterNotifier.new);
 
 final filteredReviewSessionsProvider = Provider<List<ReviewSession>>((ref) {
-  final sessions = ref.watch(reviewSessionsProvider);
+  final reviewState = ref.watch(reviewStateProvider);
   final filter = ref.watch(reviewFilterProvider);
 
   switch (filter) {
     case ReviewFilter.all:
-      return sessions;
+      return reviewState.sessions;
     case ReviewFilter.flagged:
-      return sessions.where((s) => s.isFlagged || s.flaggedCount > 0).toList();
+      return reviewState.sessions
+          .where((s) => s.isFlagged || s.flaggedCount > 0)
+          .toList();
     case ReviewFilter.incorrect:
-      return sessions.where((s) => s.correctCount < s.totalQuestions).toList();
+      return reviewState.sessions
+          .where((s) => s.correctCount < s.totalQuestions)
+          .toList();
     case ReviewFilter.completed:
-      return sessions;
+      return reviewState.sessions;
   }
 });

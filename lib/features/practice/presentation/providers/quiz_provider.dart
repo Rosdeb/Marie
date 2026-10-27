@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../data/models/quiz_models.dart';
 import '../../domain/repositories/practice_repository.dart';
 import '../../data/repositories/practice_repository_impl.dart';
@@ -82,7 +83,90 @@ class QuizNotifier extends Notifier<QuizState> {
     }
   }
 
-  void startQuiz({int timePerQuestion = 60}) {
+  Future<bool> startPracticeSession({
+    required String office,
+    String mode = 'by_level',
+    String? subject,
+    String? level,
+    String? theme,
+    List<String>? offices,
+    String? profileType,
+  }) async {
+    final entitlement = ref.read(entitlementProvider);
+    if (!entitlement.canAccessOffice(office)) {
+      state = state.copyWith(
+        errorMessage: 'Subscription required to practice $office.',
+      );
+      return false;
+    }
+
+    _timer?.cancel();
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final response = await _practiceRepository.startPracticeSession(
+        mode: mode,
+        office: office,
+        subject: subject,
+        level: level,
+        theme: theme,
+        offices: offices,
+        profileType: profileType,
+      );
+
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final sessionId = data['sessionId'] as String? ?? '';
+      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
+      final rawQuestions = data['questions'] as List<dynamic>? ?? [];
+
+      final questions = rawQuestions
+          .map((q) => Question.fromJson(q as Map<String, dynamic>))
+          .toList();
+
+      final totalSec = timeLimitMinutes * 60;
+
+      state = QuizState(
+        sessionId: sessionId,
+        selectedOffice: office,
+        selectedSubdiscipline: subject ?? (questions.isNotEmpty ? questions.first.discipline : 'Patents'),
+        selectedLevel: level ?? (questions.isNotEmpty ? questions.first.level : 'Beginner'),
+        questionCount: questions.length,
+        questions: questions,
+        currentIndex: 0,
+        userAnswers: {},
+        timeSpentPerQuestion: {},
+        isSubmitted: false,
+        elapsedSeconds: 0,
+        totalSeconds: totalSec,
+        remainingSeconds: totalSec,
+      );
+
+      _startTimer();
+      return true;
+    } catch (e) {
+      final err = e.toString()
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('ServerException: ', '')
+          .replaceFirst('AuthException: ', '');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: err,
+      );
+      return false;
+    }
+  }
+
+  bool startQuiz({int timePerQuestion = 60, String? officeCode}) {
+    final targetOffice = officeCode ?? state.selectedOffice;
+    final entitlement = ref.read(entitlementProvider);
+
+    if (!entitlement.canAccessOffice(targetOffice)) {
+      state = state.copyWith(
+        errorMessage: 'Subscription required to practice $targetOffice.',
+      );
+      return false;
+    }
+
     _timer?.cancel();
     final mockQuestions = [
       Question(
@@ -139,6 +223,7 @@ class QuizNotifier extends Notifier<QuizState> {
     );
 
     _startTimer();
+    return true;
   }
 
   void _startTimer() {
@@ -235,6 +320,29 @@ class QuizNotifier extends Notifier<QuizState> {
       isSubmitting: false,
       isSubmitted: true,
     );
+  }
+
+  Future<bool> loadPastSessionReview(String sessionId) async {
+    _timer?.cancel();
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final reviewList = await _practiceRepository.reviewSession(sessionId: sessionId);
+      final reviewQuestions = reviewList.map((item) => Question.fromJson(item)).toList();
+      state = state.copyWith(
+        sessionId: sessionId,
+        reviewQuestions: reviewQuestions,
+        questions: reviewQuestions,
+        isLoading: false,
+        isSubmitted: true,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().replaceFirst('Exception: ', ''),
+      );
+      return false;
+    }
   }
 
   void stopTimer() {

@@ -3,16 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../subscription/domain/entities/entitlement_entity.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../providers/auth_provider.dart';
 
 class ConfirmSubscriptionScreen extends ConsumerStatefulWidget {
   const ConfirmSubscriptionScreen({super.key});
 
   @override
-  ConsumerState<ConfirmSubscriptionScreen> createState() => _ConfirmSubscriptionScreenState();
+  ConsumerState<ConfirmSubscriptionScreen> createState() =>
+      _ConfirmSubscriptionScreenState();
 }
 
-class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionScreen> {
+class _ConfirmSubscriptionScreenState
+    extends ConsumerState<ConfirmSubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -26,7 +30,9 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
     final originalPrice = isYearly ? '\$120.00' : '\$10.00';
     final discountAmount = isYearly ? '-\$40.00' : 'None';
     final billingIntervalDesc = isYearly ? 'Billed annually' : 'Billed monthly';
-    final nextBillingDateStr = isYearly ? '1 year from today' : '1 month from today';
+    final nextBillingDateStr = isYearly
+        ? '1 year from today'
+        : '1 month from today';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -34,7 +40,11 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -52,7 +62,10 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -82,7 +95,9 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.06),
@@ -113,7 +128,8 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                                   ),
                                   const SizedBox(width: 12),
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         planTitle,
@@ -136,7 +152,10 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                               ),
                               if (isYearly)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.successLight,
                                     borderRadius: BorderRadius.circular(8),
@@ -212,7 +231,9 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                       subtitle: 'Fast and secure 1-click checkout',
                       icon: Icons.apple,
                       isSelected: selectedPaymentMethod == 'apple_pay',
-                      onTap: () => ref.read(authProvider.notifier).selectPaymentMethod('apple_pay'),
+                      onTap: () => ref
+                          .read(authProvider.notifier)
+                          .selectPaymentMethod('apple_pay'),
                     ),
                     const SizedBox(height: 10),
 
@@ -222,7 +243,9 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                       subtitle: 'Pay directly with Google wallet',
                       icon: Icons.account_balance_wallet_outlined,
                       isSelected: selectedPaymentMethod == 'google_pay',
-                      onTap: () => ref.read(authProvider.notifier).selectPaymentMethod('google_pay'),
+                      onTap: () => ref
+                          .read(authProvider.notifier)
+                          .selectPaymentMethod('google_pay'),
                     ),
                     const SizedBox(height: 10),
 
@@ -232,7 +255,9 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                       subtitle: 'Mastercard •••• 4242',
                       icon: Icons.credit_card_rounded,
                       isSelected: selectedPaymentMethod == 'credit_card',
-                      onTap: () => ref.read(authProvider.notifier).selectPaymentMethod('credit_card'),
+                      onTap: () => ref
+                          .read(authProvider.notifier)
+                          .selectPaymentMethod('credit_card'),
                     ),
                     const SizedBox(height: 24),
 
@@ -320,7 +345,11 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.check_circle, color: AppColors.success, size: 18),
+                              Icon(
+                                Icons.check_circle,
+                                color: AppColors.success,
+                                size: 18,
+                              ),
                               SizedBox(width: 8),
                               Text(
                                 'Included in this plan:',
@@ -333,10 +362,18 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                             ],
                           ),
                           const SizedBox(height: 10),
-                          _buildIncludedItem('Full access to all 500+ practice questions & mock exams'),
-                          _buildIncludedItem('Comprehensive legal rationales & reference links'),
-                          _buildIncludedItem('Personalized performance tracking & weakness analysis'),
-                          _buildIncludedItem('Cancel anytime easily from account settings'),
+                          _buildIncludedItem(
+                            'Full access to all 500+ practice questions & mock exams',
+                          ),
+                          _buildIncludedItem(
+                            'Comprehensive legal rationales & reference links',
+                          ),
+                          _buildIncludedItem(
+                            'Personalized performance tracking & weakness analysis',
+                          ),
+                          _buildIncludedItem(
+                            'Cancel anytime easily from account settings',
+                          ),
                         ],
                       ),
                     ),
@@ -347,7 +384,11 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
+                          Icon(
+                            Icons.lock_outline,
+                            size: 14,
+                            color: AppColors.textSecondary,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             '256-Bit SSL Encrypted & Secure Checkout',
@@ -385,9 +426,22 @@ class _ConfirmSubscriptionScreenState extends ConsumerState<ConfirmSubscriptionS
                     text: 'Confirm & Subscribe ($planPrice)',
                     isLoading: authState.isLoading,
                     onPressed: () async {
-                      final success = await ref.read(authProvider.notifier).confirmSubscription();
+                      final success = await ref
+                          .read(authProvider.notifier)
+                          .confirmSubscription();
                       if (success && context.mounted) {
-                        context.go('/subscription-success');
+                        await ref
+                            .read(entitlementProvider.notifier)
+                            .syncFromRevenueCat();
+                        if (!context.mounted) return;
+                        final entitlement = ref.read(entitlementProvider);
+                        if (entitlement.needsOfficeSelection &&
+                            (entitlement.planId == PlanTier.focus ||
+                                entitlement.planId == PlanTier.track)) {
+                          context.go('/subscription/office-selection');
+                        } else {
+                          context.go('/subscription-success');
+                        }
                       }
                     },
                   ),

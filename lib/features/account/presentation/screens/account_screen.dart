@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../providers/account_provider.dart';
 
 class AccountScreen extends ConsumerWidget {
@@ -82,6 +83,7 @@ class AccountScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(accountProvider);
     final isAuth = ref.watch(authProvider).isAuthenticated;
+    final entitlement = ref.watch(entitlementProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -274,6 +276,7 @@ class AccountScreen extends ConsumerWidget {
             _buildSingleLineTile(
               icon: Icons.add_card_outlined,
               title: 'Subscription Plan',
+              badge: entitlement.isActive ? '${entitlement.planId.displayName} Active' : null,
               onTap: () => context.push('/subscription'),
             ),
             const SizedBox(height: 10),

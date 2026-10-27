@@ -37,10 +37,18 @@ class ApiConstants {
 
   // Practice & Demo endpoints
   static const String practiceOffices = '/practice/offices';
+  static String practiceDisciplines(String office) => '/practice/offices/$office/disciplines';
+  static String practiceThemes(String office, String subject) =>
+      '/practice/offices/$office/disciplines/$subject/themes';
+  static String practiceCrossOfficeThemes(String subject) =>
+      '/practice/themes/cross-office?subject=$subject';
   static const String practiceSession = '/practice/session';
   static String practiceSessionSubmit(String sessionId) => '/practice/session/$sessionId/submit';
   static String practiceSessionReview(String sessionId) => '/practice/session/$sessionId/review';
   static String practiceSessionResume(String sessionId) => '/practice/session/$sessionId';
+  static const String practiceHistory = '/practice/history';
+  static const String practiceLearningPath = '/practice/learning-path';
+  static const String practiceMistakes = '/practice/mistakes';
 
   // Referral (LinkedIn)
   static const String sharePreview = '/referral/share-preview';
@@ -49,4 +57,12 @@ class ApiConstants {
   static const String linkedinShare = '/referral/linkedin/share';
   static const String claimDiscount = '/referral/claim-discount';
   static const String validatePromoCode = '/referral/validate-code';
+
+  // Subscriptions & Entitlements
+  static const String subscriptionPlans = '/subscription/plans';
+  static const String subscriptionOffices = '/subscription/offices';
+  static const String subscriptionMyAccess = '/subscription/my-access';
+  static const String subscriptionSync = '/subscription/sync';
+  static String subscriptionChooseOffices(String subscriptionId) =>
+      '/subscription/$subscriptionId/offices';
 }

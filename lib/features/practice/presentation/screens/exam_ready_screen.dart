@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
+import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
 
@@ -19,6 +21,16 @@ class ExamReadyScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selection = ref.watch(practiceProvider);
+    final quizState = ref.watch(quizProvider);
+
+    int minutes = 20;
+    if (selection.level == 'Intermediate') {
+      minutes = 30;
+    } else if (selection.level == 'Advanced') {
+      minutes = 40;
+    } else if (selection.level == 'Expert') {
+      minutes = 50;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -26,7 +38,11 @@ class ExamReadyScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textPrimary, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: AppColors.textPrimary,
+            size: 18,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -66,7 +82,10 @@ class ExamReadyScreen extends ConsumerWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -82,13 +101,16 @@ class ExamReadyScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accent.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            selection.jurisdiction ?? 'EPO',
+                            selection.jurisdiction ?? 'IPI',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -98,7 +120,10 @@ class ExamReadyScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -124,7 +149,7 @@ class ExamReadyScreen extends ConsumerWidget {
                     _buildInfoRow(
                       icon: Icons.timer_outlined,
                       label: 'Time Limit',
-                      value: '20 Minutes',
+                      value: '$minutes Minutes',
                     ),
                     const Divider(height: 24, color: AppColors.border),
                     _buildInfoRow(
@@ -173,68 +198,117 @@ class ExamReadyScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // Exam Language Selection
-              const Text(
-                'Exam Language',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selection.language,
-                    isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    items: availableLanguages.map((String lang) {
-                      return DropdownMenuItem<String>(
-                        value: lang,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.language_rounded, size: 18, color: AppColors.primary),
-                            const SizedBox(width: 10),
-                            Text(lang),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? newLang) {
-                      if (newLang != null) {
-                        ref.read(practiceProvider.notifier).setLanguage(newLang);
-                      }
-                    },
-                  ),
-                ),
-              ),
+              // const Text(
+              //   'Exam Language',
+              //   style: TextStyle(
+              //     fontSize: 14,
+              //     fontWeight: FontWeight.w600,
+              //     color: AppColors.textPrimary,
+              //   ),
+              // ),
+              // const SizedBox(height: 8),
+              // Container(
+              //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              //   decoration: BoxDecoration(
+              //     color: Colors.white,
+              //     borderRadius: BorderRadius.circular(12),
+              //     border: Border.all(color: AppColors.border),
+              //   ),
+              //   child: DropdownButtonHideUnderline(
+              //     child: DropdownButton<String>(
+              //       value: selection.language,
+              //       isExpanded: true,
+              //       icon: const Icon(
+              //         Icons.keyboard_arrow_down_rounded,
+              //         color: AppColors.textSecondary,
+              //       ),
+              //       style: const TextStyle(
+              //         fontSize: 14,
+              //         fontWeight: FontWeight.w600,
+              //         color: AppColors.textPrimary,
+              //       ),
+              //       items: availableLanguages.map((String lang) {
+              //         return DropdownMenuItem<String>(
+              //           value: lang,
+              //           child: Row(
+              //             children: [
+              //               const Icon(
+              //                 Icons.language_rounded,
+              //                 size: 18,
+              //                 color: AppColors.primary,
+              //               ),
+              //               const SizedBox(width: 10),
+              //               Text(lang),
+              //             ],
+              //           ),
+              //         );
+              //       }).toList(),
+              //       onChanged: (String? newLang) {
+              //         if (newLang != null) {
+              //           ref.read(practiceProvider.notifier).setLanguage(newLang);
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
               const SizedBox(height: 32),
 
               // Action Buttons
               CustomButton(
-                text: 'Start Exam',
-                onPressed: () {
-                  ref.read(quizProvider.notifier).startQuiz();
-                  context.pushReplacement('/practice/active-quiz');
-                },
+                text: quizState.isLoading ? 'Preparing Exam...' : 'Start Exam',
+                isLoading: quizState.isLoading,
+                onPressed: quizState.isLoading
+                    ? null
+                    : () async {
+                        final jurisdiction = selection.jurisdiction ?? 'IPI';
+                        final entitlement = ref.read(entitlementProvider);
+
+                        // Re-check entitlement right before starting
+                        if (!entitlement.canAccessOffice(jurisdiction)) {
+                          PlanUpsellBottomSheet.show(
+                            context,
+                            officeCode: jurisdiction,
+                            officeName: jurisdiction,
+                            territory: 'Official IP Office',
+                          );
+                          return;
+                        }
+
+                        final success = await ref
+                            .read(quizProvider.notifier)
+                            .startPracticeSession(
+                              office: jurisdiction,
+                              mode: 'by_level',
+                              subject: selection.topic,
+                              level: selection.level,
+                            );
+
+                        if (context.mounted) {
+                          if (success) {
+                            context.pushReplacement('/practice/active-quiz');
+                          } else {
+                            final err = ref.read(quizProvider).errorMessage ??
+                                'Failed to start exam session';
+                            if (err.toLowerCase().contains('subscription') ||
+                                err.toLowerCase().contains('paywall') ||
+                                err.toLowerCase().contains('include')) {
+                              PlanUpsellBottomSheet.show(
+                                context,
+                                officeCode: jurisdiction,
+                                officeName: jurisdiction,
+                                territory: 'Official IP Office',
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(err),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
               ),
               const SizedBox(height: 12),
               SizedBox(
