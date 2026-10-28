@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/practice_setup_model.dart';
+import '../../data/models/discipline_theme_models.dart';
 import '../../data/repositories/practice_repository_impl.dart';
 import '../../domain/repositories/practice_repository.dart';
 
@@ -21,7 +22,9 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   Future<void> loadDisciplines(String office) async {
     state = state.copyWith(isLoadingDisciplines: true, clearError: true);
     try {
-      final disciplines = await _practiceRepository.getOfficeDisciplines(office);
+      final disciplines = await _practiceRepository.getOfficeDisciplines(
+        office,
+      );
       String? updatedTopic = state.topic;
       if (disciplines.isNotEmpty) {
         final hasCurrentTopic = disciplines.any(
@@ -50,15 +53,13 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   Future<void> loadThemes(String office, String subject) async {
     state = state.copyWith(isLoadingThemes: true);
     try {
-      final themes = await _practiceRepository.getDisciplineThemes(office, subject);
-      state = state.copyWith(
-        themes: themes,
-        isLoadingThemes: false,
+      final themes = await _practiceRepository.getDisciplineThemes(
+        office,
+        subject,
       );
+      state = state.copyWith(themes: themes, isLoadingThemes: false);
     } catch (e) {
-      state = state.copyWith(
-        isLoadingThemes: false,
-      );
+      state = state.copyWith(isLoadingThemes: false);
     }
   }
 
@@ -74,7 +75,48 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   }
 
   void setLevel(String level) {
-    state = state.copyWith(level: level);
+    final discipline = state.disciplines.where(
+      (item) => item.name.toLowerCase() == (state.topic ?? '').toLowerCase(),
+    );
+    final levels = discipline.isEmpty ? const [] : discipline.first.levels;
+    final matches = levels.where(
+      (item) => item.level.toLowerCase() == level.toLowerCase(),
+    );
+    final detail = matches.isEmpty ? null : matches.first;
+    state = state.copyWith(
+      level: level,
+      mode: 'by_level',
+      previewQuestions: detail?.questionsPerSession,
+      previewMinutes: detail?.minutes,
+    );
+  }
+
+  void setMode(String mode) {
+    state = PracticeSelection(
+      topic: state.topic,
+      jurisdiction: state.jurisdiction,
+      // A fresh mode choice must not carry a stale level/theme into its body.
+      level: null,
+      mode: mode,
+      language: state.language,
+      disciplines: state.disciplines,
+      themes: state.themes,
+      isLoadingDisciplines: state.isLoadingDisciplines,
+      isLoadingThemes: state.isLoadingThemes,
+    );
+  }
+
+  void setTheme(ThemeDetailModel theme) {
+    state = PracticeSelection(
+      topic: state.topic,
+      jurisdiction: state.jurisdiction,
+      mode: 'by_theme',
+      theme: theme.theme,
+      previewQuestions: theme.sessionLength,
+      language: state.language,
+      disciplines: state.disciplines,
+      themes: state.themes,
+    );
   }
 
   void setLanguage(String language) {
@@ -92,5 +134,6 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   }
 }
 
-final practiceProvider =
-    NotifierProvider<PracticeNotifier, PracticeSelection>(PracticeNotifier.new);
+final practiceProvider = NotifierProvider<PracticeNotifier, PracticeSelection>(
+  PracticeNotifier.new,
+);

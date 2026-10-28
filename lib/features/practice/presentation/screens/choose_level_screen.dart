@@ -19,21 +19,10 @@ class ChooseLevelScreen extends ConsumerWidget {
       orElse: () => DisciplineDetailModel(name: selection.topic ?? 'Patents'),
     );
 
-    LevelDetailModel getLevelInfo(String levelName, int defaultMinutes) {
-      return currentDiscipline.levels.firstWhere(
-        (l) => l.level.toLowerCase() == levelName.toLowerCase(),
-        orElse: () => LevelDetailModel(
-          level: levelName,
-          questions: 200,
-          minutes: defaultMinutes,
-        ),
-      );
-    }
-
-    final beginner = getLevelInfo('Beginner', 20);
-    final intermediate = getLevelInfo('Intermediate', 30);
-    final advanced = getLevelInfo('Advanced', 40);
-    final expert = getLevelInfo('Expert', 50);
+    final levels = currentDiscipline.levels;
+    final canContinue = levels.any(
+      (item) => item.isAvailable && item.level == selection.level,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -62,7 +51,10 @@ class ChooseLevelScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 12.0,
+              ),
               children: [
                 Text(
                   '${selection.topic ?? "Patents"} • ${selection.jurisdiction ?? "IPI"}',
@@ -82,60 +74,43 @@ class ChooseLevelScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
-                _buildTierHeader(
-                  title: 'Practice Levels',
-                  isLocked: false,
-                ),
+                _buildTierHeader(title: 'Practice Levels', isLocked: false),
                 const SizedBox(height: 10),
-                _buildLevelCard(
-                  context: context,
-                  ref: ref,
-                  title: 'Beginner',
-                  subtitle: 'Basic fundamental principles and core legal definitions',
-                  questionBadge: '${beginner.questions > 0 ? beginner.questions : 20}',
-                  durationMinutes: beginner.minutes,
-                  isSelected: selection.level == 'Beginner',
-                  isLocked: false,
-                ),
-                const SizedBox(height: 10),
-                _buildLevelCard(
-                  context: context,
-                  ref: ref,
-                  title: 'Intermediate',
-                  subtitle: 'Applied procedural scenarios and standard filing guidelines',
-                  questionBadge: '${intermediate.questions > 0 ? intermediate.questions : 20}',
-                  durationMinutes: intermediate.minutes,
-                  isSelected: selection.level == 'Intermediate',
-                  isLocked: false,
-                ),
-                const SizedBox(height: 10),
-                _buildLevelCard(
-                  context: context,
-                  ref: ref,
-                  title: 'Advanced',
-                  subtitle: 'Complex case examination and multi-jurisdictional rules',
-                  questionBadge: '${advanced.questions > 0 ? advanced.questions : 20}',
-                  durationMinutes: advanced.minutes,
-                  isSelected: selection.level == 'Advanced',
-                  isLocked: false,
-                ),
-                const SizedBox(height: 10),
-                _buildLevelCard(
-                  context: context,
-                  ref: ref,
-                  title: 'Expert',
-                  subtitle: 'Exhaustive precedent analysis and bar exam level questions',
-                  questionBadge: '${expert.questions > 0 ? expert.questions : 20}',
-                  durationMinutes: expert.minutes,
-                  isSelected: selection.level == 'Expert',
-                  isLocked: false,
-                ),
+                if (levels.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Text(
+                      'There are no levels available for this discipline yet.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                else
+                  ...levels.map(
+                    (level) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildLevelCard(
+                        context: context,
+                        ref: ref,
+                        title: level.level,
+                        subtitle:
+                            '${level.questions} questions available in this level',
+                        questionBadge: '${level.questionsPerSession}',
+                        durationMinutes: level.minutes,
+                        isSelected: selection.level == level.level,
+                        isLocked: !level.isAvailable,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 20),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -150,9 +125,11 @@ class ChooseLevelScreen extends ConsumerWidget {
               children: [
                 CustomButton(
                   text: 'Continue',
-                  onPressed: selection.level != null
+                  onPressed: canContinue
                       ? () {
-                          ref.read(quizProvider.notifier).setLevel(selection.level!);
+                          ref
+                              .read(quizProvider.notifier)
+                              .setLevel(selection.level!);
                           context.push('/practice/exam-ready');
                         }
                       : null,
@@ -213,10 +190,12 @@ class ChooseLevelScreen extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            ref.read(practiceProvider.notifier).setLevel(title);
-            ref.read(quizProvider.notifier).setLevel(title);
-          },
+          onTap: isLocked
+              ? null
+              : () {
+                  ref.read(practiceProvider.notifier).setLevel(title);
+                  ref.read(quizProvider.notifier).setLevel(title);
+                },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -269,7 +248,7 @@ class ChooseLevelScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '$questionBadge pool',
+                              '$questionBadge questions',
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -298,7 +277,9 @@ class ChooseLevelScreen extends ConsumerWidget {
                     isSelected
                         ? Icons.check_circle_rounded
                         : Icons.radio_button_unchecked_rounded,
-                    color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
+                    color: isSelected
+                        ? AppColors.primary
+                        : const Color(0xFFCBD5E1),
                     size: 22,
                   ),
                 ),

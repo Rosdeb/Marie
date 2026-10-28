@@ -23,14 +23,14 @@ class ExamReadyScreen extends ConsumerWidget {
     final selection = ref.watch(practiceProvider);
     final quizState = ref.watch(quizProvider);
 
-    int minutes = 20;
-    if (selection.level == 'Intermediate') {
-      minutes = 30;
-    } else if (selection.level == 'Advanced') {
-      minutes = 40;
-    } else if (selection.level == 'Expert') {
-      minutes = 50;
-    }
+    final detail = switch (selection.mode) {
+      'by_theme' => selection.theme ?? 'Theme',
+      'random' => 'All levels',
+      'learning_path' => 'Learning path',
+      _ => selection.level ?? 'Level',
+    };
+    final questions = selection.previewQuestions;
+    final minutes = selection.previewMinutes;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -129,7 +129,7 @@ class ExamReadyScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            selection.level ?? 'Beginner',
+                            detail,
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -143,19 +143,17 @@ class ExamReadyScreen extends ConsumerWidget {
                     _buildInfoRow(
                       icon: Icons.format_list_numbered_rounded,
                       label: 'Questions',
-                      value: '20 Questions',
+                      value: questions == null
+                          ? 'Confirmed when session starts'
+                          : '$questions Questions',
                     ),
                     const Divider(height: 24, color: AppColors.border),
                     _buildInfoRow(
                       icon: Icons.timer_outlined,
                       label: 'Time Limit',
-                      value: '$minutes Minutes',
-                    ),
-                    const Divider(height: 24, color: AppColors.border),
-                    _buildInfoRow(
-                      icon: Icons.menu_book_outlined,
-                      label: 'Passing Score',
-                      value: '75% (15/20)',
+                      value: minutes == null
+                          ? 'Confirmed when session starts'
+                          : '$minutes Minutes',
                     ),
                   ],
                 ),
@@ -278,16 +276,22 @@ class ExamReadyScreen extends ConsumerWidget {
                             .read(quizProvider.notifier)
                             .startPracticeSession(
                               office: jurisdiction,
-                              mode: 'by_level',
+                              mode: selection.mode,
                               subject: selection.topic,
-                              level: selection.level,
+                              level: selection.mode == 'by_level'
+                                  ? selection.level
+                                  : null,
+                              theme: selection.mode == 'by_theme'
+                                  ? selection.theme
+                                  : null,
                             );
 
                         if (context.mounted) {
                           if (success) {
                             context.pushReplacement('/practice/active-quiz');
                           } else {
-                            final err = ref.read(quizProvider).errorMessage ??
+                            final err =
+                                ref.read(quizProvider).errorMessage ??
                                 'Failed to start exam session';
                             if (err.toLowerCase().contains('subscription') ||
                                 err.toLowerCase().contains('paywall') ||

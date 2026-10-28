@@ -14,6 +14,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAuth = ref.watch(authProvider).isAuthenticated;
+    final practice = ref.watch(practiceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -186,38 +187,42 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // Topics Grid Cards
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTopicCard(
-                            context,
-                            ref,
-                            'Patents',
-                            'Practice patent law\nquestions',
-                          ),
+                    if (practice.isLoadingDisciplines)
+                      const Center(child: CircularProgressIndicator())
+                    else if (practice.disciplines.isEmpty)
+                      const Text(
+                        'No practice topics are available for the selected office yet.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildTopicCard(
-                            context,
-                            ref,
-                            'Trademarks',
-                            'Test your trademark\nknowledge',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Full Width Topic Card
-                    _buildTopicCard(
-                      context,
-                      ref,
-                      'Designs',
-                      'Practice design\nconcepts.',
-                      isFullWidth: true,
-                    ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: practice.disciplines.map((discipline) {
+                          final availableLevels = discipline.levels
+                              .where((level) => level.isAvailable)
+                              .length;
+                          return SizedBox(
+                            width:
+                                practice.disciplines.length.isOdd &&
+                                    discipline == practice.disciplines.last
+                                ? double.infinity
+                                : (MediaQuery.of(context).size.width - 52) / 2,
+                            child: _buildTopicCard(
+                              context,
+                              ref,
+                              discipline.name,
+                              '$availableLevels levels • ${discipline.questions} questions',
+                              isFullWidth:
+                                  practice.disciplines.length.isOdd &&
+                                  discipline == practice.disciplines.last,
+                            ),
+                          );
+                        }).toList(),
+                      ),
 
                     const SizedBox(height: 20),
 
@@ -428,7 +433,10 @@ class HomeScreen extends ConsumerWidget {
           onTap: () {
             final isAuth = ref.read(authProvider).isAuthenticated;
             if (!isAuth) {
-              AuthGateBottomSheet.show(context, targetFeature: '$title Practice');
+              AuthGateBottomSheet.show(
+                context,
+                targetFeature: '$title Practice',
+              );
               return;
             }
             ref.read(practiceProvider.notifier).setTopic(title);

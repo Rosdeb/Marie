@@ -6,7 +6,7 @@ import 'package:http/testing.dart';
 import 'package:marie_nirva/core/constants/api_constants.dart';
 import 'package:marie_nirva/core/network/api_client.dart';
 import 'package:marie_nirva/core/storage/local_storage.dart';
-import 'package:marie_nirva/core/widgets/question_report_dialog.dart';
+import 'package:marie_nirva/core/widgets/question_report_bottom_sheet.dart';
 import 'package:marie_nirva/features/practice/data/models/discipline_theme_models.dart';
 import 'package:marie_nirva/features/practice/data/models/practice_setup_model.dart';
 import 'package:marie_nirva/features/practice/data/models/quiz_models.dart';
@@ -19,70 +19,76 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TestEntitlementNotifier extends EntitlementNotifier {
   @override
   EntitlementEntity build() => const EntitlementEntity(
-        planId: PlanTier.global,
-        status: SubscriptionStatus.active,
-        isLoading: false,
-      );
+    planId: PlanTier.global,
+    status: SubscriptionStatus.active,
+    isLoading: false,
+  );
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   group('Discipline & Theme Models Tests', () {
-    test('DisciplineDetailModel & LevelDetailModel parses disciplines API payload', () {
-      final json = {
-        "name": "Patents",
-        "questions": 800,
-        "levels": [
-          {
-            "level": "Beginner",
-            "questions": 200,
-            "minutes": 20,
-            "isAvailable": true
-          },
-          {
-            "level": "Intermediate",
-            "questions": 200,
-            "minutes": 30,
-            "isAvailable": true
-          },
-          {
-            "level": "Advanced",
-            "questions": 200,
-            "minutes": 40,
-            "isAvailable": true
-          },
-          {
-            "level": "Expert",
-            "questions": 200,
-            "minutes": 50,
-            "isAvailable": true
-          }
-        ]
-      };
+    test(
+      'DisciplineDetailModel & LevelDetailModel parses disciplines API payload',
+      () {
+        final json = {
+          "name": "Patents",
+          "questions": 800,
+          "levels": [
+            {
+              "level": "Beginner",
+              "questions": 200,
+              "minutes": 20,
+              "questionsPerSession": 15,
+              "isAvailable": true,
+            },
+            {
+              "level": "Intermediate",
+              "questions": 200,
+              "minutes": 30,
+              "isAvailable": true,
+            },
+            {
+              "level": "Advanced",
+              "questions": 200,
+              "minutes": 40,
+              "isAvailable": true,
+            },
+            {
+              "level": "Expert",
+              "questions": 200,
+              "minutes": 50,
+              "isAvailable": true,
+            },
+          ],
+        };
 
-      final discipline = DisciplineDetailModel.fromJson(json);
+        final discipline = DisciplineDetailModel.fromJson(json);
 
-      expect(discipline.name, 'Patents');
-      expect(discipline.questions, 800);
-      expect(discipline.levels.length, 4);
+        expect(discipline.name, 'Patents');
+        expect(discipline.questions, 800);
+        expect(discipline.levels.length, 4);
 
-      final beginner = discipline.levels[0];
-      expect(beginner.level, 'Beginner');
-      expect(beginner.questions, 200);
-      expect(beginner.minutes, 20);
-      expect(beginner.isAvailable, isTrue);
+        final beginner = discipline.levels[0];
+        expect(beginner.level, 'Beginner');
+        expect(beginner.questions, 200);
+        expect(beginner.minutes, 20);
+        expect(beginner.questionsPerSession, 15);
+        expect(beginner.isAvailable, isTrue);
 
-      final expert = discipline.levels[3];
-      expect(expert.level, 'Expert');
-      expect(expert.minutes, 50);
-    });
+        final expert = discipline.levels[3];
+        expect(expert.level, 'Expert');
+        expect(expert.minutes, 50);
+      },
+    );
 
     test('ThemeDetailModel parses discipline theme response', () {
       final json = {
         "theme": "Patentability",
         "questions": 66,
         "sessionLength": 20,
-        "isShortSession": false
+        "isShortSession": true,
+        "note": "This theme has a shorter session.",
       };
 
       final theme = ThemeDetailModel.fromJson(json);
@@ -90,14 +96,15 @@ void main() {
       expect(theme.theme, 'Patentability');
       expect(theme.questions, 66);
       expect(theme.sessionLength, 20);
-      expect(theme.isShortSession, isFalse);
+      expect(theme.isShortSession, isTrue);
+      expect(theme.note, 'This theme has a shorter session.');
     });
 
     test('ThemeDetailModel parses cross-office theme with office codes', () {
       final json = {
         "theme": "Filing & formalities",
         "offices": ["IPI", "USPTO"],
-        "questions": 124
+        "questions": 124,
       };
 
       final theme = ThemeDetailModel.fromJson(json);
@@ -114,6 +121,8 @@ void main() {
         topic: 'Patents',
         jurisdiction: 'IPI',
         level: 'Beginner',
+        mode: 'by_theme',
+        theme: 'Priority',
       );
 
       final updated = initial.copyWith(
@@ -127,95 +136,103 @@ void main() {
       expect(updated.disciplines.length, 2);
       expect(updated.disciplines[0].name, 'Designs');
       expect(updated.isLoadingDisciplines, isFalse);
+      expect(updated.mode, 'by_theme');
+      expect(updated.theme, 'Priority');
     });
 
-    test('QuizState correctly holds API questions and timer initialization', () {
-      final questions = [
-        Question(
-          id: 'q1',
-          number: 1,
-          office: 'IPI',
-          discipline: 'Patents',
-          level: 'Beginner',
-          questionText: 'What is a patent claim?',
-          options: const [
-            QuestionOption(key: 'A', text: 'Option A'),
-            QuestionOption(key: 'B', text: 'Option B'),
+    test(
+      'QuizState correctly holds API questions and timer initialization',
+      () {
+        final questions = [
+          Question(
+            id: 'q1',
+            number: 1,
+            office: 'IPI',
+            discipline: 'Patents',
+            level: 'Beginner',
+            questionText: 'What is a patent claim?',
+            options: const [
+              QuestionOption(key: 'A', text: 'Option A'),
+              QuestionOption(key: 'B', text: 'Option B'),
+            ],
+          ),
+        ];
+
+        final state = QuizState(
+          sessionId: 'test-session-123',
+          selectedOffice: 'IPI',
+          selectedSubdiscipline: 'Patents',
+          selectedLevel: 'Beginner',
+          questions: questions,
+          totalSeconds: 1200,
+          remainingSeconds: 1200,
+          elapsedSeconds: 0,
+        );
+
+        expect(state.sessionId, 'test-session-123');
+        expect(state.questions.length, 1);
+        expect(state.elapsedSeconds, 0);
+        expect(state.remainingSeconds, 1200);
+        expect(state.totalSeconds, 1200);
+      },
+    );
+
+    test(
+      'nextQuestion blocks advancing if user has not selected an answer for current question',
+      () {
+        final container = ProviderContainer(
+          overrides: [
+            entitlementProvider.overrideWith(() => TestEntitlementNotifier()),
           ],
-        ),
-      ];
+        );
+        addTearDown(container.dispose);
 
-      final state = QuizState(
-        sessionId: 'test-session-123',
-        selectedOffice: 'IPI',
-        selectedSubdiscipline: 'Patents',
-        selectedLevel: 'Beginner',
-        questions: questions,
-        totalSeconds: 1200,
-        remainingSeconds: 1200,
-        elapsedSeconds: 0,
-      );
+        final notifier = container.read(quizProvider.notifier);
+        final questions = [
+          Question(
+            id: 'q1',
+            number: 1,
+            office: 'IPI',
+            discipline: 'Patents',
+            level: 'Beginner',
+            questionText: 'Question 1',
+            options: const [
+              QuestionOption(key: 'A', text: 'Option A'),
+              QuestionOption(key: 'B', text: 'Option B'),
+            ],
+          ),
+          Question(
+            id: 'q2',
+            number: 2,
+            office: 'IPI',
+            discipline: 'Patents',
+            level: 'Beginner',
+            questionText: 'Question 2',
+            options: const [
+              QuestionOption(key: 'A', text: 'Option A'),
+              QuestionOption(key: 'B', text: 'Option B'),
+            ],
+          ),
+        ];
 
-      expect(state.sessionId, 'test-session-123');
-      expect(state.questions.length, 1);
-      expect(state.elapsedSeconds, 0);
-      expect(state.remainingSeconds, 1200);
-      expect(state.totalSeconds, 1200);
-    });
+        notifier.startQuiz(questions: questions);
 
-    test('nextQuestion blocks advancing if user has not selected an answer for current question', () {
-      final container = ProviderContainer(
-        overrides: [
-          entitlementProvider.overrideWith(() => TestEntitlementNotifier()),
-        ],
-      );
-      addTearDown(container.dispose);
+        expect(container.read(quizProvider).currentIndex, 0);
 
-      final notifier = container.read(quizProvider.notifier);
-      final questions = [
-        Question(
-          id: 'q1',
-          number: 1,
-          office: 'IPI',
-          discipline: 'Patents',
-          level: 'Beginner',
-          questionText: 'Question 1',
-          options: const [
-            QuestionOption(key: 'A', text: 'Option A'),
-            QuestionOption(key: 'B', text: 'Option B'),
-          ],
-        ),
-        Question(
-          id: 'q2',
-          number: 2,
-          office: 'IPI',
-          discipline: 'Patents',
-          level: 'Beginner',
-          questionText: 'Question 2',
-          options: const [
-            QuestionOption(key: 'A', text: 'Option A'),
-            QuestionOption(key: 'B', text: 'Option B'),
-          ],
-        ),
-      ];
+        // Attempt to advance without selecting an answer -> blocked!
+        notifier.nextQuestion();
+        expect(container.read(quizProvider).currentIndex, 0);
 
-      notifier.startQuiz(questions: questions);
+        // Select an answer for question 0 -> now allowed to advance!
+        notifier.selectAnswer(0);
+        notifier.nextQuestion();
+        expect(container.read(quizProvider).currentIndex, 1);
 
-      expect(container.read(quizProvider).currentIndex, 0);
-
-      // Attempt to advance without selecting an answer -> blocked!
-      notifier.nextQuestion();
-      expect(container.read(quizProvider).currentIndex, 0);
-
-      // Select an answer for question 0 -> now allowed to advance!
-      notifier.selectAnswer(0);
-      notifier.nextQuestion();
-      expect(container.read(quizProvider).currentIndex, 1);
-
-      // Question 1 has no answer selected yet -> blocked from advancing further!
-      notifier.nextQuestion();
-      expect(container.read(quizProvider).currentIndex, 1);
-    });
+        // Question 1 has no answer selected yet -> blocked from advancing further!
+        notifier.nextQuestion();
+        expect(container.read(quizProvider).currentIndex, 1);
+      },
+    );
 
     test('Paywall correctly gates unpurchased office on session start', () {
       final entitlement = EntitlementEntity(
@@ -243,7 +260,7 @@ void main() {
         "timeTaken": "00:10",
         "timeTakenSeconds": 10,
         "timeLimitMinutes": 20,
-        "withinTimeLimit": true
+        "withinTimeLimit": true,
       };
 
       final session = ReviewSession.fromJson(json);
@@ -256,126 +273,129 @@ void main() {
       expect(session.timeTaken, '00:10');
     });
 
-    test('PracticeHistoryResult.fromJson parses full history response with meta summary and timing', () {
-      final json = {
-        "success": true,
-        "statusCode": 200,
-        "message": "History retrieved successfully",
-        "meta": {
-          "page": 1,
-          "limit": 10,
-          "total": 1,
-          "totalPages": 1,
-          "summary": {
-            "sessionsSubmitted": 1,
-            "questionsAnswered": 20,
-            "correctAnswers": 4,
-            "wrongAnswers": 16,
-            "successPercentage": 20,
-            "failPercentage": 80,
-            "averageScorePercentage": 20,
-            "time": {
-              "spent": "00:38",
-              "spentSeconds": 38,
-              "allowedSeconds": 1800,
-              "usagePercentage": 2.1,
-              "averageSecondsPerQuestion": 1.9
-            }
-          }
-        },
-        "data": [
-          {
-            "sessionId": "6ae074e609fb95d40d69ea03",
-            "mode": "by_level",
-            "office": "IPI",
-            "discipline": "Trademarks",
-            "level": "Intermediate",
-            "score": 4,
-            "totalQuestions": 20,
-            "percentage": 20,
-            "formatted": "4 / 20",
-            "completedAt": "2026-10-27T09:55:27.273Z",
-            "timeTaken": "00:38",
-            "timeTakenSeconds": 38,
-            "timeLimitMinutes": 30,
-            "withinTimeLimit": true,
-            "averageTimePerQuestion": "00:02",
-            "averageSecondsPerQuestion": 1.9,
-            "averageMsPerQuestion": 1900,
-            "timing": {
-              "answeredSeconds": 38,
-              "wallClockSeconds": 41,
-              "questionsTimed": 20,
-              "source": "per-question"
-            }
-          }
-        ]
-      };
+    test(
+      'PracticeHistoryResult.fromJson parses full history response with meta summary and timing',
+      () {
+        final json = {
+          "success": true,
+          "statusCode": 200,
+          "message": "History retrieved successfully",
+          "meta": {
+            "page": 1,
+            "limit": 10,
+            "total": 1,
+            "totalPages": 1,
+            "summary": {
+              "sessionsSubmitted": 1,
+              "questionsAnswered": 20,
+              "correctAnswers": 4,
+              "wrongAnswers": 16,
+              "successPercentage": 20,
+              "failPercentage": 80,
+              "averageScorePercentage": 20,
+              "time": {
+                "spent": "00:38",
+                "spentSeconds": 38,
+                "allowedSeconds": 1800,
+                "usagePercentage": 2.1,
+                "averageSecondsPerQuestion": 1.9,
+              },
+            },
+          },
+          "data": [
+            {
+              "sessionId": "6ae074e609fb95d40d69ea03",
+              "mode": "by_level",
+              "office": "IPI",
+              "discipline": "Trademarks",
+              "level": "Intermediate",
+              "score": 4,
+              "totalQuestions": 20,
+              "percentage": 20,
+              "formatted": "4 / 20",
+              "completedAt": "2026-10-27T09:55:27.273Z",
+              "timeTaken": "00:38",
+              "timeTakenSeconds": 38,
+              "timeLimitMinutes": 30,
+              "withinTimeLimit": true,
+              "averageTimePerQuestion": "00:02",
+              "averageSecondsPerQuestion": 1.9,
+              "averageMsPerQuestion": 1900,
+              "timing": {
+                "answeredSeconds": 38,
+                "wallClockSeconds": 41,
+                "questionsTimed": 20,
+                "source": "per-question",
+              },
+            },
+          ],
+        };
 
-      final result = PracticeHistoryResult.fromJson(json);
+        final result = PracticeHistoryResult.fromJson(json);
 
-      expect(result.success, isTrue);
-      expect(result.statusCode, 200);
-      expect(result.message, 'History retrieved successfully');
-      expect(result.meta?.page, 1);
-      expect(result.meta?.limit, 10);
-      expect(result.meta?.total, 1);
-      expect(result.meta?.totalPages, 1);
+        expect(result.success, isTrue);
+        expect(result.statusCode, 200);
+        expect(result.message, 'History retrieved successfully');
+        expect(result.meta?.page, 1);
+        expect(result.meta?.limit, 10);
+        expect(result.meta?.total, 1);
+        expect(result.meta?.totalPages, 1);
 
-      final summary = result.meta?.summary;
-      expect(summary, isNotNull);
-      expect(summary?.sessionsSubmitted, 1);
-      expect(summary?.questionsAnswered, 20);
-      expect(summary?.correctAnswers, 4);
-      expect(summary?.wrongAnswers, 16);
-      expect(summary?.averageScorePercentage, 20.0);
-      expect(summary?.time?.spent, '00:38');
-      expect(summary?.time?.spentSeconds, 38);
-      expect(summary?.time?.averageSecondsPerQuestion, 1.9);
+        final summary = result.meta?.summary;
+        expect(summary, isNotNull);
+        expect(summary?.sessionsSubmitted, 1);
+        expect(summary?.questionsAnswered, 20);
+        expect(summary?.correctAnswers, 4);
+        expect(summary?.wrongAnswers, 16);
+        expect(summary?.averageScorePercentage, 20.0);
+        expect(summary?.time?.spent, '00:38');
+        expect(summary?.time?.spentSeconds, 38);
+        expect(summary?.time?.averageSecondsPerQuestion, 1.9);
 
-      expect(result.sessions.length, 1);
-      final s = result.sessions[0];
-      expect(s.sessionId, '6ae074e609fb95d40d69ea03');
-      expect(s.mode, 'by_level');
-      expect(s.office, 'IPI');
-      expect(s.discipline, 'Trademarks');
-      expect(s.level, 'Intermediate');
-      expect(s.score, 4);
-      expect(s.totalQuestions, 20);
-      expect(s.percentage, 20.0);
-      expect(s.formatted, '4 / 20');
-      expect(s.timeTaken, '00:38');
-      expect(s.timeTakenSeconds, 38);
-      expect(s.timeLimitMinutes, 30);
-      expect(s.withinTimeLimit, isTrue);
-      expect(s.averageTimePerQuestion, '00:02');
-      expect(s.averageSecondsPerQuestion, 1.9);
-      expect(s.averageMsPerQuestion, 1900);
-      expect(s.incorrectCount, 16);
-      expect(s.timing?.answeredSeconds, 38);
-      expect(s.timing?.wallClockSeconds, 41);
-      expect(s.timing?.questionsTimed, 20);
-      expect(s.timing?.source, 'per-question');
-    });
+        expect(result.sessions.length, 1);
+        final s = result.sessions[0];
+        expect(s.sessionId, '6ae074e609fb95d40d69ea03');
+        expect(s.mode, 'by_level');
+        expect(s.office, 'IPI');
+        expect(s.discipline, 'Trademarks');
+        expect(s.level, 'Intermediate');
+        expect(s.score, 4);
+        expect(s.totalQuestions, 20);
+        expect(s.percentage, 20.0);
+        expect(s.formatted, '4 / 20');
+        expect(s.timeTaken, '00:38');
+        expect(s.timeTakenSeconds, 38);
+        expect(s.timeLimitMinutes, 30);
+        expect(s.withinTimeLimit, isTrue);
+        expect(s.averageTimePerQuestion, '00:02');
+        expect(s.averageSecondsPerQuestion, 1.9);
+        expect(s.averageMsPerQuestion, 1900);
+        expect(s.incorrectCount, 16);
+        expect(s.timing?.answeredSeconds, 38);
+        expect(s.timing?.wallClockSeconds, 41);
+        expect(s.timing?.questionsTimed, 20);
+        expect(s.timing?.source, 'per-question');
+      },
+    );
 
-    test('MistakesSummary.fromJson parses backend practice/mistakes response', () {
-      final json = {
-        "total": 20,
-        "byOffice": [
-          {
-            "office": "IPI",
-            "mistakes": 20
-          }
-        ]
-      };
+    test(
+      'MistakesSummary.fromJson parses backend practice/mistakes response',
+      () {
+        final json = {
+          "total": 20,
+          "byOffice": [
+            {"office": "IPI", "mistakes": 20},
+          ],
+        };
 
-      final mistakes = MistakesSummary.fromJson(json);
+        final mistakes = MistakesSummary.fromJson(json);
 
-      expect(mistakes.total, 20);
-      expect(mistakes.byOffice.length, 1);
-      expect(mistakes.byOffice[0].office, 'IPI');
-      expect(mistakes.byOffice[0].mistakes, 20);
-    });
+        expect(mistakes.total, 20);
+        expect(mistakes.byOffice.length, 1);
+        expect(mistakes.byOffice[0].office, 'IPI');
+        expect(mistakes.byOffice[0].mistakes, 20);
+      },
+    );
   });
 
   group('Question Report API Integration Tests', () {
@@ -383,87 +403,96 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    test('submitQuestionReport for signed-in user passes token and omits reporterEmail', () async {
-      String? capturedAuth;
-      Map<String, dynamic>? capturedBody;
+    test(
+      'submitQuestionReport for signed-in user passes token and omits reporterEmail',
+      () async {
+        String? capturedAuth;
+        Map<String, dynamic>? capturedBody;
 
-      final mockClient = MockClient((request) async {
-        if (request.url.path.endsWith(ApiConstants.reportProblem)) {
-          expect(request.method, 'POST');
-          capturedAuth = request.headers['Authorization'];
-          capturedBody = jsonDecode(request.body);
+        final mockClient = MockClient((request) async {
+          if (request.url.path.endsWith(ApiConstants.reportProblem)) {
+            expect(request.method, 'POST');
+            capturedAuth = request.headers['Authorization'];
+            capturedBody = jsonDecode(request.body);
 
-          return http.Response(
-            jsonEncode({
-              'success': true,
-              'statusCode': 200,
-              'message': 'Report submitted successfully',
-            }),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
+            return http.Response(
+              jsonEncode({
+                'success': true,
+                'statusCode': 200,
+                'message': 'Report submitted successfully',
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
 
-      final storage = LocalStorage();
-      await storage.saveAccessToken('user_jwt_token_123');
-      final apiClient = ApiClient(client: mockClient, localStorage: storage);
+        final storage = LocalStorage();
+        await storage.saveAccessToken('user_jwt_token_123');
+        final apiClient = ApiClient(client: mockClient, localStorage: storage);
 
-      final response = await submitQuestionReport(
-        apiClient: apiClient,
-        questionId: 'IPI-Patents_Beginner-1',
-        message: 'The legal basis cites an article repealed in 2023.',
-        reporterEmail: 'optional@example.com',
-        authToken: 'user_jwt_token_123',
-      );
+        final response = await submitQuestionReport(
+          apiClient: apiClient,
+          questionId: 'IPI-Patents_Beginner-1',
+          message: 'The legal basis cites an article repealed in 2023.',
+          reporterEmail: 'optional@example.com',
+          authToken: 'user_jwt_token_123',
+        );
 
-      expect(response['success'], isTrue);
-      expect(capturedAuth, 'Bearer user_jwt_token_123');
-      expect(capturedBody?['questionId'], 'IPI-Patents_Beginner-1');
-      expect(capturedBody?['message'], 'The legal basis cites an article repealed in 2023.');
-      expect(capturedBody?.containsKey('reporterEmail'), isFalse);
-    });
+        expect(response['success'], isTrue);
+        expect(capturedAuth, 'Bearer user_jwt_token_123');
+        expect(capturedBody?['questionId'], 'IPI-Patents_Beginner-1');
+        expect(
+          capturedBody?['message'],
+          'The legal basis cites an article repealed in 2023.',
+        );
+        expect(capturedBody?.containsKey('reporterEmail'), isFalse);
+      },
+    );
 
-    test('submitQuestionReport for guest user without account submits without auth and with reporterEmail', () async {
-      String? capturedAuth;
-      Map<String, dynamic>? capturedBody;
+    test(
+      'submitQuestionReport for guest user without account submits without auth and with reporterEmail',
+      () async {
+        String? capturedAuth;
+        Map<String, dynamic>? capturedBody;
 
-      final mockClient = MockClient((request) async {
-        if (request.url.path.endsWith(ApiConstants.reportProblem)) {
-          expect(request.method, 'POST');
-          capturedAuth = request.headers['Authorization'];
-          capturedBody = jsonDecode(request.body);
+        final mockClient = MockClient((request) async {
+          if (request.url.path.endsWith(ApiConstants.reportProblem)) {
+            expect(request.method, 'POST');
+            capturedAuth = request.headers['Authorization'];
+            capturedBody = jsonDecode(request.body);
 
-          return http.Response(
-            jsonEncode({
-              'success': true,
-              'statusCode': 200,
-              'message': 'Report submitted successfully',
-            }),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
+            return http.Response(
+              jsonEncode({
+                'success': true,
+                'statusCode': 200,
+                'message': 'Report submitted successfully',
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
 
-      final storage = LocalStorage();
-      final apiClient = ApiClient(client: mockClient, localStorage: storage);
+        final storage = LocalStorage();
+        final apiClient = ApiClient(client: mockClient, localStorage: storage);
 
-      final response = await submitQuestionReport(
-        apiClient: apiClient,
-        questionId: 'IPI-Patents_Beginner-1',
-        message: 'Two options say the same thing.',
-        reporterEmail: 'optional@example.com',
-        authToken: null,
-      );
+        final response = await submitQuestionReport(
+          apiClient: apiClient,
+          questionId: 'IPI-Patents_Beginner-1',
+          message: 'Two options say the same thing.',
+          reporterEmail: 'optional@example.com',
+          authToken: null,
+        );
 
-      expect(response['success'], isTrue);
-      expect(capturedAuth, isNull);
-      expect(capturedBody?['questionId'], 'IPI-Patents_Beginner-1');
-      expect(capturedBody?['message'], 'Two options say the same thing.');
-      expect(capturedBody?['reporterEmail'], 'optional@example.com');
-    });
+        expect(response['success'], isTrue);
+        expect(capturedAuth, isNull);
+        expect(capturedBody?['questionId'], 'IPI-Patents_Beginner-1');
+        expect(capturedBody?['message'], 'Two options say the same thing.');
+        expect(capturedBody?['reporterEmail'], 'optional@example.com');
+      },
+    );
   });
 }

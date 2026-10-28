@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../practice/domain/entities/office_entity.dart';
 import '../../../practice/presentation/providers/offices_provider.dart';
+import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../domain/entities/entitlement_entity.dart';
 import '../providers/entitlement_provider.dart';
 
@@ -348,6 +349,14 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
 
                         if (context.mounted) {
                           if (success) {
+                            final selectedCode = isTrack
+                                ? _selectedNationalCode
+                                : _selectedFocusCode;
+                            if (selectedCode != null) {
+                              ref
+                                  .read(practiceProvider.notifier)
+                                  .setJurisdiction(selectedCode);
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(

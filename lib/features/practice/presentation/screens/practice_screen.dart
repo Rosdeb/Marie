@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/global_header.dart';
 import '../../../subscription/domain/entities/entitlement_entity.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
-import '../../data/models/discipline_theme_models.dart';
 import '../../data/models/practice_setup_model.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
@@ -156,21 +155,32 @@ class PracticeScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
 
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE9F6FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.menu_book_outlined, size: 20, color: AppColors.primary),
+                          Icon(
+                            Icons.menu_book_outlined,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               "Available disciplines and levels come from the selected office.",
                               overflow: TextOverflow.ellipsis,
                               maxLines: 2,
-                              style: TextStyle(height: 1.2, fontSize: 13, color: AppColors.primaryDeep),
+                              style: TextStyle(
+                                height: 1.2,
+                                fontSize: 13,
+                                color: AppColors.primaryDeep,
+                              ),
                             ),
                           ),
                         ],
@@ -179,7 +189,12 @@ class PracticeScreen extends ConsumerWidget {
                     const SizedBox(height: 14),
 
                     // Dynamic Discipline Chips
-                    _buildDisciplinesGrid(context, ref, selection, activeDiscipline),
+                    _buildDisciplinesGrid(
+                      context,
+                      ref,
+                      selection,
+                      activeDiscipline,
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -244,21 +259,25 @@ class PracticeScreen extends ConsumerWidget {
       );
     }
 
-    final disciplines = selection.disciplines.isNotEmpty
-        ? selection.disciplines
-        : [
-            const DisciplineDetailModel(name: 'Patents', questions: 800),
-            const DisciplineDetailModel(name: 'Trademarks', questions: 800),
-            const DisciplineDetailModel(name: 'Designs', questions: 800),
-          ];
+    final disciplines = selection.disciplines;
+
+    if (disciplines.isEmpty) {
+      return Text(
+        selection.errorMessage ??
+            'No disciplines are available for this office yet.',
+        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+      );
+    }
 
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: disciplines.map((d) {
-        final isSelected = activeDiscipline.toLowerCase() == d.name.toLowerCase();
-        final levelCount = d.levels.isNotEmpty ? d.levels.length : 4;
-        final sub = '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
+        final isSelected =
+            activeDiscipline.toLowerCase() == d.name.toLowerCase();
+        final levelCount = d.levels.where((level) => level.isAvailable).length;
+        final sub =
+            '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
         return SizedBox(
           width: (MediaQuery.of(context).size.width - 50) / 2,
           child: _buildDisciplineChip(
@@ -302,7 +321,7 @@ class PracticeScreen extends ConsumerWidget {
       onTap: () {
         ref.read(practiceProvider.notifier).setTopic(title);
         ref.read(quizProvider.notifier).setSubdiscipline(title);
-        context.push('/practice/choose-level');
+        context.push('/practice/choose-mode');
       },
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/question_report_dialog.dart';
+import '../../../../core/widgets/question_report_bottom_sheet.dart';
 import '../../data/models/quiz_models.dart';
 import '../providers/quiz_provider.dart';
 
@@ -35,18 +35,18 @@ class ActiveQuizScreen extends ConsumerWidget {
             },
           ),
         ),
-        body: const Center(
-          child: Text('No questions available'),
-        ),
+        body: const Center(child: Text('No questions available')),
       );
     }
 
     final question = quizState.questions[quizState.currentIndex];
     final selectedOption = quizState.userAnswers[quizState.currentIndex];
     final progress = (quizState.currentIndex + 1) / quizState.questions.length;
-    final isAnswerSelected = quizState.userAnswers.containsKey(quizState.currentIndex) &&
+    final isAnswerSelected =
+        quizState.userAnswers.containsKey(quizState.currentIndex) &&
         quizState.userAnswers[quizState.currentIndex] != null;
-    final isLastQuestion = quizState.currentIndex == quizState.questions.length - 1;
+    final isLastQuestion =
+        quizState.currentIndex == quizState.questions.length - 1;
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
@@ -88,7 +88,10 @@ class ActiveQuizScreen extends ConsumerWidget {
         ),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 12.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -98,7 +101,9 @@ class ActiveQuizScreen extends ConsumerWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: AppColors.border,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                     minHeight: 6,
                   ),
                 ),
@@ -109,7 +114,10 @@ class ActiveQuizScreen extends ConsumerWidget {
                   children: [
                     if (question.office.isNotEmpty) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryDeep,
                           borderRadius: BorderRadius.circular(6),
@@ -127,7 +135,10 @@ class ActiveQuizScreen extends ConsumerWidget {
                     ],
                     if (question.discipline.isNotEmpty) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
@@ -145,7 +156,10 @@ class ActiveQuizScreen extends ConsumerWidget {
                     ],
                     if (question.level.isNotEmpty) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(6),
@@ -175,7 +189,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     InkWell(
                       onTap: () {
-                        QuestionReportDialog.show(
+                        QuestionReportBottomSheet.show(
                           context,
                           ref,
                           questionId: question.id,
@@ -268,10 +282,14 @@ class ActiveQuizScreen extends ConsumerWidget {
 
                       return Container(
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primaryLight : Colors.white,
+                          color: isSelected
+                              ? AppColors.primaryLight
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : Colors.transparent,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.transparent,
                             width: isSelected ? 0.7 : 0,
                           ),
                           boxShadow: [
@@ -287,10 +305,15 @@ class ActiveQuizScreen extends ConsumerWidget {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => ref.read(quizProvider.notifier).selectAnswer(index),
+                            onTap: () => ref
+                                .read(quizProvider.notifier)
+                                .selectAnswer(index),
                             borderRadius: BorderRadius.circular(14),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
                               child: Row(
                                 children: [
                                   Container(
@@ -308,7 +331,9 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
-                                        color: isSelected ? Colors.white : AppColors.textSecondary,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppColors.textSecondary,
                                       ),
                                     ),
                                   ),
@@ -346,7 +371,9 @@ class ActiveQuizScreen extends ConsumerWidget {
                         child: CustomButton(
                           text: 'Previous',
                           isSecondary: true,
-                          onPressed: () => ref.read(quizProvider.notifier).previousQuestion(),
+                          onPressed: () => ref
+                              .read(quizProvider.notifier)
+                              .previousQuestion(),
                         ),
                       ),
                     if (quizState.currentIndex > 0) const SizedBox(width: 12),
@@ -359,7 +386,9 @@ class ActiveQuizScreen extends ConsumerWidget {
                                 if (isLastQuestion) {
                                   ref.read(quizProvider.notifier).submitQuiz();
                                 } else {
-                                  ref.read(quizProvider.notifier).nextQuestion();
+                                  ref
+                                      .read(quizProvider.notifier)
+                                      .nextQuestion();
                                 }
                               }
                             : null,
@@ -389,7 +418,11 @@ class ActiveQuizScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTimerBadge(int elapsedSeconds, int remainingSeconds, int totalSeconds) {
+  Widget _buildTimerBadge(
+    int elapsedSeconds,
+    int remainingSeconds,
+    int totalSeconds,
+  ) {
     final minutes = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (elapsedSeconds % 60).toString().padLeft(2, '0');
     final timeText = '$minutes:$seconds';
@@ -422,19 +455,12 @@ class ActiveQuizScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: textColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
+          border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.timer_outlined,
-              size: 16,
-              color: iconColor,
-            ),
+            Icon(Icons.timer_outlined, size: 16, color: iconColor),
             const SizedBox(width: 5),
             Text(
               timeText,
@@ -451,4 +477,3 @@ class ActiveQuizScreen extends ConsumerWidget {
     );
   }
 }
-

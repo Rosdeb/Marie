@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/question_report_dialog.dart';
+import '../../../../core/widgets/question_report_bottom_sheet.dart';
 import '../providers/quiz_provider.dart';
 
 class AnswerReviewScreen extends ConsumerWidget {
@@ -22,7 +22,11 @@ class AnswerReviewScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textPrimary, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: AppColors.textPrimary,
+            size: 18,
+          ),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -84,7 +88,7 @@ class AnswerReviewScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () {
-                          QuestionReportDialog.show(
+                          QuestionReportBottomSheet.show(
                             context,
                             ref,
                             questionId: question.id,
@@ -126,8 +130,11 @@ class AnswerReviewScreen extends ConsumerWidget {
                   const SizedBox(height: 14),
                   ...List.generate(question.options.length, (optIndex) {
                     final option = question.options[optIndex];
-                    final isCorrect = option.isCorrect || optIndex == question.correctOptionIndex;
-                    final isUserChoice = option.isChosen || optIndex == userChoice;
+                    final isCorrect =
+                        option.isCorrect ||
+                        optIndex == question.correctOptionIndex;
+                    final isUserChoice =
+                        option.isChosen || optIndex == userChoice;
 
                     Color optionBg = AppColors.background;
                     Color borderColor = Colors.transparent;
@@ -142,7 +149,10 @@ class AnswerReviewScreen extends ConsumerWidget {
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: optionBg,
                         borderRadius: BorderRadius.circular(10),
@@ -157,7 +167,9 @@ class AnswerReviewScreen extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: isCorrect
                                   ? AppColors.success
-                                  : (isUserChoice ? AppColors.error : Colors.grey.shade300),
+                                  : (isUserChoice
+                                        ? AppColors.error
+                                        : Colors.grey.shade300),
                               shape: BoxShape.circle,
                             ),
                             child: Text(
@@ -180,14 +192,24 @@ class AnswerReviewScreen extends ConsumerWidget {
                                 fontWeight: FontWeight.w500,
                                 color: isCorrect
                                     ? AppColors.success
-                                    : (isUserChoice ? AppColors.error : AppColors.textPrimary),
+                                    : (isUserChoice
+                                          ? AppColors.error
+                                          : AppColors.textPrimary),
                               ),
                             ),
                           ),
                           if (isCorrect)
-                            const Icon(Icons.check_circle, size: 18, color: AppColors.success),
+                            const Icon(
+                              Icons.check_circle,
+                              size: 18,
+                              color: AppColors.success,
+                            ),
                           if (isUserChoice && !isCorrect)
-                            const Icon(Icons.cancel, size: 18, color: AppColors.error),
+                            const Icon(
+                              Icons.cancel,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
                         ],
                       ),
                     );

@@ -7,7 +7,10 @@ import '../models/office_model.dart';
 abstract class PracticeRemoteDataSource {
   Future<List<OfficeModel>> getOffices();
   Future<List<DisciplineDetailModel>> getOfficeDisciplines(String office);
-  Future<List<ThemeDetailModel>> getDisciplineThemes(String office, String subject);
+  Future<List<ThemeDetailModel>> getDisciplineThemes(
+    String office,
+    String subject,
+  );
   Future<List<ThemeDetailModel>> getCrossOfficeThemes(String subject);
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
@@ -26,9 +29,7 @@ abstract class PracticeRemoteDataSource {
     required String sessionId,
     required List<Map<String, dynamic>> answers,
   });
-  Future<List<Map<String, dynamic>>> reviewSession({
-    required String sessionId,
-  });
+  Future<List<Map<String, dynamic>>> reviewSession({required String sessionId});
 }
 
 class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
@@ -40,7 +41,9 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   Future<List<OfficeModel>> getOffices() async {
     final response = await apiClient.get(
       ApiConstants.practiceOffices,
-      requiresAuth: false,
+      // Auth is optional server-side; ApiClient still works signed out, and
+      // sends the token when one exists so access flags are personalised.
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic> && response['data'] is List) {
@@ -53,10 +56,12 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   }
 
   @override
-  Future<List<DisciplineDetailModel>> getOfficeDisciplines(String office) async {
+  Future<List<DisciplineDetailModel>> getOfficeDisciplines(
+    String office,
+  ) async {
     final response = await apiClient.get(
       ApiConstants.practiceDisciplines(office),
-      requiresAuth: false,
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic> &&
@@ -77,7 +82,7 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   ) async {
     final response = await apiClient.get(
       ApiConstants.practiceThemes(office, subject),
-      requiresAuth: false,
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic> &&
@@ -95,7 +100,7 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   Future<List<ThemeDetailModel>> getCrossOfficeThemes(String subject) async {
     final response = await apiClient.get(
       ApiConstants.practiceCrossOfficeThemes(subject),
-      requiresAuth: false,
+      requiresAuth: true,
     );
 
     if (response is Map<String, dynamic> &&
@@ -200,8 +205,9 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   }
 }
 
-final practiceRemoteDataSourceProvider =
-    Provider<PracticeRemoteDataSource>((ref) {
+final practiceRemoteDataSourceProvider = Provider<PracticeRemoteDataSource>((
+  ref,
+) {
   final apiClient = ref.watch(apiClientProvider);
   return PracticeRemoteDataSourceImpl(apiClient: apiClient);
 });

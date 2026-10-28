@@ -24,6 +24,8 @@ import '../../features/home/presentation/screens/how_it_works_screen.dart';
 import '../../features/practice/presentation/screens/choose_subdiscipline_screen.dart';
 import '../../features/practice/presentation/screens/choose_jurisdiction_screen.dart';
 import '../../features/practice/presentation/screens/choose_level_screen.dart';
+import '../../features/practice/presentation/screens/choose_practice_mode_screen.dart';
+import '../../features/practice/presentation/screens/choose_theme_screen.dart';
 import '../../features/practice/presentation/screens/exam_ready_screen.dart';
 import '../../features/practice/presentation/screens/quiz_setup_screen.dart';
 import '../../features/practice/presentation/screens/active_quiz_screen.dart';
@@ -97,7 +99,9 @@ class AppRouter {
         path: '/otp-verification',
         name: 'otpVerification',
         builder: (context, state) {
-          final isForgot = state.uri.queryParameters['mode'] == 'forgot' || state.extra == 'forgot';
+          final isForgot =
+              state.uri.queryParameters['mode'] == 'forgot' ||
+              state.extra == 'forgot';
           return OtpVerificationScreen(isForgotPassword: isForgot);
         },
       ),
@@ -159,17 +163,20 @@ class AppRouter {
       GoRoute(
         path: '/privacy-policy',
         name: 'privacyPolicy',
-        builder: (context, state) => const LegalContentScreen(type: LegalType.privacyPolicy),
+        builder: (context, state) =>
+            const LegalContentScreen(type: LegalType.privacyPolicy),
       ),
       GoRoute(
         path: '/legal-notice',
         name: 'legalNotice',
-        builder: (context, state) => const LegalContentScreen(type: LegalType.legalNotice),
+        builder: (context, state) =>
+            const LegalContentScreen(type: LegalType.legalNotice),
       ),
       GoRoute(
         path: '/eula',
         name: 'eula',
-        builder: (context, state) => const LegalContentScreen(type: LegalType.eula),
+        builder: (context, state) =>
+            const LegalContentScreen(type: LegalType.eula),
       ),
       GoRoute(
         path: '/support',
@@ -186,6 +193,16 @@ class AppRouter {
         path: '/practice/choose-jurisdiction',
         name: 'chooseJurisdiction',
         builder: (context, state) => const ChooseJurisdictionScreen(),
+      ),
+      GoRoute(
+        path: '/practice/choose-mode',
+        name: 'choosePracticeMode',
+        builder: (context, state) => const ChoosePracticeModeScreen(),
+      ),
+      GoRoute(
+        path: '/practice/choose-theme',
+        name: 'chooseTheme',
+        builder: (context, state) => const ChooseThemeScreen(),
       ),
       GoRoute(
         path: '/practice/choose-level',
@@ -218,10 +235,7 @@ class AppRouter {
         builder: (context, state) => const AnswerReviewScreen(),
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Page not found: ${state.uri}'),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
 }
