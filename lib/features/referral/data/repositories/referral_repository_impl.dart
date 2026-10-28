@@ -24,18 +24,33 @@ class ReferralRepositoryImpl implements ReferralRepository {
   }
 
   @override
-  Future<LinkedInShareResult> shareOnLinkedIn({String? message}) async {
-    return await remoteDataSource.shareOnLinkedIn(message: message);
-  }
-
-  @override
-  Future<Map<String, dynamic>> claimDiscount() async {
-    return await remoteDataSource.claimDiscount();
+  Future<LinkedInShareResult> shareOnLinkedIn({String? postMessage}) async {
+    return await remoteDataSource.shareOnLinkedIn(postMessage: postMessage);
   }
 
   @override
   Future<Map<String, dynamic>> validatePromoCode(String code) async {
     return await remoteDataSource.validatePromoCode(code);
+  }
+
+  @override
+  Future<Map<String, dynamic>> redeemPromoCode(RedeemRequestModel request) async {
+    return await remoteDataSource.redeemPromoCode(request);
+  }
+
+  @override
+  Future<dynamic> getContentVideos() async {
+    return await remoteDataSource.getContentVideos();
+  }
+
+  @override
+  Future<dynamic> getReferralCopy() async {
+    return await remoteDataSource.getReferralCopy();
+  }
+
+  @override
+  Future<dynamic> getDiscountOffer() async {
+    return await remoteDataSource.getDiscountOffer();
   }
 }
 

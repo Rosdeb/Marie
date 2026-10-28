@@ -9,15 +9,18 @@ import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../referral/data/models/referral_models.dart';
 import '../../../referral/presentation/providers/referral_provider.dart';
+import '../../../referral/presentation/widgets/referral_video_player.dart';
 
 class SharePreviewScreen extends ConsumerStatefulWidget {
   const SharePreviewScreen({super.key});
 
   @override
-  ConsumerState<SharePreviewScreen> createState() => _SharePreviewScreenState();
+  ConsumerState<SharePreviewScreen> createState() =>
+      _SharePreviewScreenState();
 }
 
-class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
+class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
+    with WidgetsBindingObserver {
   late TextEditingController _messageController;
   bool _isEditing = false;
   bool _hasInitializedText = false;
@@ -25,29 +28,56 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _messageController = TextEditingController();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-check LinkedIn connection status when returning from external browser
+      ref.read(referralProvider.notifier).fetchData();
+    }
+  }
+
   void _syncInitialText(SharePreviewModel preview) {
-    if (!_hasInitializedText && preview.shareText.isNotEmpty) {
-      _messageController.text = '${preview.shareText}\n${preview.referralUrl}';
+    if (!_hasInitializedText &&
+        preview.sharePreview.postMessage.isNotEmpty) {
+      _messageController.text = preview.sharePreview.postMessage;
       _hasInitializedText = true;
     }
   }
 
-  Future<void> _handleShare(SharePreviewModel preview, LinkedInStatusModel status) async {
-    final textToShare = _messageController.text.trim();
-    await Clipboard.setData(ClipboardData(text: textToShare));
+  Future<void> _handlePrimaryAction(
+    SharePreviewModel preview,
+    LinkedInStatusModel status,
+  ) async {
+    // 1. If not connected yet -> Step 4: POST /referral/linkedin/connect -> OAuth
+    if (!status.connected) {
+      final success = await ref
+          .read(referralProvider.notifier)
+          .launchLinkedInAuthorization();
+      if (!success && mounted) {
+        final err = ref.read(referralProvider).errorMessage;
+        if (err != null && err.isNotEmpty) {
+          FloatingErrorBar.show(context, message: err);
+        }
+      }
+      return;
+    }
 
+    // 2. Already connected -> Step 5: POST /referral/linkedin/share { postMessage }
+    final textToShare = _messageController.text.trim();
     final result = await ref
         .read(referralProvider.notifier)
-        .shareOnLinkedIn(message: textToShare);
+        .shareOnLinkedIn(postMessage: textToShare);
 
     if (!mounted) return;
 
@@ -56,111 +86,33 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
         context,
         message: 'Published to LinkedIn! 10% discount claimed.',
       );
-      _showRewardClaimedDialog();
+      _showRewardClaimedDialog(result.promoCode ?? status.promoCode ?? preview.promoCode);
       return;
     }
 
-    if (result.requiresAuth || !status.connected) {
-      _showConnectOrShareDialog(result.authorizationUrl, preview.referralUrl);
+    if (result.requiresAuth) {
+      // Server reported connection expired or required
+      if (result.authorizationUrl != null &&
+          result.authorizationUrl!.isNotEmpty) {
+        final uri = Uri.parse(result.authorizationUrl!);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await ref
+            .read(referralProvider.notifier)
+            .launchLinkedInAuthorization();
+      }
     } else {
-      FloatingErrorBar.show(context, message: result.message);
+      FloatingErrorBar.show(
+        context,
+        message: result.message.isNotEmpty
+            ? result.message
+            : 'Failed to publish post to LinkedIn.',
+      );
     }
   }
 
-  void _showConnectOrShareDialog(String? authUrl, String referralUrl) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.share_outlined, color: Color(0xFF0077B5), size: 24),
-              SizedBox(width: 10),
-              Text(
-                'Share on LinkedIn',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Your referral post message and link have been copied to your clipboard!',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Connect your LinkedIn to publish automatically, or open LinkedIn directly to paste and share:',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0077B5),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () async {
-                Navigator.pop(dialogCtx);
-                if (authUrl != null && authUrl.isNotEmpty) {
-                  final uri = Uri.parse(authUrl);
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  // Direct LinkedIn share URL
-                  final shareUrl = Uri.parse(
-                    'https://www.linkedin.com/sharing/share-offsite/?url=${Uri.encodeComponent(referralUrl)}',
-                  );
-                  await launchUrl(shareUrl, mode: LaunchMode.externalApplication);
-                }
-              },
-              child: const Text(
-                'Open LinkedIn',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showRewardClaimedDialog() {
-    final state = ref.read(referralProvider);
-    final promoCode = state.activePromoCode ?? state.status.promoCode ?? state.sharePreview.referralCode;
+  void _showRewardClaimedDialog(String? code) {
+    final promoCode = code ?? 'IPRO-10-OFF';
 
     showDialog(
       context: context,
@@ -186,9 +138,10 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Thank you for sharing IPro with your network! Here is your exclusive 10% discount promo code:',
+                'Thank you for sharing IPro on LinkedIn! Here is your exclusive 10% discount promo code for checkout:',
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
@@ -197,7 +150,8 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
               ),
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
@@ -216,10 +170,17 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.primary),
+                      icon: const Icon(
+                        Icons.copy_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: promoCode));
-                        FloatingSuccessBar.show(context, message: 'Promo code copied!');
+                        FloatingSuccessBar.show(
+                          context,
+                          message: 'Promo code copied to clipboard!',
+                        );
                       },
                     ),
                   ],
@@ -238,7 +199,10 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                 ),
               ),
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: const Text(
+                'Awesome!',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         );
@@ -254,6 +218,12 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
 
     _syncInitialText(preview);
 
+    final isConnected = status.connected || preview.linkedinConnected;
+    final hasClaimedReward =
+        status.shareRewardClaimed || preview.shareRewardClaimed;
+    final activeCode =
+        refState.activePromoCode ?? status.promoCode ?? preview.promoCode;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -267,9 +237,11 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
           ),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Share Preview',
-          style: TextStyle(
+        title: Text(
+          preview.sharePreview.screenTitle.isNotEmpty
+              ? preview.sharePreview.screenTitle
+              : 'Share Preview',
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -294,7 +266,8 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
         child: refState.isLoading && !_hasInitializedText
             ? const SharePreviewShimmer()
             : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -304,73 +277,144 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Connection Status Bar
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              margin: const EdgeInsets.only(bottom: 14),
-                              decoration: BoxDecoration(
-                                color: status.connected
-                                    ? AppColors.successLight
-                                    : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: status.connected
-                                      ? AppColors.success.withValues(alpha: 0.3)
-                                      : const Color(0xFFE2E8F0),
+                            // 1. Reward Already Claimed Banner (if claimed)
+                            if (hasClaimedReward && activeCode != null) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
                                 ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    status.connected
-                                        ? Icons.check_circle_rounded
-                                        : Icons.link_rounded,
-                                    size: 18,
-                                    color: status.connected
-                                        ? AppColors.success
-                                        : const Color(0xFF0077B5),
+                                margin: const EdgeInsets.only(bottom: 14),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successLight,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppColors.success
+                                        .withValues(alpha: 0.3),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      status.connected
-                                          ? 'LinkedIn connected • Ready to auto-share'
-                                          : 'Connect LinkedIn to automatically share',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: status.connected
-                                            ? AppColors.success
-                                            : AppColors.textPrimary,
-                                      ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.stars_rounded,
+                                      size: 20,
+                                      color: AppColors.success,
                                     ),
-                                  ),
-                                  if (!status.connected)
-                                    TextButton(
-                                      onPressed: () {
-                                        ref
-                                            .read(referralProvider.notifier)
-                                            .launchLinkedInAuthorization();
-                                      },
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: const Text(
-                                        'Connect',
-                                        style: TextStyle(
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Reward Unlocked: $activeCode',
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF0077B5),
+                                          color: AppColors.success,
                                         ),
                                       ),
                                     ),
-                                ],
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.copy_rounded,
+                                        size: 16,
+                                        color: AppColors.success,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        Clipboard.setData(
+                                          ClipboardData(text: activeCode),
+                                        );
+                                        FloatingSuccessBar.show(
+                                          context,
+                                          message:
+                                              'Promo code copied to clipboard!',
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                            ] else ...[
+                              // 2. Connection Status Bar
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                margin: const EdgeInsets.only(bottom: 14),
+                                decoration: BoxDecoration(
+                                  color: isConnected
+                                      ? AppColors.successLight
+                                      : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isConnected
+                                        ? AppColors.success
+                                            .withValues(alpha: 0.3)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isConnected
+                                          ? Icons.check_circle_rounded
+                                          : Icons.link_rounded,
+                                      size: 18,
+                                      color: isConnected
+                                          ? AppColors.success
+                                          : const Color(0xFF0077B5),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        isConnected
+                                            ? 'LinkedIn connected • Ready to auto-share'
+                                            : 'Connect LinkedIn to publish your post',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isConnected
+                                              ? AppColors.success
+                                              : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    if (!isConnected)
+                                      TextButton(
+                                        onPressed: refState.isConnecting
+                                            ? null
+                                            : () {
+                                                ref
+                                                    .read(referralProvider
+                                                        .notifier)
+                                                    .launchLinkedInAuthorization();
+                                              },
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize
+                                              .shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          refState.isConnecting
+                                              ? 'Opening...'
+                                              : 'Connect',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF0077B5),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
 
-                            // Card Preview Unit
+                            // 3. Video Player / Coming Soon Card
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -387,37 +431,24 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Image.network(
-                                        preview.previewImageUrl ??
-                                            'https://iter-bene.s3.eu-north-1.amazonaws.com/15206766-215b-415e-8016-dd1bd32c4ad6.png',
-                                        height: 180,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Container(
-                                          height: 180,
-                                          width: double.infinity,
-                                          color: AppColors.primaryDeep,
-                                          child: const Center(
-                                            child: Icon(
-                                              Icons.share_rounded,
-                                              size: 48,
-                                              color: Colors.white54,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  ReferralVideoPlayer(
+                                    videoUrl: preview.video.videoUrl,
+                                    thumbnailUrl: preview.video.thumbnailUrl,
+                                    title: preview.video.title ?? preview.title,
+                                    comingSoon: preview.video.comingSoon,
+                                    height: 190,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(16),
+                                      topRight: Radius.circular(16),
+                                    ),
                                   ),
 
-                                  // Link Info Container
+                                  // Hint under video
                                   Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           preview.previewDomain,
@@ -428,7 +459,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          preview.title,
+                                          preview.video.title ?? preview.title,
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
@@ -437,7 +468,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          preview.description,
+                                          preview.sharePreview.shareHint,
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: AppColors.textSecondary,
@@ -453,57 +484,64 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
 
                             const SizedBox(height: 20),
 
-                            // LinkedIn Post Header
+                            // 4. LinkedIn Post Message Header with Edit Toggle
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'LinkedIn Post Message',
-                                  style: TextStyle(
+                                Text(
+                                  preview.sharePreview.postMessageLabel,
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _isEditing = !_isEditing;
-                                    });
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        _isEditing
-                                            ? Icons.check_rounded
-                                            : Icons.edit_outlined,
-                                        size: 14,
-                                        color: AppColors.primary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _isEditing ? 'Done' : 'Edit',
-                                        style: const TextStyle(
-                                          fontSize: 13,
+                                if (preview.sharePreview.editable)
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _isEditing = !_isEditing;
+                                      });
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          _isEditing
+                                              ? Icons.check_rounded
+                                              : Icons.edit_outlined,
+                                          size: 14,
                                           color: AppColors.primary,
-                                          fontWeight: FontWeight.w600,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _isEditing ? 'Done' : 'Edit',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
 
                             const SizedBox(height: 8),
 
-                            // Editable Text Container
+                            // 5. Post Box (App-side editing only)
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(16.0),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(14),
+                                border: _isEditing
+                                    ? Border.all(
+                                        color: AppColors.primary,
+                                        width: 1.5,
+                                      )
+                                    : null,
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.04),
@@ -515,6 +553,8 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                               child: _isEditing
                                   ? TextField(
                                       controller: _messageController,
+                                      maxLength:
+                                          preview.sharePreview.maxLength,
                                       maxLines: null,
                                       style: const TextStyle(
                                         fontSize: 13,
@@ -530,7 +570,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                                   : Text(
                                       _messageController.text.isNotEmpty
                                           ? _messageController.text
-                                          : '${preview.shareText}\n${preview.referralUrl}',
+                                          : preview.sharePreview.postMessage,
                                       style: const TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textPrimary,
@@ -544,7 +584,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                       ),
                     ),
 
-                    // Bottom Actions
+                    // 6. Primary Button (Continue to Share / Share on LinkedIn)
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -556,10 +596,10 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        onPressed: refState.isSharing
+                        onPressed: (refState.isSharing || refState.isConnecting)
                             ? null
-                            : () => _handleShare(preview, status),
-                        icon: refState.isSharing
+                            : () => _handlePrimaryAction(preview, status),
+                        icon: (refState.isSharing || refState.isConnecting)
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
@@ -568,15 +608,19 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.share, color: Colors.white, size: 18),
+                            : const Icon(
+                                Icons.share,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                         label: Text(
                           refState.isSharing
-                              ? 'Sharing...'
-                              : (status.connected
-                                  ? 'Share on LinkedIn'
-                                  : preview.bannerDescription.isNotEmpty
-                                      ? 'Continue to Share'
-                                      : 'Share on LinkedIn'),
+                              ? 'Publishing...'
+                              : refState.isConnecting
+                                  ? 'Connecting...'
+                                  : (isConnected
+                                      ? 'Share on LinkedIn'
+                                      : preview.sharePreview.primaryButtonText),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
@@ -586,18 +630,37 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    // 7. Footer Note / Unavailable text
+                    if (preview.sharePreview.footerNote != null &&
+                        preview.sharePreview.footerNote!.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Center(
+                          child: Text(
+                            preview.sharePreview.footerNote!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
 
+                    const SizedBox(height: 10),
+
+                    // 8. Secondary Button (How It Works)
                     Center(
                       child: GestureDetector(
                         onTap: () {
                           context.push('/home/how-it-works');
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(6.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6.0),
                           child: Text(
-                            'How it works',
-                            style: TextStyle(
+                            preview.sharePreview.secondaryButtonText,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -606,7 +669,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),

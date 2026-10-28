@@ -9,6 +9,7 @@ class ReferralState {
   final LinkedInStatusModel status;
   final bool isLoading;
   final bool isSharing;
+  final bool isConnecting;
   final String? errorMessage;
   final String? activePromoCode;
 
@@ -17,6 +18,7 @@ class ReferralState {
     this.status = const LinkedInStatusModel(),
     this.isLoading = false,
     this.isSharing = false,
+    this.isConnecting = false,
     this.errorMessage,
     this.activePromoCode,
   });
@@ -26,6 +28,7 @@ class ReferralState {
     LinkedInStatusModel? status,
     bool? isLoading,
     bool? isSharing,
+    bool? isConnecting,
     String? errorMessage,
     String? activePromoCode,
     bool clearError = false,
@@ -35,6 +38,7 @@ class ReferralState {
       status: status ?? this.status,
       isLoading: isLoading ?? this.isLoading,
       isSharing: isSharing ?? this.isSharing,
+      isConnecting: isConnecting ?? this.isConnecting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       activePromoCode: activePromoCode ?? this.activePromoCode,
     );
@@ -57,10 +61,20 @@ class ReferralNotifier extends Notifier<ReferralState> {
       final preview = await _repository.getSharePreview();
       final status = await _repository.getLinkedInStatus();
 
+      final effectiveConnected =
+          status.connected || preview.linkedinConnected;
+      final effectiveStatus = LinkedInStatusModel(
+        connected: effectiveConnected,
+        memberUrn: status.memberUrn,
+        shareRewardClaimed:
+            status.shareRewardClaimed || preview.shareRewardClaimed,
+        promoCode: status.promoCode ?? preview.promoCode,
+      );
+
       state = state.copyWith(
         sharePreview: preview,
-        status: status,
-        activePromoCode: status.promoCode,
+        status: effectiveStatus,
+        activePromoCode: effectiveStatus.promoCode,
         isLoading: false,
       );
     } catch (e) {
@@ -71,37 +85,60 @@ class ReferralNotifier extends Notifier<ReferralState> {
     }
   }
 
+  Future<String?> getLinkedInConnectUrl() async {
+    try {
+      return await _repository.getLinkedInAuthorizationUrl();
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: e.toString().replaceFirst('Exception: ', ''),
+      );
+      return null;
+    }
+  }
+
   Future<bool> launchLinkedInAuthorization() async {
+    state = state.copyWith(isConnecting: true, clearError: true);
     try {
       final urlStr = await _repository.getLinkedInAuthorizationUrl();
       if (urlStr != null && urlStr.isNotEmpty) {
         final uri = Uri.parse(urlStr);
-        return await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final launched =
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+        state = state.copyWith(isConnecting: false);
+        return launched;
       }
-    } catch (_) {}
+      state = state.copyWith(
+        isConnecting: false,
+        errorMessage: 'Unable to retrieve LinkedIn authorization link.',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isConnecting: false,
+        errorMessage: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
     return false;
   }
 
-  Future<LinkedInShareResult> shareOnLinkedIn({String? message}) async {
+  Future<LinkedInShareResult> shareOnLinkedIn({String? postMessage}) async {
     state = state.copyWith(isSharing: true, clearError: true);
     try {
-      final result = await _repository.shareOnLinkedIn(message: message);
+      final result =
+          await _repository.shareOnLinkedIn(postMessage: postMessage);
 
       if (result.success) {
-        // Automatically claim discount if not yet claimed
-        try {
-          final claimResp = await _repository.claimDiscount();
-          final promo = claimResp['data']?['promoCode']?.toString();
-          if (promo != null && promo.isNotEmpty) {
-            state = state.copyWith(activePromoCode: promo);
-          }
-        } catch (_) {}
+        final promo = result.promoCode ?? state.activePromoCode;
+        final updatedStatus = LinkedInStatusModel(
+          connected: true,
+          memberUrn: state.status.memberUrn,
+          shareRewardClaimed: true,
+          promoCode: promo,
+        );
 
-        final updatedStatus = await _repository.getLinkedInStatus();
         state = state.copyWith(
           isSharing: false,
           status: updatedStatus,
-          activePromoCode: updatedStatus.promoCode ?? state.activePromoCode,
+          activePromoCode: promo,
         );
         return result;
       }
@@ -115,26 +152,14 @@ class ReferralNotifier extends Notifier<ReferralState> {
     }
   }
 
-  Future<String?> claimDiscount() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+  Future<void> refreshStatus() async {
     try {
-      final claimResp = await _repository.claimDiscount();
-      final promo = claimResp['data']?['promoCode']?.toString();
       final updatedStatus = await _repository.getLinkedInStatus();
-
       state = state.copyWith(
-        isLoading: false,
         status: updatedStatus,
-        activePromoCode: promo ?? updatedStatus.promoCode,
+        activePromoCode: updatedStatus.promoCode ?? state.activePromoCode,
       );
-      return promo;
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString().replaceFirst('Exception: ', ''),
-      );
-      return null;
-    }
+    } catch (_) {}
   }
 
   Future<bool> validatePromoCode(String code) async {
@@ -155,7 +180,28 @@ class ReferralNotifier extends Notifier<ReferralState> {
       return false;
     }
   }
+
+  Future<bool> redeemPromoCode({
+    required String code,
+    required String tier,
+    required String billingPeriod,
+    required double discountAmount,
+    required String currency,
+  }) async {
+    try {
+      final req = RedeemRequestModel(
+        code: code,
+        tier: tier,
+        billingPeriod: billingPeriod,
+        discountAmount: discountAmount,
+        currency: currency,
+      );
+      final resp = await _repository.redeemPromoCode(req);
+      return resp['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
-final referralProvider =
-    NotifierProvider<ReferralNotifier, ReferralState>(ReferralNotifier.new);
+final referralProvider = NotifierProvider<ReferralNotifier, ReferralState>(ReferralNotifier.new);

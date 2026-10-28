@@ -136,6 +136,11 @@ class AppRouter {
         builder: (context, state) => const SharePreviewScreen(),
       ),
       GoRoute(
+        path: '/linkedin-connected',
+        name: 'linkedinConnected',
+        redirect: (context, state) => '/home/share-preview',
+      ),
+      GoRoute(
         path: '/home/how-it-works',
         name: 'howItWorks',
         builder: (context, state) => const HowItWorksScreen(),

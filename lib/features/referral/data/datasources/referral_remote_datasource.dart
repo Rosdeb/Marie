@@ -7,9 +7,12 @@ abstract class ReferralRemoteDataSource {
   Future<SharePreviewModel> getSharePreview();
   Future<LinkedInStatusModel> getLinkedInStatus();
   Future<String?> getLinkedInAuthorizationUrl();
-  Future<LinkedInShareResult> shareOnLinkedIn({String? message});
-  Future<Map<String, dynamic>> claimDiscount();
+  Future<LinkedInShareResult> shareOnLinkedIn({String? postMessage});
   Future<Map<String, dynamic>> validatePromoCode(String code);
+  Future<Map<String, dynamic>> redeemPromoCode(RedeemRequestModel request);
+  Future<dynamic> getContentVideos();
+  Future<dynamic> getReferralCopy();
+  Future<dynamic> getDiscountOffer();
 }
 
 class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
@@ -65,9 +68,10 @@ class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
   }
 
   @override
-  Future<LinkedInShareResult> shareOnLinkedIn({String? message}) async {
+  Future<LinkedInShareResult> shareOnLinkedIn({String? postMessage}) async {
     final body = <String, dynamic>{
-      if (message != null && message.isNotEmpty) 'comment': message,
+      if (postMessage != null && postMessage.trim().isNotEmpty)
+        'postMessage': postMessage.trim(),
     };
 
     final response = await apiClient.post(
@@ -86,10 +90,10 @@ class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> claimDiscount() async {
+  Future<Map<String, dynamic>> validatePromoCode(String code) async {
     final response = await apiClient.post(
-      ApiConstants.claimDiscount,
-      body: {},
+      ApiConstants.validatePromoCode,
+      body: {'code': code.trim()},
       requiresAuth: true,
     );
 
@@ -100,10 +104,10 @@ class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> validatePromoCode(String code) async {
+  Future<Map<String, dynamic>> redeemPromoCode(RedeemRequestModel request) async {
     final response = await apiClient.post(
-      ApiConstants.validatePromoCode,
-      body: {'code': code},
+      ApiConstants.redeemPromoCode,
+      body: request.toJson(),
       requiresAuth: true,
     );
 
@@ -111,6 +115,30 @@ class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
       return response;
     }
     return {};
+  }
+
+  @override
+  Future<dynamic> getContentVideos() async {
+    return await apiClient.get(
+      ApiConstants.contentVideos,
+      requiresAuth: false,
+    );
+  }
+
+  @override
+  Future<dynamic> getReferralCopy() async {
+    return await apiClient.get(
+      ApiConstants.contentReferralCopy,
+      requiresAuth: false,
+    );
+  }
+
+  @override
+  Future<dynamic> getDiscountOffer() async {
+    return await apiClient.get(
+      ApiConstants.contentDiscountOffer,
+      requiresAuth: false,
+    );
   }
 }
 

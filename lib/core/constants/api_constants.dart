@@ -56,9 +56,13 @@ class ApiConstants {
   static const String sharePreview = '/referral/share-preview';
   static const String linkedinStatus = '/referral/linkedin/status';
   static const String linkedinConnect = '/referral/linkedin/connect';
+  static const String linkedinCallback = '/referral/linkedin/callback';
   static const String linkedinShare = '/referral/linkedin/share';
-  static const String claimDiscount = '/referral/claim-discount';
   static const String validatePromoCode = '/referral/validate-code';
+  static const String redeemPromoCode = '/referral/redeem';
+  static const String contentVideos = '/content/videos?placement=referral_guide';
+  static const String contentReferralCopy = '/content/referral-copy';
+  static const String contentDiscountOffer = '/content/discount-offer';
 
   // Subscriptions & Entitlements
   static const String subscriptionPlans = '/subscription/plans';

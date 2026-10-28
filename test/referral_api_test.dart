@@ -81,5 +81,103 @@ void main() {
       expect(result.requiresAuth, isTrue);
       expect(result.authorizationUrl, contains('oauth/v2/authorization'));
     });
+
+    test('SharePreviewModel.fromJson parses new API nested schema', () {
+      final json = {
+        "sharingAvailable": false,
+        "unavailableReason":
+            "Sharing unavailable: promotional video pending.",
+        "referral": {
+          "code": "ID-10023",
+          "url": "https://ipro.legal/referral/join-now?ref=ID-10023"
+        },
+        "reward": {
+          "discountPercentage": 10,
+          "validityDays": 30,
+          "oneTimePerUser": true,
+          "appliesTo": "standard IPro plans"
+        },
+        "video": {
+          "comingSoon": true,
+          "title": null,
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "captionsUrl": null
+        },
+        "sharePreview": {
+          "screenTitle": "Share Preview",
+          "shareHint":
+              "Share the video on LinkedIn to earn 10% off. You'll get your code immediately after sharing.",
+          "postMessageLabel": "LinkedIn Post Message",
+          "postMessage":
+              "Discover iPro — streamlined IP law practice! Use code: ID-10023. https://ipro.legal/referral/join-now?ref=ID-10023",
+          "postMessageTemplate":
+              "Discover iPro … {referral_code}. {referral_link}",
+          "editable": true,
+          "maxLength": 3000,
+          "primaryButtonText": "Continue to Share",
+          "secondaryButtonText": "How It Works",
+          "footerNote": "Sharing unavailable: promotional video pending."
+        },
+        "howItWorks": {
+          "screenTitle": "How it works",
+          "title": "Share on LinkedIn. Get 10% off.",
+          "steps": [
+            {
+              "step": 1,
+              "title": "Review your post",
+              "body":
+                  "We have prepared a message with a short video explaining IPro and your personal link."
+            },
+            {
+              "step": 2,
+              "title": "Share on LinkedIn",
+              "body":
+                  "Tap Continue to Share, sign in to LinkedIn if prompted, and publish the post to your network."
+            },
+            {
+              "step": 3,
+              "title": "Get 10% off in the app",
+              "body":
+                  "Once posted, return to this app to receive your promo code."
+            }
+          ],
+          "availabilityTitle": "Sharing is not available yet",
+          "availabilityNote":
+              "The video and website are still pending. We'll enable sharing as soon as they're ready."
+        },
+        "linkedinConnected": false,
+        "shareRewardClaimed": false,
+        "promoCode": null,
+        "actions": {
+          "connectEndpoint": "/api/v1/referral/linkedin/connect",
+          "publishEndpoint": "/api/v1/referral/linkedin/share",
+          "statusEndpoint": "/api/v1/referral/linkedin/status"
+        }
+      };
+
+      final preview = SharePreviewModel.fromJson(json);
+
+      expect(preview.sharingAvailable, isFalse);
+      expect(preview.unavailableReason, contains('promotional video pending'));
+      expect(preview.referral.code, 'ID-10023');
+      expect(preview.referralCode, 'ID-10023');
+      expect(preview.referralUrl,
+          'https://ipro.legal/referral/join-now?ref=ID-10023');
+      expect(preview.reward.discountPercentage, 10);
+      expect(preview.reward.validityDays, 30);
+      expect(preview.video.comingSoon, isTrue);
+      expect(preview.sharePreview.primaryButtonText, 'Continue to Share');
+      expect(preview.sharePreview.secondaryButtonText, 'How It Works');
+      expect(preview.sharePreview.footerNote,
+          'Sharing unavailable: promotional video pending.');
+      expect(preview.howItWorks.steps.length, 3);
+      expect(preview.howItWorks.steps[0].title, 'Review your post');
+      expect(preview.howItWorks.availabilityTitle,
+          'Sharing is not available yet');
+      expect(preview.connectEndpoint, '/api/v1/referral/linkedin/connect');
+      expect(preview.publishEndpoint, '/api/v1/referral/linkedin/share');
+      expect(preview.statusEndpoint, '/api/v1/referral/linkedin/status');
+    });
   });
 }
