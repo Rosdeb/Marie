@@ -13,6 +13,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAuth = ref.watch(authProvider).isAuthenticated;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -168,9 +170,10 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
 
                     // 3. Featured Try Free Demo Card (Moves to Demo Offices Catalogue)
-                    _buildTryFreeDemoCard(context, ref),
-
-                    const SizedBox(height: 12),
+                    if (!isAuth) ...[
+                      _buildTryFreeDemoCard(context, ref),
+                      const SizedBox(height: 12),
+                    ],
 
                     // 4. Topics Section Header
                     const Text(

@@ -6,7 +6,6 @@ import '../../../account/presentation/providers/account_provider.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../home/presentation/providers/notification_provider.dart';
 import '../../../subscription/data/services/revenuecat_purchase_service.dart';
-import '../../../subscription/presentation/providers/entitlement_provider.dart';
 
 enum AuthMode {
   initial,
@@ -318,13 +317,22 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _authRepository.signOut();
-    ref.read(revenueCatServiceProvider).logOut();
+    try {
+      await _authRepository.signOut();
+    } catch (_) {}
+    try {
+      ref.read(revenueCatServiceProvider).logOut();
+    } catch (_) {}
     state = AuthState();
-    ref.read(accountProvider.notifier).clear();
-    ref.read(notificationProvider.notifier).clearAll();
-    ref.read(entitlementProvider.notifier).clear();
-    ref.read(bottomNavProvider.notifier).changeIndex(0);
+    try {
+      ref.read(accountProvider.notifier).clear();
+    } catch (_) {}
+    try {
+      ref.read(notificationProvider.notifier).clearAll();
+    } catch (_) {}
+    try {
+      ref.read(bottomNavProvider.notifier).changeIndex(0);
+    } catch (_) {}
   }
 }
 

@@ -7,17 +7,54 @@ import '../theme/app_colors.dart';
 import 'floating_error_bar.dart';
 import 'floating_success_bar.dart';
 
+Future<Map<String, dynamic>> submitQuestionReport({
+  required ApiClient apiClient,
+  required String questionId,
+  required String message,
+  String? reporterEmail,
+  String? authToken,
+}) async {
+  final hasToken = authToken != null && authToken.isNotEmpty;
+  final email = reporterEmail?.trim() ?? '';
+
+  final body = <String, dynamic>{
+    'questionId': questionId,
+    'message': message,
+    if (!hasToken && email.isNotEmpty) 'reporterEmail': email,
+  };
+
+  final response = await apiClient.post(
+    ApiConstants.reportProblem,
+    body: body,
+    requiresAuth: hasToken,
+  );
+
+  return response is Map<String, dynamic> ? response : <String, dynamic>{};
+}
+
 class QuestionReportDialog {
-  static void show(
+  static Future<void> show(
     BuildContext context,
     WidgetRef ref, {
     required String questionId,
-  }) {
+  }) async {
+    final token = await ref.read(localStorageProvider).getAccessToken();
+    final isAuthenticated = token != null && token.isNotEmpty;
+
+    if (!context.mounted) return;
+
     final messageController = TextEditingController();
     final emailController = TextEditingController();
     bool isSubmitting = false;
 
-    showDialog(
+    const quickIssues = [
+      'The legal basis cites an article repealed in 2023.',
+      'Two options say the same thing.',
+      'The marked correct answer is wrong.',
+      'Typo or formatting error in question.',
+    ];
+
+    await showDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
@@ -55,74 +92,183 @@ class QuestionReportDialog {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                     ],
-                    const Text(
-                      'Describe the issue with this question (e.g. incorrect key, typo, outdated legal reference):',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                        height: 1.35,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isAuthenticated
+                            ? AppColors.primaryLight
+                            : AppColors.badgeBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isAuthenticated
+                                ? Icons.verified_user_outlined
+                                : Icons.account_circle_outlined,
+                            size: 14,
+                            color: isAuthenticated
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isAuthenticated
+                                ? 'Reporting as signed-in user'
+                                : 'Reporting without account',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isAuthenticated
+                                  ? AppColors.primaryDeep
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
+                    const Text(
+                      'Quick Select Common Issue:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: quickIssues.map((issue) {
+                        final isSelected = messageController.text == issue;
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              messageController.text = issue;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primaryLight
+                                  : AppColors.background,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border,
+                              ),
+                            ),
+                            child: Text(
+                              issue,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.primaryDeep
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Details / Description:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     TextField(
                       controller: messageController,
-                      maxLines: 4,
-                      style: const TextStyle(fontSize: 14),
+                      maxLines: 3,
+                      style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Enter details...',
+                        hintText: 'Describe the issue with this question...',
                         hintStyle: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
                         filled: true,
                         fillColor: AppColors.background,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppColors.border),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppColors.primary),
                         ),
-                        contentPadding: const EdgeInsets.all(12),
+                        contentPadding: const EdgeInsets.all(10),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: emailController,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Your email (optional)',
-                        hintStyle: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.background,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                    if (!isAuthenticated) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Your Email (optional):',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'optional@example.com',
+                          hintStyle: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.primary),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -155,7 +301,8 @@ class QuestionReportDialog {
                           if (msg.isEmpty) {
                             FloatingErrorBar.show(
                               context,
-                              message: 'Please provide description of the issue',
+                              message:
+                                  'Please describe the issue with this question',
                             );
                             return;
                           }
@@ -163,23 +310,12 @@ class QuestionReportDialog {
                           setState(() => isSubmitting = true);
                           try {
                             final apiClient = ref.read(apiClientProvider);
-                            final token = await ref
-                                .read(localStorageProvider)
-                                .getAccessToken();
-                            final hasToken = token != null && token.isNotEmpty;
-
-                            final email = emailController.text.trim();
-                            final body = <String, dynamic>{
-                              'questionId': questionId,
-                              'message': msg,
-                              if (!hasToken && email.isNotEmpty)
-                                'reporterEmail': email,
-                            };
-
-                            final resp = await apiClient.post(
-                              ApiConstants.reportProblem,
-                              body: body,
-                              requiresAuth: hasToken,
+                            final resp = await submitQuestionReport(
+                              apiClient: apiClient,
+                              questionId: questionId,
+                              message: msg,
+                              reporterEmail: emailController.text.trim(),
+                              authToken: token,
                             );
 
                             if (context.mounted) {

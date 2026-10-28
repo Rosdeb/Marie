@@ -1,7 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marie_nirva/core/storage/local_storage.dart';
 import 'package:marie_nirva/features/account/presentation/providers/account_provider.dart';
+import 'package:marie_nirva/features/auth/presentation/providers/auth_provider.dart';
+import 'package:marie_nirva/features/subscription/domain/entities/entitlement_entity.dart';
+import 'package:marie_nirva/features/subscription/presentation/providers/entitlement_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +53,24 @@ void main() {
       expect(cleared.name, '');
       expect(cleared.email, '');
       expect(cleared.avatarUrl, '');
+    });
+
+    test('AuthNotifier logout cleanly clears state and entitlement without CircularDependencyError', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Pre-warm entitlementProvider to mirror active UI listening
+      final sub = container.listen(entitlementProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      // Trigger logout
+      await container.read(authProvider.notifier).logout();
+
+      final auth = container.read(authProvider);
+      expect(auth.isAuthenticated, isFalse);
+
+      final entitlement = container.read(entitlementProvider);
+      expect(entitlement.planId, PlanTier.none);
     });
   });
 }

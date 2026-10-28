@@ -213,42 +213,19 @@ class ReviewScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // 2. Stats Overview Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatMiniCard(
-                              label: 'Reviewed',
-                              value: '$totalReviewed Qs',
-                              color: AppColors.primary,
-                              icon: Icons.checklist_rounded,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildStatMiniCard(
-                              label: 'Avg Accuracy',
-                              value: '${avgAccuracy.toStringAsFixed(0)}%',
-                              color: avgAccuracy >= 70
-                                  ? Colors.green
-                                  : AppColors.accentWarning,
-                              icon: Icons.trending_up_rounded,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildStatMiniCard(
-                              label: 'Mistakes',
-                              color: totalMistakes > 0
-                                  ? AppColors.error
-                                  : AppColors.textPrimary,
-                              value: '$totalMistakes',
-                              icon: Icons.flag_outlined,
-                            ),
-                          ),
-                        ],
+                      // 2. Minimal Metadata & Performance Overview
+                      _buildPerformanceDashboard(
+                        summary: summary,
+                        totalReviewed: totalReviewed,
+                        totalCorrect: totalCorrect,
+                        totalMistakes: totalMistakes,
+                        avgAccuracy: avgAccuracy,
+                        totalSessions: reviewState.sessions.length,
+                        firstSessionTime: reviewState.sessions.isNotEmpty
+                            ? reviewState.sessions.first.timeTaken
+                            : '',
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // 3. Filter Pills
                       SingleChildScrollView(
@@ -329,44 +306,266 @@ class ReviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatMiniCard({
-    required String label,
-    required String value,
-    required Color color,
-    required IconData icon,
+  Widget _buildPerformanceDashboard({
+    required PracticeHistorySummary? summary,
+    required int totalReviewed,
+    required int totalCorrect,
+    required int totalMistakes,
+    required double avgAccuracy,
+    required int totalSessions,
+    required String firstSessionTime,
   }) {
+    final answered = summary?.questionsAnswered ?? totalReviewed;
+    final correct = summary?.correctAnswers ?? totalCorrect;
+    final mistakes = summary?.wrongAnswers ?? totalMistakes;
+    final successPct = summary?.successPercentage ??
+        (answered > 0 ? (correct / answered) * 100 : 0.0);
+    final failPct = summary?.failPercentage ??
+        (answered > 0 ? (mistakes / answered) * 100 : 0.0);
+    final avgScore = summary?.averageScorePercentage ?? avgAccuracy;
+    final sessionsCount = summary?.sessionsSubmitted ?? totalSessions;
+    final timeSpent = summary?.time?.spent.isNotEmpty == true
+        ? summary!.time!.spent
+        : firstSessionTime;
+    final pace = summary?.time?.averageSecondsPerQuestion;
+    final usagePct = summary?.time?.usagePercentage;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.insights_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Practice Metrics',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (avgScore >= 70 ? AppColors.success : AppColors.accentWarning)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Avg Score ${avgScore.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: avgScore >= 70 ? AppColors.success : AppColors.accentWarning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 3-Column Metric Tiles: Correct, Failed, Answered
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Correct',
+                  value: '$correct',
+                  percentage: '${successPct.toStringAsFixed(0)}%',
+                  color: AppColors.success,
+                  icon: Icons.check_circle_outline_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Failed',
+                  value: '$mistakes',
+                  percentage: '${failPct.toStringAsFixed(0)}%',
+                  color: AppColors.error,
+                  icon: Icons.highlight_off_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Answered',
+                  value: '$answered',
+                  percentage: '$sessionsCount ${sessionsCount == 1 ? "session" : "sessions"}',
+                  color: AppColors.primary,
+                  icon: Icons.fact_check_outlined,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Minimal split bar for Success vs Fail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: SizedBox(
+              height: 4,
+              child: Row(
+                children: [
+                  if (successPct > 0)
+                    Expanded(
+                      flex: (successPct * 10).round().clamp(1, 1000),
+                      child: Container(color: AppColors.success),
+                    ),
+                  if (failPct > 0)
+                    Expanded(
+                      flex: (failPct * 10).round().clamp(1, 1000),
+                      child: Container(color: AppColors.error),
+                    ),
+                  if (successPct == 0 && failPct == 0)
+                    Expanded(
+                      child: Container(color: AppColors.border),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          if (timeSpent.isNotEmpty || pace != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (timeSpent.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Time: $timeSpent',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (usagePct != null && usagePct > 0)
+                          Text(
+                            ' (${usagePct.toStringAsFixed(1)}% used)',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  if (pace != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.speed_rounded,
+                          size: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Avg pace: ${pace.toStringAsFixed(1)}s / Q',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String label,
+    required String value,
+    required String percentage,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
+            percentage,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],

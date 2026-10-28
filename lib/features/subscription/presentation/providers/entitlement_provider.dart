@@ -6,24 +6,19 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/offices_provider.dart';
 
 class EntitlementNotifier extends Notifier<EntitlementEntity> {
-  late final SubscriptionRepository _repository;
+  late SubscriptionRepository _repository;
 
   @override
   EntitlementEntity build() {
     _repository = ref.watch(subscriptionRepositoryProvider);
+    final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
+
+    if (!isAuth) {
+      return const EntitlementEntity(isLoading: false);
+    }
 
     // Load cached entitlement immediately for offline-first readiness
     Future.microtask(() => _init());
-
-    // Listen to Auth changes: refresh on login, clear on logout
-    ref.listen(authProvider, (previous, next) {
-      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
-        refresh();
-      } else if (!next.isAuthenticated &&
-          (previous?.isAuthenticated ?? false)) {
-        clear();
-      }
-    });
 
     return const EntitlementEntity(isLoading: true);
   }

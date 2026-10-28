@@ -81,23 +81,45 @@ class AnswerReviewScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.flag_outlined,
-                          size: 16,
-                          color: AppColors.textSecondary,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Report question',
-                        onPressed: () {
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
                           QuestionReportDialog.show(
                             context,
                             ref,
                             questionId: question.id,
                           );
                         },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.badgeBg,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.flag_outlined,
+                                size: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Report',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),

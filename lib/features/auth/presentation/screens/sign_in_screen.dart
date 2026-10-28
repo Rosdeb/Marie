@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
-import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../account/presentation/providers/account_provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -47,7 +46,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final success = await ref.read(authProvider.notifier).signIn(email, password);
     if (!mounted) return;
     if (success) {
-      FloatingSuccessBar.show(context, message: 'Signed in successfully');
+      //FloatingSuccessBar.show(context, message: 'Signed in successfully');
       ref.read(accountProvider.notifier).fetchProfile();
       context.go('/main');
     } else {

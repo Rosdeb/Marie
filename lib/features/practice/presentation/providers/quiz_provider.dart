@@ -156,7 +156,11 @@ class QuizNotifier extends Notifier<QuizState> {
     }
   }
 
-  bool startQuiz({int timePerQuestion = 60, String? officeCode}) {
+  bool startQuiz({
+    int timePerQuestion = 60,
+    String? officeCode,
+    List<Question>? questions,
+  }) {
     final targetOffice = officeCode ?? state.selectedOffice;
     final entitlement = ref.read(entitlementProvider);
 
@@ -209,17 +213,19 @@ class QuizNotifier extends Notifier<QuizState> {
       ),
     ];
 
+    final resolvedQuestions = questions ?? mockQuestions;
+
     state = QuizState(
       selectedSubdiscipline: state.selectedSubdiscipline,
       selectedLevel: state.selectedLevel,
-      questionCount: mockQuestions.length,
-      questions: mockQuestions,
+      questionCount: resolvedQuestions.length,
+      questions: resolvedQuestions,
       currentIndex: 0,
       userAnswers: {},
       isSubmitted: false,
       elapsedSeconds: 0,
-      totalSeconds: timePerQuestion * mockQuestions.length,
-      remainingSeconds: timePerQuestion * mockQuestions.length,
+      totalSeconds: timePerQuestion * resolvedQuestions.length,
+      remainingSeconds: timePerQuestion * resolvedQuestions.length,
     );
 
     _startTimer();
@@ -253,6 +259,11 @@ class QuizNotifier extends Notifier<QuizState> {
   }
 
   void nextQuestion() {
+    // Block advancing if user has not selected an answer for current question
+    if (!state.userAnswers.containsKey(state.currentIndex) ||
+        state.userAnswers[state.currentIndex] == null) {
+      return;
+    }
     if (state.currentIndex < state.questions.length - 1) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
     }

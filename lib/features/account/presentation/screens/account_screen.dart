@@ -62,7 +62,11 @@ class AccountScreen extends ConsumerWidget {
               ),
               onPressed: () async {
                 Navigator.pop(dialogContext);
-                await ref.read(authProvider.notifier).logout();
+                try {
+                  await ref.read(authProvider.notifier).logout();
+                } catch (e) {
+                  debugPrint('Logout error: $e');
+                }
                 if (context.mounted) {
                   FloatingSuccessBar.show(context, message: 'Logged out successfully');
                   context.go('/onboarding');

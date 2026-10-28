@@ -1,11 +1,32 @@
+import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:marie_nirva/core/constants/api_constants.dart';
+import 'package:marie_nirva/core/network/api_client.dart';
+import 'package:marie_nirva/core/storage/local_storage.dart';
+import 'package:marie_nirva/core/widgets/question_report_dialog.dart';
 import 'package:marie_nirva/features/practice/data/models/discipline_theme_models.dart';
 import 'package:marie_nirva/features/practice/data/models/practice_setup_model.dart';
 import 'package:marie_nirva/features/practice/data/models/quiz_models.dart';
+import 'package:marie_nirva/features/practice/presentation/providers/quiz_provider.dart';
 import 'package:marie_nirva/features/review/data/models/review_model.dart';
 import 'package:marie_nirva/features/subscription/domain/entities/entitlement_entity.dart';
+import 'package:marie_nirva/features/subscription/presentation/providers/entitlement_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class TestEntitlementNotifier extends EntitlementNotifier {
+  @override
+  EntitlementEntity build() => const EntitlementEntity(
+        planId: PlanTier.global,
+        status: SubscriptionStatus.active,
+        isLoading: false,
+      );
+}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('Discipline & Theme Models Tests', () {
     test('DisciplineDetailModel & LevelDetailModel parses disciplines API payload', () {
       final json = {
@@ -140,6 +161,60 @@ void main() {
       expect(state.elapsedSeconds, 0);
       expect(state.remainingSeconds, 1200);
       expect(state.totalSeconds, 1200);
+    });
+
+    test('nextQuestion blocks advancing if user has not selected an answer for current question', () {
+      final container = ProviderContainer(
+        overrides: [
+          entitlementProvider.overrideWith(() => TestEntitlementNotifier()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(quizProvider.notifier);
+      final questions = [
+        Question(
+          id: 'q1',
+          number: 1,
+          office: 'IPI',
+          discipline: 'Patents',
+          level: 'Beginner',
+          questionText: 'Question 1',
+          options: const [
+            QuestionOption(key: 'A', text: 'Option A'),
+            QuestionOption(key: 'B', text: 'Option B'),
+          ],
+        ),
+        Question(
+          id: 'q2',
+          number: 2,
+          office: 'IPI',
+          discipline: 'Patents',
+          level: 'Beginner',
+          questionText: 'Question 2',
+          options: const [
+            QuestionOption(key: 'A', text: 'Option A'),
+            QuestionOption(key: 'B', text: 'Option B'),
+          ],
+        ),
+      ];
+
+      notifier.startQuiz(questions: questions);
+
+      expect(container.read(quizProvider).currentIndex, 0);
+
+      // Attempt to advance without selecting an answer -> blocked!
+      notifier.nextQuestion();
+      expect(container.read(quizProvider).currentIndex, 0);
+
+      // Select an answer for question 0 -> now allowed to advance!
+      notifier.selectAnswer(0);
+      notifier.nextQuestion();
+      expect(container.read(quizProvider).currentIndex, 1);
+
+      // Question 1 has no answer selected yet -> blocked from advancing further!
+      notifier.nextQuestion();
+      expect(container.read(quizProvider).currentIndex, 1);
     });
 
     test('Paywall correctly gates unpurchased office on session start', () {
@@ -300,6 +375,95 @@ void main() {
       expect(mistakes.byOffice.length, 1);
       expect(mistakes.byOffice[0].office, 'IPI');
       expect(mistakes.byOffice[0].mistakes, 20);
+    });
+  });
+
+  group('Question Report API Integration Tests', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('submitQuestionReport for signed-in user passes token and omits reporterEmail', () async {
+      String? capturedAuth;
+      Map<String, dynamic>? capturedBody;
+
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith(ApiConstants.reportProblem)) {
+          expect(request.method, 'POST');
+          capturedAuth = request.headers['Authorization'];
+          capturedBody = jsonDecode(request.body);
+
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'statusCode': 200,
+              'message': 'Report submitted successfully',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final storage = LocalStorage();
+      await storage.saveAccessToken('user_jwt_token_123');
+      final apiClient = ApiClient(client: mockClient, localStorage: storage);
+
+      final response = await submitQuestionReport(
+        apiClient: apiClient,
+        questionId: 'IPI-Patents_Beginner-1',
+        message: 'The legal basis cites an article repealed in 2023.',
+        reporterEmail: 'optional@example.com',
+        authToken: 'user_jwt_token_123',
+      );
+
+      expect(response['success'], isTrue);
+      expect(capturedAuth, 'Bearer user_jwt_token_123');
+      expect(capturedBody?['questionId'], 'IPI-Patents_Beginner-1');
+      expect(capturedBody?['message'], 'The legal basis cites an article repealed in 2023.');
+      expect(capturedBody?.containsKey('reporterEmail'), isFalse);
+    });
+
+    test('submitQuestionReport for guest user without account submits without auth and with reporterEmail', () async {
+      String? capturedAuth;
+      Map<String, dynamic>? capturedBody;
+
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith(ApiConstants.reportProblem)) {
+          expect(request.method, 'POST');
+          capturedAuth = request.headers['Authorization'];
+          capturedBody = jsonDecode(request.body);
+
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'statusCode': 200,
+              'message': 'Report submitted successfully',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final storage = LocalStorage();
+      final apiClient = ApiClient(client: mockClient, localStorage: storage);
+
+      final response = await submitQuestionReport(
+        apiClient: apiClient,
+        questionId: 'IPI-Patents_Beginner-1',
+        message: 'Two options say the same thing.',
+        reporterEmail: 'optional@example.com',
+        authToken: null,
+      );
+
+      expect(response['success'], isTrue);
+      expect(capturedAuth, isNull);
+      expect(capturedBody?['questionId'], 'IPI-Patents_Beginner-1');
+      expect(capturedBody?['message'], 'Two options say the same thing.');
+      expect(capturedBody?['reporterEmail'], 'optional@example.com');
     });
   });
 }

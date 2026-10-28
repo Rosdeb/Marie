@@ -44,6 +44,9 @@ class ActiveQuizScreen extends ConsumerWidget {
     final question = quizState.questions[quizState.currentIndex];
     final selectedOption = quizState.userAnswers[quizState.currentIndex];
     final progress = (quizState.currentIndex + 1) / quizState.questions.length;
+    final isAnswerSelected = quizState.userAnswers.containsKey(quizState.currentIndex) &&
+        quizState.userAnswers[quizState.currentIndex] != null;
+    final isLastQuestion = quizState.currentIndex == quizState.questions.length - 1;
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
@@ -170,22 +173,44 @@ class ActiveQuizScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.flag_outlined,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Report question',
-                      onPressed: () {
+                    InkWell(
+                      onTap: () {
                         QuestionReportDialog.show(
                           context,
                           ref,
                           questionId: question.id,
                         );
                       },
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.badgeBg,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.flag_outlined,
+                              size: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Report',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -327,21 +352,34 @@ class ActiveQuizScreen extends ConsumerWidget {
                     if (quizState.currentIndex > 0) const SizedBox(width: 12),
                     Expanded(
                       child: CustomButton(
-                        text: quizState.currentIndex == quizState.questions.length - 1
-                            ? 'Submit'
-                            : 'Next',
+                        text: isLastQuestion ? 'Submit' : 'Next',
                         isLoading: quizState.isSubmitting,
-                        onPressed: () {
-                          if (quizState.currentIndex == quizState.questions.length - 1) {
-                            ref.read(quizProvider.notifier).submitQuiz();
-                          } else {
-                            ref.read(quizProvider.notifier).nextQuestion();
-                          }
-                        },
+                        onPressed: isAnswerSelected
+                            ? () {
+                                if (isLastQuestion) {
+                                  ref.read(quizProvider.notifier).submitQuiz();
+                                } else {
+                                  ref.read(quizProvider.notifier).nextQuestion();
+                                }
+                              }
+                            : null,
                       ),
                     ),
                   ],
                 ),
+                if (!isAnswerSelected) ...[
+                  const SizedBox(height: 8),
+                  const Center(
+                    child: Text(
+                      'Please select an answer to proceed',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
               ],
             ),
