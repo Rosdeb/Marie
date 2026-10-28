@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "527162910733",
+    "project_id": "ipro-d5deb",
+    "storage_bucket": "ipro-d5deb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:527162910733:android:3d6362aca4398c969a8d44",
+        "android_client_info": {
+          "package_name": "com.ipro.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "527162910733-0gdcmvho5o2tbqt3obu9jhe38hh87a8o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtj1hYv_yZM9WACDo_srQx0448dPukRPg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "527162910733-0gdcmvho5o2tbqt3obu9jhe38hh87a8o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "527162910733-o36b1qahqpen1d7ka7l6u77qs4cebbkb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ipro.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

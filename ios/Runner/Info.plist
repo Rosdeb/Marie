@@ -18,6 +18,21 @@
 	<string>marie_nirva</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.527162910733-o36b1qahqpen1d7ka7l6u77qs4cebbkb</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>527162910733-o36b1qahqpen1d7ka7l6u77qs4cebbkb.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>527162910733-0gdcmvho5o2tbqt3obu9jhe38hh87a8o.apps.googleusercontent.com</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

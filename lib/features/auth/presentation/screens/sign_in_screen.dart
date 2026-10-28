@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,11 +32,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty) {
-      FloatingErrorBar.show(context, message: 'Please enter your email address');
+      FloatingErrorBar.show(
+        context,
+        message: 'Please enter your email address',
+      );
       return;
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-      FloatingErrorBar.show(context, message: 'Please enter a valid email address');
+      FloatingErrorBar.show(
+        context,
+        message: 'Please enter a valid email address',
+      );
       return;
     }
     if (password.isEmpty) {
@@ -43,14 +50,47 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).signIn(email, password);
+    final success = await ref
+        .read(authProvider.notifier)
+        .signIn(email, password);
     if (!mounted) return;
     if (success) {
       //FloatingSuccessBar.show(context, message: 'Signed in successfully');
       ref.read(accountProvider.notifier).fetchProfile();
       context.go('/main');
     } else {
-      final error = ref.read(authProvider).errorMessage ?? 'Invalid email or password';
+      final error =
+          ref.read(authProvider).errorMessage ?? 'Invalid email or password';
+      FloatingErrorBar.show(context, message: error);
+    }
+  }
+
+  Future<void> _onGoogleSignIn() async {
+    final success = await ref.read(authProvider.notifier).loginWithGoogle();
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/main');
+      return;
+    }
+
+    final error = ref.read(authProvider).errorMessage;
+    if (error != null && error.isNotEmpty) {
+      FloatingErrorBar.show(context, message: error);
+    }
+  }
+
+  Future<void> _onAppleSignIn() async {
+    final success = await ref.read(authProvider.notifier).loginWithApple();
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/main');
+      return;
+    }
+
+    final error = ref.read(authProvider).errorMessage;
+    if (error != null && error.isNotEmpty) {
       FloatingErrorBar.show(context, message: error);
     }
   }
@@ -65,7 +105,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -96,10 +140,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               const SizedBox(height: 6),
               const Text(
                 'Sign in with your email and password to continue.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
               CustomTextField(
@@ -107,7 +148,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 hint: 'Enter your email',
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.email_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
               const SizedBox(height: 12),
               CustomTextField(
@@ -115,7 +160,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 hint: 'Enter your password',
                 isPassword: true,
                 controller: _passwordController,
-                prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
               const SizedBox(height: 10),
               Align(
@@ -135,9 +184,70 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               const SizedBox(height: 28),
               CustomButton(
                 text: 'Sign In',
-                isLoading: authState.isLoading,
-                onPressed: _onSignIn,
+                isLoading:
+                    authState.authMode != AuthMode.loadingGoogle &&
+                    authState.isLoading,
+                onPressed: authState.isLoading ? null : _onSignIn,
               ),
+              const SizedBox(height: 20),
+              const Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.border)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: AppColors.border)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              AuthButton(
+                text: 'Continue with Google',
+                textColor: AppColors.textPrimary,
+                backgroundColor: Colors.white,
+                isLoading: authState.authMode == AuthMode.loadingGoogle,
+                icon: Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Text(
+                    'G',
+                    style: TextStyle(
+                      color: Color(0xFF4285F4),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                onPressed: authState.isLoading ? null : _onGoogleSignIn,
+              ),
+              if (Platform.isIOS) ...[
+                const SizedBox(height: 12),
+                AuthButton(
+                  text: 'Continue with Apple',
+                  textColor: Colors.black87,
+                  backgroundColor: Colors.white,
+                  isLoading: authState.authMode == AuthMode.loadingApple,
+                  icon: const Icon(
+                    Icons.apple,
+                    color: Colors.black,
+                    size: 22,
+                  ),
+                  onPressed: authState.isLoading ? null : _onAppleSignIn,
+                ),
+              ],
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -41,6 +41,11 @@ dependencies:
   image_picker: ^1.2.4
   purchases_flutter: ^10.18.1
   url_launcher: ^6.3.3
+  firebase_core: 4.7.0
+  firebase_auth: ^6.4.0
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.2.0
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:

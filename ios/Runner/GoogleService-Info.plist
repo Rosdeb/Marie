@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBQ2WNQSjx93u-x0GL7SbYuQl8GxuNCVYQ</string>
+	<key>GCM_SENDER_ID</key>
+	<string>527162910733</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.ipro.app</string>
+	<key>CLIENT_ID</key>
+	<string>527162910733-o36b1qahqpen1d7ka7l6u77qs4cebbkb.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.527162910733-o36b1qahqpen1d7ka7l6u77qs4cebbkb</string>
+	<key>SERVER_CLIENT_ID</key>
+	<string>527162910733-0gdcmvho5o2tbqt3obu9jhe38hh87a8o.apps.googleusercontent.com</string>
+	<key>PROJECT_ID</key>
+	<string>ipro-d5deb</string>
+	<key>STORAGE_BUCKET</key>
+	<string>ipro-d5deb.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:527162910733:ios:e10d8760011c045c9a8d44</string>
+</dict>
+</plist>

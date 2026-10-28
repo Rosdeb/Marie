@@ -141,6 +141,63 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserEntity> googleLogin(String idToken) async {
+    final response = await remoteDataSource.googleLogin(idToken);
+    if (response.accessToken != null && response.accessToken!.isNotEmpty) {
+      await localStorage.saveAccessToken(response.accessToken!);
+      if (response.refreshToken != null && response.refreshToken!.isNotEmpty) {
+        await localStorage.saveRefreshToken(response.refreshToken!);
+      }
+      final user = response.user ?? const UserModel(id: '', name: '', email: '');
+      if (user.id.isNotEmpty) {
+        await localStorage.saveUserData(user.toJson());
+      }
+      return user;
+    }
+    throw ServerException(
+      message: response.message.isNotEmpty
+          ? response.message
+          : 'Google sign-in could not be completed by the server.',
+    );
+  }
+
+  @override
+  Future<UserEntity> appleLogin({
+    required String identityToken,
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) async {
+    final response = await remoteDataSource.appleLogin(
+      identityToken: identityToken,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+    );
+    if (response.accessToken != null && response.accessToken!.isNotEmpty) {
+      await localStorage.saveAccessToken(response.accessToken!);
+      if (response.refreshToken != null && response.refreshToken!.isNotEmpty) {
+        await localStorage.saveRefreshToken(response.refreshToken!);
+      }
+      final user = response.user ??
+          UserModel(
+            id: '',
+            name: [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' '),
+            email: email ?? '',
+          );
+      if (user.id.isNotEmpty) {
+        await localStorage.saveUserData(user.toJson());
+      }
+      return user;
+    }
+    throw ServerException(
+      message: response.message.isNotEmpty
+          ? response.message
+          : 'Apple sign-in could not be completed by the server.',
+    );
+  }
+
+  @override
   Future<void> refreshToken() async {
     final response = await remoteDataSource.refreshToken();
     if (response.accessToken != null && response.accessToken!.isNotEmpty) {

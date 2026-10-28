@@ -3,6 +3,8 @@ class ApiConstants {
 
   // Auth endpoints
   static const String login = '/auth/login';
+  static const String googleLogin = '/auth/google-login';
+  static const String appleLogin = '/auth/apple-login';
   static const String register = '/auth/register';
   static const String verifyOtp = '/auth/verify-otp';
   static const String resendOtp = '/auth/resend-otp';

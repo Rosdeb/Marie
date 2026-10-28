@@ -53,10 +53,7 @@ class CustomButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[
-                    icon!,
-                    const SizedBox(width: 10),
-                  ],
+                  if (icon != null) ...[icon!, const SizedBox(width: 10)],
                   Text(
                     text,
                     style: TextStyle(
@@ -77,7 +74,7 @@ class AuthButton extends StatelessWidget {
   final Color textColor;
   final Color backgroundColor;
   final Widget? icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isLoading;
 
   const AuthButton({
@@ -117,10 +114,7 @@ class AuthButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[
-                    icon!,
-                    const SizedBox(width: 12),
-                  ],
+                  if (icon != null) ...[icon!, const SizedBox(width: 12)],
                   Text(
                     text,
                     style: TextStyle(

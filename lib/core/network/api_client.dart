@@ -94,17 +94,56 @@ class ApiClient {
       return decoded ?? {'statusCode': response.statusCode};
     }
 
-    String errorMessage = 'Something went wrong';
+    String? errorMessage;
     if (decoded is Map<String, dynamic>) {
-      if (decoded['message'] != null && decoded['message'].toString().isNotEmpty) {
-        errorMessage = decoded['message'].toString();
+      if (decoded['message'] != null && decoded['message'].toString().trim().isNotEmpty) {
+        errorMessage = decoded['message'].toString().trim();
+      } else if (decoded['msg'] != null && decoded['msg'].toString().trim().isNotEmpty) {
+        errorMessage = decoded['msg'].toString().trim();
       } else if (decoded['errorMessages'] is List && (decoded['errorMessages'] as List).isNotEmpty) {
-        final first = (decoded['errorMessages'] as List).first;
-        if (first is Map && first['message'] != null) {
-          errorMessage = first['message'].toString();
+        final messages = (decoded['errorMessages'] as List).map((item) {
+          if (item is Map && item['message'] != null) return item['message'].toString();
+          return item.toString();
+        }).where((m) => m.isNotEmpty).toList();
+        if (messages.isNotEmpty) errorMessage = messages.join('\n');
+      } else if (decoded['errors'] != null) {
+        final errs = decoded['errors'];
+        if (errs is List && errs.isNotEmpty) {
+          final list = errs.map((e) {
+            if (e is Map) return (e['message'] ?? e['msg'] ?? e['error'] ?? e.toString()).toString();
+            return e.toString();
+          }).where((s) => s.isNotEmpty).toList();
+          if (list.isNotEmpty) errorMessage = list.join('\n');
+        } else if (errs is Map && errs.isNotEmpty) {
+          final mapValues = errs.values.map((v) {
+            if (v is Map) return (v['message'] ?? v['msg'] ?? v.toString()).toString();
+            return v.toString();
+          }).where((s) => s.isNotEmpty).toList();
+          if (mapValues.isNotEmpty) errorMessage = mapValues.join('\n');
+        } else {
+          errorMessage = errs.toString();
         }
       } else if (decoded['error'] != null) {
-        errorMessage = decoded['error'].toString();
+        final err = decoded['error'];
+        if (err is Map && err['message'] != null) {
+          errorMessage = err['message'].toString();
+        } else {
+          errorMessage = err.toString();
+        }
+      } else if (decoded['detail'] != null) {
+        errorMessage = decoded['detail'].toString();
+      } else if (decoded['data'] is Map && (decoded['data'] as Map)['message'] != null) {
+        errorMessage = (decoded['data'] as Map)['message'].toString();
+      }
+    } else if (decoded is String && decoded.trim().isNotEmpty) {
+      errorMessage = decoded.trim();
+    }
+
+    if (errorMessage == null || errorMessage.isEmpty) {
+      if (response.body.isNotEmpty && !response.body.contains('<html') && response.body.length < 300) {
+        errorMessage = response.body.trim();
+      } else {
+        errorMessage = 'Request failed (${response.statusCode}). Please try again.';
       }
     }
 

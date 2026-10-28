@@ -20,9 +20,9 @@ class AuthResponseModel {
   });
 
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
-    final success = json['success'] == true;
+    final success = json['success'] == true || json['status'] == 'success';
     final statusCode = json['statusCode'] is int ? json['statusCode'] as int : 200;
-    final message = (json['message'] ?? '').toString();
+    final message = (json['message'] ?? json['msg'] ?? '').toString();
 
     UserModel? user;
     String? accessToken;
@@ -35,6 +35,8 @@ class AuthResponseModel {
         user = UserModel.fromJson(data['results'] as Map<String, dynamic>);
       } else if (data['user'] is Map<String, dynamic>) {
         user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      } else if (data.containsKey('_id') || data.containsKey('id') || data.containsKey('email')) {
+        user = UserModel.fromJson(data);
       }
       accessToken = (data['accessToken'] ?? data['token'])?.toString();
       refreshToken = data['refreshToken']?.toString();
@@ -42,6 +44,12 @@ class AuthResponseModel {
     } else if (data is String && data.isNotEmpty) {
       tempToken = data;
     }
+
+    if (user == null && json['user'] is Map<String, dynamic>) {
+      user = UserModel.fromJson(json['user'] as Map<String, dynamic>);
+    }
+    accessToken ??= (json['accessToken'] ?? json['token'])?.toString();
+    refreshToken ??= json['refreshToken']?.toString();
 
     return AuthResponseModel(
       success: success,

@@ -26,6 +26,13 @@ abstract class AuthRemoteDataSource {
     required String confirmPassword,
   });
   Future<AuthResponseModel> refreshToken();
+  Future<AuthResponseModel> googleLogin(String idToken);
+  Future<AuthResponseModel> appleLogin({
+    required String identityToken,
+    String? firstName,
+    String? lastName,
+    String? email,
+  });
   Future<void> logout();
 }
 
@@ -156,6 +163,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final response = await apiClient.post(
       ApiConstants.refreshToken,
       requiresAuth: true,
+    );
+    return AuthResponseModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<AuthResponseModel> googleLogin(String idToken) async {
+    final response = await apiClient.post(
+      ApiConstants.googleLogin,
+      body: {
+        'idToken': idToken,
+      },
+      requiresAuth: false,
+    );
+    return AuthResponseModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<AuthResponseModel> appleLogin({
+    required String identityToken,
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) async {
+    final response = await apiClient.post(
+      ApiConstants.appleLogin,
+      body: {
+        'identityToken': identityToken,
+        'user': {
+          'name': {
+            'firstName': firstName ?? '',
+            'lastName': lastName ?? '',
+          },
+          'email': email ?? '',
+        },
+      },
+      requiresAuth: false,
     );
     return AuthResponseModel.fromJson(response as Map<String, dynamic>);
   }

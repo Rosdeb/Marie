@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/floating_error_bar.dart';
 import '../providers/auth_provider.dart';
 
 class OnboardingScreen extends ConsumerWidget {
@@ -119,8 +120,14 @@ class OnboardingScreen extends ConsumerWidget {
                     ),
                     onPressed: () async {
                       final success = await authNotifier.loginWithGoogle();
-                      if (success && context.mounted) {
+                      if (!context.mounted) return;
+                      if (success) {
                         context.go('/main');
+                      } else {
+                        final error = ref.read(authProvider).errorMessage;
+                        if (error != null && error.isNotEmpty) {
+                          FloatingErrorBar.show(context, message: error);
+                        }
                       }
                     },
                   ),
@@ -140,8 +147,14 @@ class OnboardingScreen extends ConsumerWidget {
                     ),
                     onPressed: () async {
                       final success = await authNotifier.loginWithApple();
-                      if (success && context.mounted) {
+                      if (!context.mounted) return;
+                      if (success) {
                         context.go('/main');
+                      } else {
+                        final error = ref.read(authProvider).errorMessage;
+                        if (error != null && error.isNotEmpty) {
+                          FloatingErrorBar.show(context, message: error);
+                        }
                       }
                     },
                   ),

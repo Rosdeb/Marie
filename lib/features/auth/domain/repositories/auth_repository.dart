@@ -43,6 +43,15 @@ abstract class AuthRepository {
     required String confirmPassword,
   });
 
+  Future<UserEntity> googleLogin(String idToken);
+
+  Future<UserEntity> appleLogin({
+    required String identityToken,
+    String? firstName,
+    String? lastName,
+    String? email,
+  });
+
   Future<void> refreshToken();
 
   Future<String?> getTempToken();

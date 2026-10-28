@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../domain/entities/user_entity.dart';
+import '../../data/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/services/google_sign_in_service.dart';
+import '../../data/services/apple_sign_in_service.dart';
 import '../../../account/presentation/providers/account_provider.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../home/presentation/providers/notification_provider.dart';
@@ -63,7 +67,8 @@ class AuthState {
       isLoading: isLoading ?? this.isLoading,
       authMode: authMode ?? this.authMode,
       selectedPlan: selectedPlan ?? this.selectedPlan,
-      selectedPaymentMethod: selectedPaymentMethod ?? this.selectedPaymentMethod,
+      selectedPaymentMethod:
+          selectedPaymentMethod ?? this.selectedPaymentMethod,
       lastTransactionId: lastTransactionId ?? this.lastTransactionId,
       subscriptionDate: subscriptionDate ?? this.subscriptionDate,
       email: email ?? this.email,
@@ -98,7 +103,30 @@ class AuthNotifier extends Notifier<AuthState> {
         currentUser: user,
         email: user?.email,
       );
+      return;
     }
+
+    final firebaseUser = GoogleSignInService.currentUser;
+    if (firebaseUser != null) {
+      final user = _userFromFirebase(firebaseUser);
+      ref.read(revenueCatServiceProvider).logIn(user.id);
+      state = state.copyWith(
+        isAuthenticated: true,
+        currentUser: user,
+        email: user.email,
+      );
+    }
+  }
+
+  UserEntity _userFromFirebase(firebase_auth.User user) {
+    return UserEntity(
+      id: user.uid,
+      name: user.displayName ?? user.email?.split('@').first ?? 'Google User',
+      email: user.email ?? '',
+      phoneNumber: user.phoneNumber,
+      profileUrl: user.photoURL,
+      role: 'user',
+    );
   }
 
   void selectPlan(String plan) {
@@ -120,7 +148,10 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> signIn(String email, String password) async {
     state = state.copyWith(isLoading: true, email: email, clearError: true);
     try {
-      final user = await _authRepository.signIn(email: email, password: password);
+      final user = await _authRepository.signIn(
+        email: email,
+        password: password,
+      );
       if (user.id.isNotEmpty) {
         ref.read(revenueCatServiceProvider).logIn(user.id);
       }
@@ -133,7 +164,10 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -153,15 +187,15 @@ class AuthNotifier extends Notifier<AuthState> {
         password: password,
         profileType: profileType,
       );
-      state = state.copyWith(
-        isLoading: false,
-        tempToken: tempToken,
-      );
+      state = state.copyWith(isLoading: false, tempToken: tempToken);
       return true;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -184,7 +218,10 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -197,7 +234,10 @@ class AuthNotifier extends Notifier<AuthState> {
       return await _authRepository.resendOtp(email: targetEmail);
     } catch (e) {
       state = state.copyWith(
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -212,7 +252,10 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -232,13 +275,19 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
   }
 
-  Future<bool> resetPassword(String newPassword, [String? confirmPassword]) async {
+  Future<bool> resetPassword(
+    String newPassword, [
+    String? confirmPassword,
+  ]) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final token = state.tempToken ?? await _authRepository.getTempToken();
@@ -252,7 +301,10 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -275,37 +327,192 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
   }
 
+  String _cleanErrorMessage(Object error, {required String defaultMessage}) {
+    if (error is firebase_auth.FirebaseAuthException) {
+      switch (error.code) {
+        case 'account-exists-with-different-credential':
+          return 'An account already exists with this email using a different sign-in method.';
+        case 'invalid-credential':
+          return 'Invalid sign-in credentials. Please try again.';
+        case 'user-disabled':
+          return 'This account has been disabled.';
+        case 'network-request-failed':
+          return 'Network error. Please check your internet connection.';
+        case 'missing-google-id-token':
+          return 'Google could not provide a valid ID token. Please try again.';
+        case 'ERROR_INVALID_ID_TOKEN':
+          return 'Apple could not provide a valid identity token. Please try again.';
+        default:
+          return error.message ?? defaultMessage;
+      }
+    }
+    final raw = error
+        .toString()
+        .replaceFirst('ApiException: ', '')
+        .replaceFirst('ServerException: ', '')
+        .replaceFirst('AuthException: ', '')
+        .replaceFirst('NetworkException: ', '')
+        .replaceFirst('Exception: ', '')
+        .trim();
+    if (raw.isNotEmpty && raw != 'Something went wrong') {
+      return raw;
+    }
+    return defaultMessage;
+  }
+
   Future<bool> loginWithGoogle() async {
-    state = state.copyWith(authMode: AuthMode.loadingGoogle, isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 1000));
-    state = state.copyWith(authMode: AuthMode.initial, isLoading: false, isAuthenticated: true);
-    return true;
+    state = state.copyWith(
+      authMode: AuthMode.loadingGoogle,
+      isLoading: true,
+      clearError: true,
+    );
+    try {
+      final result = await GoogleSignInService.signInWithGoogle();
+      if (result == null) {
+        state = state.copyWith(
+          authMode: AuthMode.initial,
+          isLoading: false,
+          clearError: true,
+        );
+        return false;
+      }
+
+      final idToken = result['idToken'] as String?;
+      if (idToken == null || idToken.isEmpty) {
+        throw Exception('Google ID token is missing');
+      }
+
+      final user = await _authRepository.googleLogin(idToken);
+      final finalUser = user.id.isNotEmpty
+          ? user
+          : UserModel(
+              id: result['uid']?.toString() ?? '',
+              name: result['displayName']?.toString() ?? 'Google User',
+              email: result['email']?.toString() ?? '',
+            );
+      if (finalUser.id.isNotEmpty) {
+        ref.read(revenueCatServiceProvider).logIn(finalUser.id);
+      }
+      state = state.copyWith(
+        authMode: AuthMode.initial,
+        isLoading: false,
+        isAuthenticated: true,
+        currentUser: finalUser,
+        email: finalUser.email,
+        clearError: true,
+      );
+      return true;
+    } catch (error) {
+      final message = _cleanErrorMessage(
+        error,
+        defaultMessage: 'Google sign-in could not be completed. Please try again.',
+      );
+      state = state.copyWith(
+        authMode: AuthMode.initial,
+        isLoading: false,
+        errorMessage: message,
+      );
+      return false;
+    }
   }
 
   Future<bool> loginWithApple() async {
-    state = state.copyWith(authMode: AuthMode.loadingApple, isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 1000));
-    state = state.copyWith(authMode: AuthMode.initial, isLoading: false, isAuthenticated: true);
-    return true;
+    state = state.copyWith(
+      authMode: AuthMode.loadingApple,
+      isLoading: true,
+      clearError: true,
+    );
+    try {
+      final result = await AppleSignInService.signInWithApple();
+      if (result == null) {
+        state = state.copyWith(
+          authMode: AuthMode.initial,
+          isLoading: false,
+          clearError: true,
+        );
+        return false;
+      }
+
+      final identityToken = result['identityToken'] as String?;
+      if (identityToken == null || identityToken.isEmpty) {
+        throw Exception('Apple identity token is missing');
+      }
+
+      final firstName = result['firstName'] as String?;
+      final lastName = result['lastName'] as String?;
+      final email = result['email'] as String?;
+
+      final user = await _authRepository.appleLogin(
+        identityToken: identityToken,
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+      );
+
+      final finalUser = user.id.isNotEmpty
+          ? user
+          : UserModel(
+              id: result['uid']?.toString() ?? '',
+              name: [firstName, lastName]
+                      .where((s) => s != null && s.isNotEmpty)
+                      .join(' ')
+                      .trim()
+                      .isNotEmpty
+                  ? [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' ')
+                  : 'Apple User',
+              email: email ?? '',
+            );
+      if (finalUser.id.isNotEmpty) {
+        ref.read(revenueCatServiceProvider).logIn(finalUser.id);
+      }
+      state = state.copyWith(
+        authMode: AuthMode.initial,
+        isLoading: false,
+        isAuthenticated: true,
+        currentUser: finalUser,
+        email: finalUser.email,
+        clearError: true,
+      );
+      return true;
+    } catch (error) {
+      final message = _cleanErrorMessage(
+        error,
+        defaultMessage: 'Apple sign-in could not be completed. Please try again.',
+      );
+      state = state.copyWith(
+        authMode: AuthMode.initial,
+        isLoading: false,
+        errorMessage: message,
+      );
+      return false;
+    }
   }
 
   Future<bool> loginWithEmail() async {
     state = state.copyWith(authMode: AuthMode.loadingEmail, isLoading: true);
     await Future.delayed(const Duration(milliseconds: 1000));
-    state = state.copyWith(authMode: AuthMode.initial, isLoading: false, isAuthenticated: true);
+    state = state.copyWith(
+      authMode: AuthMode.initial,
+      isLoading: false,
+      isAuthenticated: true,
+    );
     return true;
   }
 
   Future<bool> confirmSubscription() async {
     state = state.copyWith(isLoading: true);
     await Future.delayed(const Duration(milliseconds: 1200));
-    final randomId = 'MN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final randomId =
+        'MN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     state = state.copyWith(
       isLoading: false,
       isAuthenticated: true,
@@ -317,6 +524,12 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    try {
+      await Future.wait([
+        GoogleSignInService.signOut(),
+        AppleSignInService.signOut(),
+      ]);
+    } catch (_) {}
     try {
       await _authRepository.signOut();
     } catch (_) {}
@@ -336,4 +549,6 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);

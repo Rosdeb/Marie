@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,6 +69,34 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     } else {
       final error = ref.read(authProvider).errorMessage ?? 'Registration failed';
       FloatingErrorBar.show(context, message: error);
+    }
+  }
+
+  Future<void> _onGoogleSignUp() async {
+    final success = await ref.read(authProvider.notifier).loginWithGoogle();
+    if (!mounted) return;
+    if (success) {
+      FloatingSuccessBar.show(context, message: 'Signed in with Google successfully');
+      context.go('/main');
+    } else {
+      final err = ref.read(authProvider).errorMessage;
+      if (err != null && err.isNotEmpty) {
+        FloatingErrorBar.show(context, message: err);
+      }
+    }
+  }
+
+  Future<void> _onAppleSignUp() async {
+    final success = await ref.read(authProvider.notifier).loginWithApple();
+    if (!mounted) return;
+    if (success) {
+      FloatingSuccessBar.show(context, message: 'Signed in with Apple successfully');
+      context.go('/main');
+    } else {
+      final err = ref.read(authProvider).errorMessage;
+      if (err != null && err.isNotEmpty) {
+        FloatingErrorBar.show(context, message: err);
+      }
     }
   }
 
@@ -174,9 +203,68 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               const SizedBox(height: 28),
               CustomButton(
                 text: 'Sign Up',
-                isLoading: authState.isLoading,
-                onPressed: _onSignUp,
+                isLoading: authState.isLoading && authState.authMode != AuthMode.loadingGoogle,
+                onPressed: authState.isLoading ? null : _onSignUp,
               ),
+              const SizedBox(height: 16),
+              Row(
+                children: const [
+                  Expanded(child: Divider(color: AppColors.border)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: AppColors.border)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AuthButton(
+                text: 'Continue with Google',
+                textColor: AppColors.textPrimary,
+                backgroundColor: Colors.white,
+                isLoading: authState.authMode == AuthMode.loadingGoogle,
+                icon: Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Text(
+                    'G',
+                    style: TextStyle(
+                      color: Color(0xFF4285F4),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                onPressed: authState.isLoading ? null : _onGoogleSignUp,
+              ),
+              if (Platform.isIOS) ...[
+                const SizedBox(height: 12),
+                AuthButton(
+                  text: 'Continue with Apple',
+                  textColor: Colors.black87,
+                  backgroundColor: Colors.white,
+                  isLoading: authState.authMode == AuthMode.loadingApple,
+                  icon: const Icon(
+                    Icons.apple,
+                    color: Colors.black,
+                    size: 22,
+                  ),
+                  onPressed: authState.isLoading ? null : _onAppleSignUp,
+                ),
+              ],
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
