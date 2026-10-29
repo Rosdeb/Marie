@@ -177,7 +177,9 @@ class EntitlementNotifier extends Notifier<EntitlementEntity> {
     } else if (tier == PlanTier.majors && resolved.isEmpty) {
       resolved = const ['USPTO', 'EPO', 'JPO', 'CNIPA', 'KIPO', 'WIPO'];
     } else if (tier == PlanTier.track) {
-      resolved = {...resolved, 'WIPO', 'EPO', 'EUIPO', 'UPC'}.toList();
+      // Only WIPO comes with Track. The regional office is a choice now, so
+      // granting all three here would unlock offices the plan does not cover.
+      resolved = {...resolved, 'WIPO'}.toList();
     }
 
     state = EntitlementEntity(

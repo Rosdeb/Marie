@@ -257,7 +257,9 @@ class UserAccessModel {
                 'WIPO',
               ]);
             } else if (activeTier == 'track') {
-              allCodes.addAll(const ['WIPO', 'EPO', 'EUIPO', 'UPC']);
+              // WIPO only: the national and the regional office are chosen
+              // by the subscriber and come back in officeCodes.
+              allCodes.add('WIPO');
             }
 
             if (chosenItem == null) {

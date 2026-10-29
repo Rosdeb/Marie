@@ -263,6 +263,7 @@ class SettingsScreen extends ConsumerWidget {
                 final ok = await ref.read(accountProvider.notifier).updatePrivacySettings(
                       showFirstName: val,
                       showProfession: profile.showProfession,
+                      marketingEmails: profile.marketingEmails,
                     );
                 if (ok && context.mounted) {
                   FloatingSuccessBar.show(context, message: 'Privacy setting updated');
@@ -280,9 +281,34 @@ class SettingsScreen extends ConsumerWidget {
                 final ok = await ref.read(accountProvider.notifier).updatePrivacySettings(
                       showFirstName: profile.showFirstName,
                       showProfession: val,
+                      marketingEmails: profile.marketingEmails,
                     );
                 if (ok && context.mounted) {
                   FloatingSuccessBar.show(context, message: 'Privacy setting updated');
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Marketing e-mail. Opt-in: off unless the subscriber agreed at
+            // sign-up, and withdrawable here at any time.
+            _buildSwitchTile(
+              icon: Icons.mark_email_read_outlined,
+              title: 'Receive news and offers by e-mail',
+              value: profile.marketingEmails,
+              onChanged: (val) async {
+                final ok = await ref.read(accountProvider.notifier).updatePrivacySettings(
+                      showFirstName: profile.showFirstName,
+                      showProfession: profile.showProfession,
+                      marketingEmails: val,
+                    );
+                if (ok && context.mounted) {
+                  FloatingSuccessBar.show(
+                    context,
+                    message: val
+                        ? 'You will receive news and offers by e-mail'
+                        : 'You will no longer receive marketing e-mail',
+                  );
                 }
               },
             ),
@@ -302,7 +328,8 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionHeader('Legal & Policies'),
             const SizedBox(height: 8),
 
-            // Privacy Policy
+            // The three legal documents, each on its own screen and in the
+            // order they are published.
             _buildSingleLineCard(
               icon: Icons.privacy_tip_outlined,
               title: 'Privacy Policy',
@@ -310,19 +337,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
 
-            // Legal Notice
+            _buildSingleLineCard(
+              icon: Icons.description_outlined,
+              title: 'Terms of Use',
+              onTap: () => context.push('/terms-of-use'),
+            ),
+            const SizedBox(height: 10),
+
             _buildSingleLineCard(
               icon: Icons.gavel_outlined,
               title: 'Legal Notice',
               onTap: () => context.push('/legal-notice'),
-            ),
-            const SizedBox(height: 10),
-
-            // EULA
-            _buildSingleLineCard(
-              icon: Icons.description_outlined,
-              title: 'End User License Agreement',
-              onTap: () => context.push('/eula'),
             ),
             const SizedBox(height: 24),
 

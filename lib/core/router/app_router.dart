@@ -177,11 +177,14 @@ class AppRouter {
         builder: (context, state) =>
             const LegalContentScreen(type: LegalType.legalNotice),
       ),
+      // Terms of Use. It was routed as "eula" and served the same document as
+      // the Legal Notice; they are three separate texts on three separate
+      // screens.
       GoRoute(
-        path: '/eula',
-        name: 'eula',
+        path: '/terms-of-use',
+        name: 'termsOfUse',
         builder: (context, state) =>
-            const LegalContentScreen(type: LegalType.eula),
+            const LegalContentScreen(type: LegalType.termsOfUse),
       ),
       GoRoute(
         path: '/support',

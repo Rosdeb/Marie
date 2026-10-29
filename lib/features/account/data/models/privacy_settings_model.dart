@@ -4,6 +4,7 @@ class PrivacySettingsModel extends PrivacySettingsEntity {
   const PrivacySettingsModel({
     super.showFirstName = false,
     super.showProfession = false,
+    super.marketingEmails = false,
   });
 
   factory PrivacySettingsModel.fromJson(Map<String, dynamic> json) {
@@ -11,6 +12,7 @@ class PrivacySettingsModel extends PrivacySettingsEntity {
     return PrivacySettingsModel(
       showFirstName: data['showFirstName'] == true,
       showProfession: data['showProfession'] == true,
+      marketingEmails: data['marketingEmails'] == true,
     );
   }
 
@@ -18,6 +20,7 @@ class PrivacySettingsModel extends PrivacySettingsEntity {
     return {
       'showFirstName': showFirstName,
       'showProfession': showProfession,
+      'marketingEmails': marketingEmails,
     };
   }
 }

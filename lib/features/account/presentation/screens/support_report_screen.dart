@@ -45,9 +45,18 @@ class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
       final response = await apiClient.get(ApiConstants.supportContact, requiresAuth: false);
       if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
         final data = response['data'] as Map<String, dynamic>;
+        // A field left empty in the dashboard means "do not show this".
+        // There is no phone number for IPro, and the server sends an empty
+        // string rather than omitting the key, so blank has to be treated
+        // the same as missing or the screen shows a lone phone icon.
+        String? present(dynamic value) {
+          final text = value?.toString().trim() ?? '';
+          return text.isEmpty ? null : text;
+        }
+
         setState(() {
-          _supportEmail = data['email']?.toString();
-          _supportPhone = data['phoneNumber']?.toString();
+          _supportEmail = present(data['email']);
+          _supportPhone = present(data['phoneNumber']);
         });
       }
     } catch (_) {

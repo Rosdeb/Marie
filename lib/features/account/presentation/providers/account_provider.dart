@@ -18,6 +18,8 @@ class ProfileState {
   final String profession;
   final bool showFirstName;
   final bool showProfession;
+  /// Consent to marketing e-mail. Off unless the subscriber agreed.
+  final bool marketingEmails;
   final bool notificationsEnabled;
   final String referralCode;
   final int totalReferrals;
@@ -38,6 +40,7 @@ class ProfileState {
     this.profession = '',
     this.showFirstName = false,
     this.showProfession = false,
+    this.marketingEmails = false,
     this.notificationsEnabled = true,
     this.referralCode = 'STUDY-PRO99',
     this.totalReferrals = 5,
@@ -59,6 +62,7 @@ class ProfileState {
     String? profession,
     bool? showFirstName,
     bool? showProfession,
+    bool? marketingEmails,
     bool? notificationsEnabled,
     String? referralCode,
     int? totalReferrals,
@@ -80,6 +84,7 @@ class ProfileState {
       profession: profession ?? this.profession,
       showFirstName: showFirstName ?? this.showFirstName,
       showProfession: showProfession ?? this.showProfession,
+      marketingEmails: marketingEmails ?? this.marketingEmails,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       referralCode: referralCode ?? this.referralCode,
       totalReferrals: totalReferrals ?? this.totalReferrals,
@@ -133,6 +138,7 @@ class AccountNotifier extends Notifier<ProfileState> {
       profession: profile.profession,
       showFirstName: profile.showFirstName,
       showProfession: profile.showProfession,
+      marketingEmails: profile.marketingEmails,
       clearError: true,
     );
   }
@@ -201,16 +207,19 @@ class AccountNotifier extends Notifier<ProfileState> {
   Future<bool> updatePrivacySettings({
     required bool showFirstName,
     required bool showProfession,
+    required bool marketingEmails,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final updated = await _repository.updatePrivacySettings(
         showFirstName: showFirstName,
         showProfession: showProfession,
+        marketingEmails: marketingEmails,
       );
       state = state.copyWith(
         showFirstName: updated.showFirstName,
         showProfession: updated.showProfession,
+        marketingEmails: updated.marketingEmails,
         isLoading: false,
       );
       return true;

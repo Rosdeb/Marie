@@ -60,10 +60,12 @@ class AccountRepositoryImpl implements AccountRepository {
   Future<PrivacySettingsEntity> updatePrivacySettings({
     required bool showFirstName,
     required bool showProfession,
+    required bool marketingEmails,
   }) async {
     return await remoteDataSource.updatePrivacySettings(
       showFirstName: showFirstName,
       showProfession: showProfession,
+      marketingEmails: marketingEmails,
     );
   }
 

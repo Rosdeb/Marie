@@ -86,7 +86,7 @@ class _ChooseJurisdictionScreenState
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Choose Jurisdiction',
+          'Choose Office',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
@@ -120,7 +120,7 @@ class _ChooseJurisdictionScreenState
                     children: [
                       Flexible(
                         child: Text(
-                          'Topic: ${selection.topic ?? "Patents"}',
+                          'Discipline: ${selection.topic ?? "Patents"}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

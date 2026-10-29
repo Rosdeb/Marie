@@ -20,7 +20,13 @@ class OfficeSelectionScreen extends ConsumerStatefulWidget {
 class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
   String? _selectedFocusCode;
   String? _selectedNationalCode;
+  // Track asks for two offices, not one: a national office and a regional
+  // office. WIPO is the only one that comes with the plan.
+  String? _selectedRegionalCode;
   bool _isSaving = false;
+
+  static const Set<String> _trackIncluded = {'WIPO'};
+  static const Set<String> _regionalCodes = {'EPO', 'EUIPO', 'UPC'};
 
   @override
   void initState() {
@@ -34,7 +40,10 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
       if (isTrack) {
         for (final code in entitlement.selectedOffices) {
           final upper = code.toUpperCase();
-          if (!{'WIPO', 'EPO', 'EUIPO', 'UPC'}.contains(upper)) {
+          if (_trackIncluded.contains(upper)) continue;
+          if (_regionalCodes.contains(upper)) {
+            _selectedRegionalCode = upper;
+          } else {
             _selectedNationalCode = upper;
           }
         }
@@ -140,13 +149,25 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
     }
 
     final isSelectionValid = isTrack
-        ? _selectedNationalCode != null
+        ? _selectedNationalCode != null && _selectedRegionalCode != null
         : _selectedFocusCode != null;
 
+    // Both Track choices are named in the button, and when one is still
+    // missing the prompt says which one rather than just "incomplete".
+    final String trackPrompt;
+    if (isSelectionValid) {
+      trackPrompt =
+          'Continue with $_selectedNationalCode, $_selectedRegionalCode and WIPO';
+    } else if (_selectedNationalCode == null && _selectedRegionalCode == null) {
+      trackPrompt = 'Choose one national and one regional office';
+    } else if (_selectedNationalCode == null) {
+      trackPrompt = 'Choose one national office';
+    } else {
+      trackPrompt = 'Choose one regional office';
+    }
+
     final buttonText = isTrack
-        ? (isSelectionValid
-              ? 'Continue with $_selectedNationalCode'
-              : 'Select 1 National office')
+        ? trackPrompt
         : (isSelectionValid
               ? 'Continue with $_selectedFocusCode'
               : 'Select an office to continue');
@@ -264,23 +285,23 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Regional Offices
+                    // Regional Offices. On Track this is a choice of one -
+                    // EPO, EUIPO or UPC - not a set that comes with the plan.
                     _buildSectionHeader(
-                      isTrack
-                          ? 'Regional Offices (Included Automatically)'
-                          : 'Regional Offices',
+                      isTrack ? 'Regional Office (Select 1)' : 'Regional Offices',
                     ),
                     const SizedBox(height: 8),
                     ...regionalOffices.map(
                       (o) => _buildOfficeItem(
                         office: o,
                         isSelected: isTrack
-                            ? true
+                            ? _selectedRegionalCode == o.code
                             : _selectedFocusCode == o.code,
-                        isFixedIncluded: isTrack,
+                        isFixedIncluded: false,
                         canChange: canChange,
                         onTap: isTrack
-                            ? null
+                            ? () =>
+                                  setState(() => _selectedRegionalCode = o.code)
                             : () => setState(() => _selectedFocusCode = o.code),
                       ),
                     ),
@@ -339,7 +360,10 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
                         if (isTrack) {
                           success = await ref
                               .read(entitlementProvider.notifier)
-                              .chooseOffices(national: _selectedNationalCode);
+                              .chooseOffices(
+                                national: _selectedNationalCode,
+                                regional: _selectedRegionalCode,
+                              );
                         } else {
                           success = await ref
                               .read(entitlementProvider.notifier)
@@ -361,7 +385,7 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
                               SnackBar(
                                 content: Text(
                                   isTrack
-                                      ? 'WIPO, all regional offices & $_selectedNationalCode activated!'
+                                      ? '$_selectedNationalCode, $_selectedRegionalCode and WIPO activated!'
                                       : '$_selectedFocusCode activated for your practice!',
                                 ),
                                 backgroundColor: AppColors.primary,
@@ -472,7 +496,7 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
           // Dynamic Subtitle Text
           Text(
             isTrack
-                ? 'Select your primary national office. WIPO and regional systems (EPO, EUIPO, UPC) are automatically included.'
+                ? 'Choose one national office and one regional office. WIPO is included, which makes three offices in all.'
                 : 'Select any 1 of the 15 IP offices. You can change your choice once per billing period without extra fees.',
             style: const TextStyle(
               color: Color(0xFF475569),
@@ -503,7 +527,7 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
           _buildGuidanceItem(
             title: 'Track',
             description:
-                'Choose one national office. WIPO, EPO, EUIPO, and UPC are included automatically.',
+                'Choose one national office and one regional office (EPO, EUIPO or UPC). WIPO is included: three offices in all.',
           ),
           _buildGuidanceItem(
             description:

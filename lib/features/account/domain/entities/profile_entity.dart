@@ -11,6 +11,8 @@ class ProfileEntity {
   final String profession;
   final bool showFirstName;
   final bool showProfession;
+  /// Consent to marketing e-mail; off unless the user agreed.
+  final bool marketingEmails;
   final bool notificationsEnabled;
   final String referralCode;
   final int totalReferrals;
@@ -29,6 +31,7 @@ class ProfileEntity {
     this.profession = '',
     this.showFirstName = false,
     this.showProfession = false,
+    this.marketingEmails = false,
     this.notificationsEnabled = true,
     this.referralCode = '',
     this.totalReferrals = 0,
@@ -48,6 +51,7 @@ class ProfileEntity {
     String? profession,
     bool? showFirstName,
     bool? showProfession,
+    bool? marketingEmails,
     bool? notificationsEnabled,
     String? referralCode,
     int? totalReferrals,
@@ -66,6 +70,7 @@ class ProfileEntity {
       profession: profession ?? this.profession,
       showFirstName: showFirstName ?? this.showFirstName,
       showProfession: showProfession ?? this.showProfession,
+      marketingEmails: marketingEmails ?? this.marketingEmails,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       referralCode: referralCode ?? this.referralCode,
       totalReferrals: totalReferrals ?? this.totalReferrals,

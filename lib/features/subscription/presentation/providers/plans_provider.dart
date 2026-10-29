@@ -8,6 +8,7 @@ import '../../data/services/revenuecat_purchase_service.dart';
 import '../../domain/entities/entitlement_entity.dart';
 import '../../domain/repositories/subscription_repository.dart';
 import 'entitlement_provider.dart';
+import '../../../referral/presentation/providers/referral_provider.dart';
 
 class PlansState {
   final bool isLoading;
@@ -87,7 +88,19 @@ class PlansNotifier extends Notifier<PlansState> {
       }
 
       // 3. Merge: API metadata (name, subtitle, fallback price) + RevenueCat store prices & packages
-      final groups = RevenueCatPlanGroup.fromOfferings(offerings, apiPlans: apiPlans);
+      //
+      // A subscriber holding an unused promo code is shown the discounted
+      // products. The discount cannot be applied at checkout - neither store
+      // can take a percentage off a subscription - so it is a second set of
+      // products at the lower price.
+      final hasPromoCode =
+          (ref.read(referralProvider).activePromoCode ?? '').isNotEmpty;
+
+      final groups = RevenueCatPlanGroup.fromOfferings(
+        offerings,
+        apiPlans: apiPlans,
+        useReferralOffering: hasPromoCode,
+      );
       for (final g in groups) {
         debugPrint(
           '[Plans] Plan ${g.title}: Monthly=${g.monthlyPriceString} (pkg: ${g.monthlyPackage?.identifier}), Annual=${g.annualPriceString} (pkg: ${g.annualPackage?.identifier})',
@@ -111,6 +124,36 @@ class PlansNotifier extends Notifier<PlansState> {
     final updated = Map<PlanTier, PlanBillingInterval>.from(state.selectedIntervals);
     updated[tier] = interval;
     state = state.copyWith(selectedIntervals: updated);
+  }
+
+  /// Tells the server that a promo code was spent on this purchase.
+  ///
+  /// The discount itself is applied inside the App Store or Google Play, and
+  /// neither of them tells our server anything about it. Without this call a
+  /// code stays "unlocked" for ever and the dashboard never shows a single
+  /// redemption, so it runs after every successful purchase where the
+  /// subscriber was holding a code.
+  ///
+  /// It is deliberately quiet: the purchase has already gone through, and a
+  /// failure to record it must not look to the subscriber like a failed
+  /// payment. The endpoint is idempotent, so a retry costs nothing.
+  Future<void> _reportRedemption(PlanTier tier, PlanBillingInterval interval) async {
+    try {
+      final code = ref.read(referralProvider).activePromoCode;
+      if (code == null || code.isEmpty) return;
+
+      await ref.read(referralProvider.notifier).redeemPromoCode(
+            code: code,
+            tier: tier.name,
+            billingPeriod: interval == PlanBillingInterval.annual
+                ? 'yearly'
+                : 'monthly',
+            discountAmount: 0,
+            currency: '',
+          );
+    } catch (_) {
+      // Never surfaced: see above.
+    }
   }
 
   Future<bool> purchasePlan(PlanTier tier) async {
@@ -145,6 +188,7 @@ class PlansNotifier extends Notifier<PlansState> {
       if (result != null) {
         // Sync with backend to refresh access
         await ref.read(entitlementProvider.notifier).syncFromRevenueCat();
+        await _reportRedemption(tier, interval);
         return true;
       }
       return false; // User cancelled

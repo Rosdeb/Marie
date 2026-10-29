@@ -29,8 +29,13 @@ class ApiConstants {
   static const String notificationMarkAsRead = '/notification/mark-as-read';
 
   // Common & Legal
+  //
+  // Three separate documents, shown on three separate screens: Privacy
+  // Policy, Terms of Use and Legal Notice. They are not interchangeable and
+  // the app must never substitute one for another.
   static const String privacyPolicy = '/common/privacy-policy';
   static const String terms = '/common/terms';
+  static const String legalNotice = '/common/legal-notice';
   static const String about = '/common/about';
   static const String supportContact = '/common/support';
 

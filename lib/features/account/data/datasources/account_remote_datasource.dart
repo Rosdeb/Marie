@@ -21,6 +21,7 @@ abstract class AccountRemoteDataSource {
   Future<PrivacySettingsModel> updatePrivacySettings({
     required bool showFirstName,
     required bool showProfession,
+    required bool marketingEmails,
   });
   Future<bool> deleteAccount();
 }
@@ -92,12 +93,14 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
   Future<PrivacySettingsModel> updatePrivacySettings({
     required bool showFirstName,
     required bool showProfession,
+    required bool marketingEmails,
   }) async {
     final response = await apiClient.patch(
       ApiConstants.privacySettings,
       body: {
         'showFirstName': showFirstName,
         'showProfession': showProfession,
+        'marketingEmails': marketingEmails,
       },
       requiresAuth: true,
     );

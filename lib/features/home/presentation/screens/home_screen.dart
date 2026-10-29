@@ -178,7 +178,7 @@ class HomeScreen extends ConsumerWidget {
 
                     // 4. Topics Section Header
                     const Text(
-                      'Topics',
+                      'Disciplines',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -191,7 +191,7 @@ class HomeScreen extends ConsumerWidget {
                       const Center(child: CircularProgressIndicator())
                     else if (practice.disciplines.isEmpty)
                       const Text(
-                        'No practice topics are available for the selected office yet.',
+                        'No disciplines are available for the selected office yet.',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
@@ -253,7 +253,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Practice across more topics, jurisdictions, and\nlevels.',
+                            'Practice across more offices, disciplines and\nlevels.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,

@@ -29,7 +29,7 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '$jurisdiction Disciplines',
+          '$jurisdiction · Disciplines',
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
@@ -48,7 +48,7 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Select a discipline within $jurisdiction',
+                    'Select a discipline for $jurisdiction',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

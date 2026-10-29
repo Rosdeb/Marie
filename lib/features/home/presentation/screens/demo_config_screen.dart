@@ -107,7 +107,7 @@ class DemoConfigScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${selectedOffice.type.toUpperCase()} jurisdiction · 20 Questions Demo',
+                              '${selectedOffice.type.toUpperCase()} office · 20 question demo',
                               style: const TextStyle(
                                 color: Color(0xFFB0BEC5),
                                 fontSize: 11,

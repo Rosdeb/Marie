@@ -2,9 +2,15 @@ class ReferralInfo {
   final String code;
   final String url;
 
+  /// Where a shared referral link points when the server has not said.
+  ///
+  /// ipro.legal is not a domain IPro owns and nothing answers on it, so it
+  /// must never appear in a post. ipro-law.com is the real one.
+  static const String fallbackUrl = 'https://ipro-law.com/app';
+
   const ReferralInfo({
     this.code = '',
-    this.url = 'https://ipro.legal/referral/join-now',
+    this.url = fallbackUrl,
   });
 
   factory ReferralInfo.fromJson(
@@ -18,7 +24,7 @@ class ReferralInfo {
     final url = json?['url'] as String? ??
         rootJson?['referralUrl'] as String? ??
         rootJson?['url'] as String? ??
-        'https://ipro.legal/referral/join-now';
+        fallbackUrl;
     return ReferralInfo(
       code: code,
       url: url,
@@ -304,12 +310,13 @@ class SharePreviewModel {
   int get validityDays => reward.validityDays;
   String get buttonText => sharePreview.primaryButtonText;
   String? get previewImageUrl => video.thumbnailUrl;
-  String get title => video.title ?? 'Join IPro — Smart IP Law Practice';
+  // "Trust your excellence" is the only slogan IPro uses.
+  String get title => video.title ?? 'IPro — Trust your excellence';
   String get description => sharePreview.shareHint;
   String get previewDomain =>
       legacyPreviewDomain ??
       Uri.tryParse(referral.url)?.host ??
-      'ipro.legal/referral/join-now';
+      'ipro-law.com';
   String get bannerTag => legacyBannerTag ?? 'LINKEDIN EXCLUSIVE';
   String get bannerDiscountTag => '${reward.discountPercentage}% OFF';
   String get bannerTitle =>
@@ -410,11 +417,15 @@ class RedeemRequestModel {
     required this.currency,
   });
 
+  /// Only the code is required. The stores do not always tell the app what
+  /// was actually charged, and an empty amount or currency sent as "" or 0
+  /// would be recorded as a real figure - so anything unknown is left out and
+  /// the server stores null instead.
   Map<String, dynamic> toJson() => {
         'code': code,
-        'tier': tier,
-        'billingPeriod': billingPeriod,
-        'discountAmount': discountAmount,
-        'currency': currency,
+        if (tier.isNotEmpty) 'tier': tier,
+        if (billingPeriod.isNotEmpty) 'billingPeriod': billingPeriod,
+        if (discountAmount > 0) 'discountAmount': discountAmount,
+        if (currency.isNotEmpty) 'currency': currency,
       };
 }

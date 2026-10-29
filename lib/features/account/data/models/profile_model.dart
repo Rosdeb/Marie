@@ -13,6 +13,7 @@ class ProfileModel extends ProfileEntity {
     super.profileType,
     super.profession,
     super.showFirstName,
+    super.marketingEmails,
     super.showProfession,
     super.notificationsEnabled,
     super.referralCode,
@@ -50,6 +51,11 @@ class ProfileModel extends ProfileEntity {
       profession: (target['profession'] ?? '').toString(),
       showFirstName: visibility['showFirstName'] == true,
       showProfession: visibility['showProfession'] == true,
+      // Opt-in: anything other than an explicit true means no consent.
+      marketingEmails: (target['marketingConsent'] is Map
+              ? (target['marketingConsent'] as Map)['email']
+              : target['marketingEmails']) ==
+          true,
       notificationsEnabled: target['notificationsEnabled'] != false,
       referralCode: (target['referralCode'] ?? '').toString(),
       totalReferrals: target['totalReferrals'] is int ? target['totalReferrals'] as int : 0,

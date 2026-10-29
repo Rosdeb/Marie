@@ -22,6 +22,7 @@ abstract class AccountRepository {
   Future<PrivacySettingsEntity> updatePrivacySettings({
     required bool showFirstName,
     required bool showProfession,
+    required bool marketingEmails,
   });
 
   Future<bool> deleteAccount();

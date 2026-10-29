@@ -131,7 +131,7 @@ class HowSubscriptionsWorkScreen extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     _buildPlanRow('Focus', '1 office of your choice (changeable each period)'),
-                    _buildPlanRow('Track', '1 national office + regional offices (EPO, EUIPO, UPC) + WIPO'),
+                    _buildPlanRow('Track', '1 national office + 1 regional office (EPO, EUIPO or UPC) + WIPO'),
                     _buildPlanRow('Majors', '6 fixed global offices: USPTO, EPO, JPO, CNIPA, KIPO, WIPO'),
                     _buildPlanRow('Global', 'All 15 IP offices worldwide with full access'),
 

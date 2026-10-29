@@ -6,10 +6,16 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_shimmer.dart';
 
+/// The three legal documents, each on its own screen.
+///
+/// They are three distinct texts with three distinct endpoints. None of them
+/// substitutes for another, and the app never carries a copy of its own: a
+/// legal text that disagrees with the published one is worse than no text at
+/// all, so when the server has nothing this screen says so.
 enum LegalType {
   privacyPolicy,
+  termsOfUse,
   legalNotice,
-  eula,
 }
 
 class LegalContentScreen extends ConsumerStatefulWidget {
@@ -25,7 +31,7 @@ class LegalContentScreen extends ConsumerStatefulWidget {
 }
 
 class _LegalContentScreenState extends ConsumerState<LegalContentScreen> {
-  String? _serverContent;
+  String? _content;
   bool _isLoading = true;
 
   @override
@@ -34,30 +40,14 @@ class _LegalContentScreenState extends ConsumerState<LegalContentScreen> {
     _fetchContent();
   }
 
-  Future<void> _fetchContent() async {
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      String endpoint = ApiConstants.privacyPolicy;
-      if (widget.type == LegalType.legalNotice || widget.type == LegalType.eula) {
-        endpoint = ApiConstants.terms;
-      }
-      final response = await apiClient.get(endpoint, requiresAuth: false);
-      if (response is Map<String, dynamic> && response['data'] != null) {
-        final data = response['data'];
-        if (data is String && data.isNotEmpty) {
-          _serverContent = data;
-        } else if (data is Map<String, dynamic> && data['content'] != null) {
-          _serverContent = data['content'].toString();
-        } else if (data is List && data.isNotEmpty) {
-          _serverContent = data.map((e) => e.toString()).join('\n\n');
-        }
-      }
-    } catch (_) {
-      // Fallback to static text
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  String get _endpoint {
+    switch (widget.type) {
+      case LegalType.privacyPolicy:
+        return ApiConstants.privacyPolicy;
+      case LegalType.termsOfUse:
+        return ApiConstants.terms;
+      case LegalType.legalNotice:
+        return ApiConstants.legalNotice;
     }
   }
 
@@ -65,62 +55,37 @@ class _LegalContentScreenState extends ConsumerState<LegalContentScreen> {
     switch (widget.type) {
       case LegalType.privacyPolicy:
         return 'Privacy Policy';
+      case LegalType.termsOfUse:
+        return 'Terms of Use';
       case LegalType.legalNotice:
         return 'Legal Notice';
-      case LegalType.eula:
-        return 'Terms & Conditions (EULA)';
     }
   }
 
-  String get _fallbackContent {
-    switch (widget.type) {
-      case LegalType.privacyPolicy:
-        return '''
-Last updated: January 2026
+  /// The endpoint answers either a single document or a list holding one.
+  static String? _readContent(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final content = data['content'];
+      return content is String && content.trim().isNotEmpty ? content : null;
+    }
+    if (data is List && data.isNotEmpty) {
+      return _readContent(data.first);
+    }
+    return null;
+  }
 
-1. Information We Collect
-We collect information you provide directly to us when you create an account, manage your profile, and use our study features.
-
-2. How We Use Information
-We use information collected to:
-• Provide, maintain, and improve our services.
-• Personalize your study recommendations and practice track.
-• Send study reminders and security notices (if notifications are enabled).
-
-3. Data Security
-We implement strict technical safeguards to secure your personal information against unauthorized access, alteration, or disclosure.
-''';
-
-      case LegalType.legalNotice:
-        return '''
-Legal Notice & Disclaimers
-
-1. Ownership
-This application and all its original content, practice questions, review modules, and trademarks are owned by Study App Inc.
-
-2. Educational Disclaimer
-All practice exams and question sets are provided for exam preparation and informational purposes only. Results do not guarantee official certification exam scores.
-
-3. Copyright & Intellectual Property
-Unauthorized reproduction, distribution, or decompilation of study content is strictly prohibited without prior written consent.
-''';
-
-      case LegalType.eula:
-        return '''
-End User License Agreement (EULA)
-
-1. Grant of License
-Subject to the terms of this Agreement, we grant you a revocable, non-exclusive, non-transferable, limited license to download, install, and use the Application.
-
-2. License Restrictions
-You agree not to:
-• License, sell, rent, lease, or distribute the application.
-• Modify, make derivative works of, disassemble, or reverse engineer any part of the service.
-• Share your single-user subscription credentials with third parties.
-
-3. Termination
-This agreement is effective until terminated by you or the company. Upon account deletion, all access privileges will cease immediately.
-''';
+  Future<void> _fetchContent() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get(_endpoint, requiresAuth: false);
+      if (response is Map<String, dynamic>) {
+        _content = _readContent(response['data']);
+      }
+    } catch (_) {
+      // Leave _content null: the screen then says the document is unavailable
+      // rather than showing something nobody approved.
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -132,7 +97,8 @@ This agreement is effective until terminated by you or the company. Upon account
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back_ios,
+              size: 18, color: AppColors.textPrimary),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -152,8 +118,10 @@ This agreement is effective until terminated by you or the company. Upon account
                 child: ContentDocumentShimmer(),
               )
             : SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -166,17 +134,185 @@ This agreement is effective until terminated by you or the company. Upon account
                       ),
                     ],
                   ),
-                  child: Text(
-                    _serverContent ?? _fallbackContent,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                      height: 1.6,
-                    ),
-                  ),
+                  child: _content == null
+                      ? _unavailable()
+                      : _LegalDocument(html: _content!),
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _unavailable() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            const Icon(Icons.description_outlined,
+                size: 36, color: AppColors.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              'The $_title is not available right now.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Please check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+/// Renders the stored document.
+///
+/// The documents are simple HTML - headings, paragraphs and lists - so they
+/// are laid out directly rather than through an HTML package. Anything the
+/// parser does not recognise still comes through as readable text, which
+/// matters more here than exact formatting.
+class _LegalDocument extends StatelessWidget {
+  final String html;
+
+  const _LegalDocument({required this.html});
+
+  static final RegExp _block = RegExp(
+    r'<(h1|h2|h3|p|li)[^>]*>(.*?)</\1>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  static const Map<String, String> _entities = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&mdash;': '—',
+    '&ndash;': '–',
+    '&eacute;': 'é',
+    '&egrave;': 'è',
+    '&agrave;': 'à',
+    '&acirc;': 'â',
+    '&ccedil;': 'ç',
+  };
+
+  static String _plain(String value) {
+    var text = value.replaceAll(RegExp(r'<[^>]*>'), '');
+    _entities.forEach((entity, char) {
+      text = text.replaceAll(entity, char);
+    });
+    return text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final matches = _block.allMatches(html).toList();
+
+    // No recognisable markup: show the text as it stands rather than nothing.
+    if (matches.isEmpty) {
+      return Text(
+        _plain(html),
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppColors.textPrimary,
+          height: 1.6,
+        ),
+      );
+    }
+
+    final children = <Widget>[];
+
+    for (final match in matches) {
+      final tag = match.group(1)!.toLowerCase();
+      final text = _plain(match.group(2) ?? '');
+      if (text.isEmpty) continue;
+
+      if (children.isNotEmpty) {
+        children.add(SizedBox(height: tag == 'li' ? 6 : 14));
+      }
+
+      switch (tag) {
+        case 'h1':
+          children.add(Text(
+            text,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              height: 1.35,
+            ),
+          ));
+          break;
+        case 'h2':
+          children.add(Text(
+            text,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.4,
+            ),
+          ));
+          break;
+        case 'h3':
+          children.add(Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.45,
+            ),
+          ));
+          break;
+        case 'li':
+          children.add(Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 6, right: 8),
+                child: Icon(Icons.circle, size: 5, color: AppColors.textSecondary),
+              ),
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.6,
+                  ),
+                ),
+              ),
+            ],
+          ));
+          break;
+        default:
+          children.add(Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textPrimary,
+              height: 1.6,
+            ),
+          ));
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
   }
 }

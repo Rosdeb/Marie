@@ -546,11 +546,13 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       }
     } else if (isTrack) {
       if (!needsSelection && entitlement.selectedOffices.isNotEmpty) {
+        // All three, in the order they are granted, rather than one of them
+        // plus a claim about the rest.
         officesDescription =
-            'Selected Office: ${entitlement.selectedOffices.first} + WIPO and all regional offices';
+            'Your offices: ${entitlement.selectedOffices.join(', ')}';
       } else {
         officesDescription =
-            'Choose 1 National office (WIPO and all regional offices are included automatically).';
+            'Choose 1 national office and 1 regional office. WIPO is included: three offices in all.';
       }
     } else if (entitlement.planId == PlanTier.majors) {
       officesDescription =
@@ -705,10 +707,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                     runSpacing: 8,
                     children: [
                       if (isTrack)
-                        ...const ['WIPO', 'EPO', 'EUIPO', 'UPC'].map(
-                          (code) =>
-                              _buildOfficeChip('$code (Fixed)', isFixed: true),
-                        ),
+                        _buildOfficeChip('WIPO (Fixed)', isFixed: true),
                       ...entitlement.selectedOffices.map(
                         (code) => _buildOfficeChip(code),
                       ),

@@ -199,7 +199,8 @@ class EntitlementEntity {
       options.insert(0, PlanTier.majors);
     }
 
-    // Track includes WIPO + all regional offices + 1 chosen national office.
+    // Track includes WIPO, one chosen regional office and one chosen
+    // national office - three in all.
     const regionalOffices = {'EPO', 'EUIPO', 'UPC'};
     const internationalOffices = {'WIPO'};
     final isTrackCandidate =
