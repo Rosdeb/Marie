@@ -25,6 +25,8 @@ class ApiConstants {
 
   // Notifications
   static const String notifications = '/notification/get-all';
+  /// Where the app reports the FCM token of the device it is running on.
+  static const String deviceToken = '/notification/device-token';
   static const String notificationUnreadCount = '/notification/unread-count';
   static const String notificationMarkAsRead = '/notification/mark-as-read';
 

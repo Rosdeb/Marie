@@ -1,3 +1,4 @@
+import '../../../../core/services/push_notification_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../domain/entities/user_entity.dart';
@@ -524,6 +525,13 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // First, while the access token is still valid: tell the server to stop
+    // pushing to this device, so the next person to use the phone does not
+    // receive this account's notifications.
+    try {
+      await PushNotificationService.instance.unregisterCurrentDevice();
+    } catch (_) {}
+
     try {
       await Future.wait([
         GoogleSignInService.signOut(),

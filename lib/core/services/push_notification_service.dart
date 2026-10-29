@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -8,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../firebase_options.dart';
+import '../constants/api_constants.dart';
+import '../network/api_client.dart';
 import '../router/app_router.dart';
 import '../storage/local_storage.dart';
 
@@ -169,14 +172,84 @@ class PushNotificationService {
     return true;
   }
 
-  Future<void> _saveToken(String token) async {
+  String get _platform {
+    if (kIsWeb) return 'web';
+    if (Platform.isIOS || Platform.isMacOS) return 'ios';
+    return 'android';
+  }
+
+  /// Keeps the token on the device and tells the server about it.
+  ///
+  /// Storing it locally is not enough: the server decides who to push to, and
+  /// it can only do that if it knows which devices belong to this account.
+  /// Without this call the token stayed on the phone and every push had
+  /// nowhere to go.
+  ///
+  /// The token is re-sent whenever Firebase rotates it and after each
+  /// sign-in, because a token belongs to a device and the account using it
+  /// can change.
+  Future<void> _saveToken(String token, {bool force = false}) async {
     final storage = _localStorage;
     final normalizedToken = token.trim();
     if (storage == null || normalizedToken.isEmpty) return;
 
     final cachedToken = await storage.getFcmToken();
-    if (cachedToken == normalizedToken) return;
-    await storage.saveFcmToken(normalizedToken);
+    final isNew = cachedToken != normalizedToken;
+
+    if (isNew) await storage.saveFcmToken(normalizedToken);
+    if (!isNew && !force) return;
+
+    await _registerTokenWithServer(normalizedToken);
+  }
+
+  Future<void> _registerTokenWithServer(String token) async {
+    final storage = _localStorage;
+    if (storage == null) return;
+
+    // Nobody is signed in yet; registerCurrentDevice() runs again after login.
+    final accessToken = await storage.getAccessToken();
+    if (accessToken == null || accessToken.isEmpty) return;
+
+    try {
+      await ApiClient(localStorage: storage).post(
+        ApiConstants.deviceToken,
+        body: {'token': token, 'platform': _platform},
+        requiresAuth: true,
+      );
+    } catch (e) {
+      // Never surfaced: failing to register a device must not interrupt
+      // anything the person is doing. The next refresh or sign-in retries.
+      debugPrint('[Push] could not register device token: $e');
+    }
+  }
+
+  /// Called after sign-in, so the device is attached to the account that has
+  /// just taken it over.
+  Future<void> registerCurrentDevice() async {
+    final token = await _messaging.getToken();
+    if (token != null && token.isNotEmpty) {
+      await _saveToken(token, force: true);
+    }
+  }
+
+  /// Called on sign-out, so the next person to use this phone does not
+  /// receive the previous account's notifications.
+  Future<void> unregisterCurrentDevice() async {
+    final storage = _localStorage;
+    if (storage == null) return;
+
+    final token = await storage.getFcmToken();
+    if (token == null || token.isEmpty) return;
+
+    try {
+      // delete() carries no body, so the token travels as a query parameter.
+      await ApiClient(localStorage: storage).delete(
+        '${ApiConstants.deviceToken}?token=${Uri.encodeComponent(token)}',
+        requiresAuth: true,
+      );
+    } catch (e) {
+      debugPrint('[Push] could not remove device token: $e');
+    }
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {

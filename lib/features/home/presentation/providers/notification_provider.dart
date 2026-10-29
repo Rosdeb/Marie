@@ -42,7 +42,13 @@ class NotificationNotifier extends Notifier<NotificationState> {
     final messageSubscription = PushNotificationService.instance.messages
         .listen((_) => fetchNotifications());
     ref.onDispose(messageSubscription.cancel);
-    Future.microtask(() => fetchNotifications());
+    Future.microtask(() async {
+      await fetchNotifications();
+      // The device belongs to whoever is signed in now, so it is claimed
+      // again on every entry rather than only when Firebase rotates the
+      // token.
+      await PushNotificationService.instance.registerCurrentDevice();
+    });
     return const NotificationState(isLoading: true);
   }
 
