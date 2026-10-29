@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -6,18 +7,21 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../error/exceptions.dart';
 import '../storage/local_storage.dart';
+import 'server_availability_controller.dart';
 
 class ApiClient {
+  static const Duration _requestTimeout = Duration(seconds: 20);
+
   final http.Client _client;
   final LocalStorage localStorage;
 
-  ApiClient({
-    http.Client? client,
-    required this.localStorage,
-  }) : _client = client ?? http.Client();
+  ApiClient({http.Client? client, required this.localStorage})
+    : _client = client ?? http.Client();
 
   Uri _buildUri(String path, [Map<String, dynamic>? queryParams]) {
-    final fullUrl = path.startsWith('http') ? path : '${ApiConstants.baseUrl}$path';
+    final fullUrl = path.startsWith('http')
+        ? path
+        : '${ApiConstants.baseUrl}$path';
     final uri = Uri.parse(fullUrl);
     if (queryParams != null && queryParams.isNotEmpty) {
       return uri.replace(
@@ -64,7 +68,12 @@ class ApiClient {
     return headers;
   }
 
-  void _logRequest(String method, Uri uri, {Map<String, String>? headers, dynamic body}) {
+  void _logRequest(
+    String method,
+    Uri uri, {
+    Map<String, String>? headers,
+    dynamic body,
+  }) {
     if (kDebugMode) {
       debugPrint('┌─── [HTTP REQUEST] $method $uri ───');
       if (headers != null) debugPrint('│ Headers: $headers');
@@ -76,7 +85,9 @@ class ApiClient {
   void _logResponse(String method, Uri uri, http.Response response) {
     if (kDebugMode) {
       final isSuccess = response.statusCode >= 200 && response.statusCode < 300;
-      debugPrint('┌─── [HTTP RESPONSE ${response.statusCode}] $method $uri ${isSuccess ? '✅' : '❌'} ───');
+      debugPrint(
+        '┌─── [HTTP RESPONSE ${response.statusCode}] $method $uri ${isSuccess ? '✅' : '❌'} ───',
+      );
       debugPrint('│ Body: ${response.body}');
       debugPrint('└──────────────────────────────────────────────');
     }
@@ -94,31 +105,59 @@ class ApiClient {
       return decoded ?? {'statusCode': response.statusCode};
     }
 
+    if (response.statusCode == 408 || response.statusCode >= 500) {
+      ServerAvailabilityController.instance.reportUnavailable(
+        'Our server is temporarily unavailable. Please try again shortly.',
+      );
+    }
+
     String? errorMessage;
     if (decoded is Map<String, dynamic>) {
-      if (decoded['message'] != null && decoded['message'].toString().trim().isNotEmpty) {
+      if (decoded['message'] != null &&
+          decoded['message'].toString().trim().isNotEmpty) {
         errorMessage = decoded['message'].toString().trim();
-      } else if (decoded['msg'] != null && decoded['msg'].toString().trim().isNotEmpty) {
+      } else if (decoded['msg'] != null &&
+          decoded['msg'].toString().trim().isNotEmpty) {
         errorMessage = decoded['msg'].toString().trim();
-      } else if (decoded['errorMessages'] is List && (decoded['errorMessages'] as List).isNotEmpty) {
-        final messages = (decoded['errorMessages'] as List).map((item) {
-          if (item is Map && item['message'] != null) return item['message'].toString();
-          return item.toString();
-        }).where((m) => m.isNotEmpty).toList();
+      } else if (decoded['errorMessages'] is List &&
+          (decoded['errorMessages'] as List).isNotEmpty) {
+        final messages = (decoded['errorMessages'] as List)
+            .map((item) {
+              if (item is Map && item['message'] != null) {
+                return item['message'].toString();
+              }
+              return item.toString();
+            })
+            .where((m) => m.isNotEmpty)
+            .toList();
         if (messages.isNotEmpty) errorMessage = messages.join('\n');
       } else if (decoded['errors'] != null) {
         final errs = decoded['errors'];
         if (errs is List && errs.isNotEmpty) {
-          final list = errs.map((e) {
-            if (e is Map) return (e['message'] ?? e['msg'] ?? e['error'] ?? e.toString()).toString();
-            return e.toString();
-          }).where((s) => s.isNotEmpty).toList();
+          final list = errs
+              .map((e) {
+                if (e is Map) {
+                  return (e['message'] ??
+                          e['msg'] ??
+                          e['error'] ??
+                          e.toString())
+                      .toString();
+                }
+                return e.toString();
+              })
+              .where((s) => s.isNotEmpty)
+              .toList();
           if (list.isNotEmpty) errorMessage = list.join('\n');
         } else if (errs is Map && errs.isNotEmpty) {
-          final mapValues = errs.values.map((v) {
-            if (v is Map) return (v['message'] ?? v['msg'] ?? v.toString()).toString();
-            return v.toString();
-          }).where((s) => s.isNotEmpty).toList();
+          final mapValues = errs.values
+              .map((v) {
+                if (v is Map) {
+                  return (v['message'] ?? v['msg'] ?? v.toString()).toString();
+                }
+                return v.toString();
+              })
+              .where((s) => s.isNotEmpty)
+              .toList();
           if (mapValues.isNotEmpty) errorMessage = mapValues.join('\n');
         } else {
           errorMessage = errs.toString();
@@ -132,7 +171,8 @@ class ApiClient {
         }
       } else if (decoded['detail'] != null) {
         errorMessage = decoded['detail'].toString();
-      } else if (decoded['data'] is Map && (decoded['data'] as Map)['message'] != null) {
+      } else if (decoded['data'] is Map &&
+          (decoded['data'] as Map)['message'] != null) {
         errorMessage = (decoded['data'] as Map)['message'].toString();
       }
     } else if (decoded is String && decoded.trim().isNotEmpty) {
@@ -140,17 +180,26 @@ class ApiClient {
     }
 
     if (errorMessage == null || errorMessage.isEmpty) {
-      if (response.body.isNotEmpty && !response.body.contains('<html') && response.body.length < 300) {
+      if (response.body.isNotEmpty &&
+          !response.body.contains('<html') &&
+          response.body.length < 300) {
         errorMessage = response.body.trim();
       } else {
-        errorMessage = 'Request failed (${response.statusCode}). Please try again.';
+        errorMessage =
+            'Request failed (${response.statusCode}). Please try again.';
       }
     }
 
     if (response.statusCode == 401 || response.statusCode == 403) {
-      throw AuthException(message: errorMessage, statusCode: response.statusCode);
+      throw AuthException(
+        message: errorMessage,
+        statusCode: response.statusCode,
+      );
     } else {
-      throw ServerException(message: errorMessage, statusCode: response.statusCode);
+      throw ServerException(
+        message: errorMessage,
+        statusCode: response.statusCode,
+      );
     }
   }
 
@@ -162,13 +211,27 @@ class ApiClient {
   }) async {
     final uri = _buildUri(path, queryParams);
     try {
-      final headers = await _headers(customToken: customToken, requiresAuth: requiresAuth);
+      final headers = await _headers(
+        customToken: customToken,
+        requiresAuth: requiresAuth,
+      );
       _logRequest('GET', uri, headers: headers);
-      final response = await _client.get(uri, headers: headers);
+      final response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
       _logResponse('GET', uri, response);
       return _processResponse(response);
     } on SocketException {
-      throw NetworkException(message: 'No internet connection. Please check your network.');
+      _reportConnectionFailure();
+      throw NetworkException(
+        message: 'No internet connection. Please check your network.',
+      );
+    } on http.ClientException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'Unable to connect to the server.');
+    } on TimeoutException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -184,18 +247,28 @@ class ApiClient {
   }) async {
     final uri = _buildUri(path);
     try {
-      final headers = await _headers(customToken: customToken, requiresAuth: requiresAuth);
+      final headers = await _headers(
+        customToken: customToken,
+        requiresAuth: requiresAuth,
+      );
       final jsonBody = body != null ? jsonEncode(body) : null;
       _logRequest('POST', uri, headers: headers, body: jsonBody);
-      final response = await _client.post(
-        uri,
-        headers: headers,
-        body: jsonBody,
-      );
+      final response = await _client
+          .post(uri, headers: headers, body: jsonBody)
+          .timeout(_requestTimeout);
       _logResponse('POST', uri, response);
       return _processResponse(response);
     } on SocketException {
-      throw NetworkException(message: 'No internet connection. Please check your network.');
+      _reportConnectionFailure();
+      throw NetworkException(
+        message: 'No internet connection. Please check your network.',
+      );
+    } on http.ClientException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'Unable to connect to the server.');
+    } on TimeoutException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -211,18 +284,28 @@ class ApiClient {
   }) async {
     final uri = _buildUri(path);
     try {
-      final headers = await _headers(customToken: customToken, requiresAuth: requiresAuth);
+      final headers = await _headers(
+        customToken: customToken,
+        requiresAuth: requiresAuth,
+      );
       final jsonBody = body != null ? jsonEncode(body) : null;
       _logRequest('PATCH', uri, headers: headers, body: jsonBody);
-      final response = await _client.patch(
-        uri,
-        headers: headers,
-        body: jsonBody,
-      );
+      final response = await _client
+          .patch(uri, headers: headers, body: jsonBody)
+          .timeout(_requestTimeout);
       _logResponse('PATCH', uri, response);
       return _processResponse(response);
     } on SocketException {
-      throw NetworkException(message: 'No internet connection. Please check your network.');
+      _reportConnectionFailure();
+      throw NetworkException(
+        message: 'No internet connection. Please check your network.',
+      );
+    } on http.ClientException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'Unable to connect to the server.');
+    } on TimeoutException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -237,13 +320,27 @@ class ApiClient {
   }) async {
     final uri = _buildUri(path);
     try {
-      final headers = await _headers(customToken: customToken, requiresAuth: requiresAuth);
+      final headers = await _headers(
+        customToken: customToken,
+        requiresAuth: requiresAuth,
+      );
       _logRequest('DELETE', uri, headers: headers);
-      final response = await _client.delete(uri, headers: headers);
+      final response = await _client
+          .delete(uri, headers: headers)
+          .timeout(_requestTimeout);
       _logResponse('DELETE', uri, response);
       return _processResponse(response);
     } on SocketException {
-      throw NetworkException(message: 'No internet connection. Please check your network.');
+      _reportConnectionFailure();
+      throw NetworkException(
+        message: 'No internet connection. Please check your network.',
+      );
+    } on http.ClientException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'Unable to connect to the server.');
+    } on TimeoutException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -280,22 +377,46 @@ class ApiClient {
       if (fileField != null && filePath != null && filePath.isNotEmpty) {
         final file = File(filePath);
         if (await file.exists()) {
-          request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+          request.files.add(
+            await http.MultipartFile.fromPath(fileField, filePath),
+          );
         }
       }
 
-      _logRequest('PATCH (Multipart)', uri, headers: request.headers, body: request.fields);
-      final streamedResponse = await _client.send(request);
+      _logRequest(
+        'PATCH (Multipart)',
+        uri,
+        headers: request.headers,
+        body: request.fields,
+      );
+      final streamedResponse = await _client
+          .send(request)
+          .timeout(_requestTimeout);
       final response = await http.Response.fromStream(streamedResponse);
       _logResponse('PATCH (Multipart)', uri, response);
       return _processResponse(response);
     } on SocketException {
-      throw NetworkException(message: 'No internet connection. Please check your network.');
+      _reportConnectionFailure();
+      throw NetworkException(
+        message: 'No internet connection. Please check your network.',
+      );
+    } on http.ClientException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'Unable to connect to the server.');
+    } on TimeoutException {
+      _reportConnectionFailure();
+      throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
     } catch (e) {
       throw ApiException(message: e.toString());
     }
+  }
+
+  void _reportConnectionFailure() {
+    ServerAvailabilityController.instance.reportUnavailable(
+      'We could not reach the server. Check your internet connection and try again.',
+    );
   }
 }
 

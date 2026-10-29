@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../network/server_availability_controller.dart';
+import '../screens/server_error_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
@@ -38,7 +40,25 @@ import '../../features/subscription/presentation/screens/how_subscriptions_work_
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
+    refreshListenable: ServerAvailabilityController.instance,
+    redirect: (context, state) {
+      final controller = ServerAvailabilityController.instance;
+      final isServerErrorPage = state.matchedLocation == '/server-error';
+
+      if (controller.isUnavailable && !isServerErrorPage) {
+        return '/server-error';
+      }
+      if (!controller.isUnavailable && isServerErrorPage) {
+        return '/';
+      }
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/server-error',
+        name: 'serverError',
+        builder: (context, state) => const ServerErrorScreen(),
+      ),
       GoRoute(
         path: '/',
         name: 'splash',

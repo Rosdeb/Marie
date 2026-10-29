@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "527162910733-kglg25bpc380pb1vqmelffhkoip5uoq7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ipro.app",
+            "certificate_hash": "c68b8266023507719b0466ab78471cfdcf4d05c5"
+          }
+        },
+        {
           "client_id": "527162910733-0gdcmvho5o2tbqt3obu9jhe38hh87a8o.apps.googleusercontent.com",
           "client_type": 3
         }

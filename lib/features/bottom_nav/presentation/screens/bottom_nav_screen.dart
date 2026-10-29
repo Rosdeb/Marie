@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../home/presentation/screens/home_screen.dart';
@@ -21,13 +22,21 @@ class BottomNavScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavProvider);
     final safeIndex = currentIndex < _pages.length ? currentIndex : 0;
+    final useBottomSafeArea =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
     return Scaffold(
-      body: IndexedStack(
-        index: safeIndex,
-        children: _pages,
+      body: IndexedStack(index: safeIndex, children: _pages),
+      bottomNavigationBar: ColoredBox(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          bottom: useBottomSafeArea,
+          child: const CustomBottomNav(),
+        ),
       ),
-      bottomNavigationBar: const CustomBottomNav(),
     );
   }
 }
