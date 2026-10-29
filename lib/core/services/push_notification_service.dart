@@ -144,6 +144,9 @@ class PushNotificationService {
 
     final cachedToken = await storage.getFcmToken();
     final hasCachedToken = cachedToken != null && cachedToken.trim().isNotEmpty;
+    if (hasCachedToken && kDebugMode) {
+      debugPrint('[FCM] Cached token: ${cachedToken.trim()}');
+    }
 
     var settings = await _messaging.getNotificationSettings();
     if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
@@ -196,6 +199,11 @@ class PushNotificationService {
     final cachedToken = await storage.getFcmToken();
     final isNew = cachedToken != normalizedToken;
 
+    if (kDebugMode) {
+      final source = isNew ? 'New or refreshed' : 'Cached';
+      debugPrint('[FCM] $source token: $normalizedToken');
+    }
+
     if (isNew) await storage.saveFcmToken(normalizedToken);
     if (!isNew && !force) return;
 
@@ -226,7 +234,10 @@ class PushNotificationService {
   /// Called after sign-in, so the device is attached to the account that has
   /// just taken it over.
   Future<void> registerCurrentDevice() async {
-    final token = await _messaging.getToken();
+    final cachedToken = await _localStorage?.getFcmToken();
+    final token = cachedToken != null && cachedToken.trim().isNotEmpty
+        ? cachedToken.trim()
+        : await _messaging.getToken();
     if (token != null && token.isNotEmpty) {
       await _saveToken(token, force: true);
     }

@@ -1,0 +1,95 @@
+default_platform(:ios)
+
+ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] ||= "120"
+ENV["FASTLANE_XCODEBUILD_SETTINGS_RETRIES"] ||= "6"
+ENV["FASTLANE_XCODE_LIST_TIMEOUT"] ||= "120"
+
+platform :ios do
+
+  # App Store Connect API Key
+  def app_store_api_key
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: "/tmp/AuthKey.p8",
+      duration: 1200,
+      in_house: false
+    )
+  end
+
+  # Lane to initialize/fetch certificates
+  lane :certificates do
+    setup_ci(force: true)
+    ENV["MATCH_READONLY"] = "false"
+    api_key = app_store_api_key
+
+    match(
+      type: "appstore",
+      api_key: api_key,
+      readonly: false
+    )
+  end
+
+  # Lane to build and upload to TestFlight
+  lane :beta do
+    bundle_id = ENV["APP_BUNDLE_ID"] || "com.ipro-law.app"
+
+    setup_ci(force: true)
+    ENV["MATCH_READONLY"] = "false"
+    api_key = app_store_api_key
+
+    # 1. Fetch or generate certificates and profiles
+    match(
+      type: "appstore",
+      api_key: api_key,
+      readonly: false
+    )
+
+    # 2. Update Xcode Code Signing settings
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: ENV["sigh_#{bundle_id}_appstore_team-id"],
+      bundle_identifier: bundle_id,
+      profile_name: ENV["sigh_#{bundle_id}_appstore_profile-name"],
+      code_sign_identity: "Apple Distribution"
+    )
+
+    # 3. Auto-increment build number from TestFlight
+    current_build_number = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: bundle_id
+    ) rescue 0
+
+    next_build_number = (current_build_number.to_i + 1).to_s
+    UI.message("📦 Auto-incremented Build Number to: #{next_build_number}")
+
+    # 4. Flutter compile release bundle
+    Bundler.with_unbundled_env do
+      Dir.chdir("..") do
+        sh("flutter build ios --release --no-codesign --build-number=#{next_build_number}")
+      end
+    end
+
+    # 5. Build IPA
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      clean: false,
+      export_options: {
+        method: "app-store",
+        signingStyle: "manual",
+        provisioningProfiles: {
+          bundle_id => ENV["sigh_#{bundle_id}_appstore_profile-name"]
+        }
+      }
+    )
+
+    # 6. Upload IPA to TestFlight
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

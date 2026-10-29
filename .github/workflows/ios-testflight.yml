@@ -1,0 +1,85 @@
+name: iOS TestFlight
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    name: Build and Upload iOS
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Create .env file
+        run: |
+          if [ -n "${{ secrets.ENV_FILE }}" ]; then
+            printf '%s\n' "${{ secrets.ENV_FILE }}" > .env
+          else
+            echo "BASE_URL=https://sabbir2004.ssh.bd/api/v1" > .env
+          fi
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          working-directory: ios
+          bundler-cache: true
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cocoapods
+            ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: Decode App Store Connect API Key
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          printf '%s' "$APP_STORE_CONNECT_API_KEY" | base64 --decode > /tmp/AuthKey.p8
+          chmod 600 /tmp/AuthKey.p8
+
+      - name: Build and upload to TestFlight
+        env:
+          GIT_TERMINAL_PROMPT: 0
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: 120
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES: 6
+          FASTLANE_XCODE_LIST_TIMEOUT: 120
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_TOKEN: ${{ secrets.MATCH_GIT_TOKEN }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          cd ios
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git config --global url."https://${MATCH_GIT_TOKEN}@github.com/".insteadOf "https://github.com/"
+          bundle exec fastlane beta
