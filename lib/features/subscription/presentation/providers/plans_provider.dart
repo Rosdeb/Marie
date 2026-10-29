@@ -161,10 +161,12 @@ class PlansNotifier extends Notifier<PlansState> {
     final interval = state.selectedIntervals[tier] ?? PlanBillingInterval.annual;
     final package = plan.getPackage(interval);
 
-    if (package == null) {
-      // In dev or offline test fallback: simulate purchase to allow testing UI flow
+    // In RC test mode (with Web Test Store key) or if package is null:
+    // Native mobile StoreKit / Google Play sheets cannot open with a test_ key.
+    // Simulate successful purchase with a realistic delay and unlock mock entitlement.
+    if (package == null || RevenueCatPurchaseService.isRcTest) {
       state = state.copyWith(isPurchasing: true);
-      await Future.delayed(const Duration(milliseconds: 1200));
+      await Future.delayed(const Duration(milliseconds: 1000));
       try {
         await ref.read(entitlementProvider.notifier).syncFromRevenueCat();
       } catch (_) {}
@@ -193,6 +195,16 @@ class PlansNotifier extends Notifier<PlansState> {
       }
       return false; // User cancelled
     } catch (e) {
+      // In test mode fallback if native store rejects test key
+      if (RevenueCatPurchaseService.isRcTest) {
+        ref.read(entitlementProvider.notifier).setMockPlanForTesting(
+          tier: tier,
+          status: SubscriptionStatus.active,
+        );
+        state = state.copyWith(isPurchasing: false);
+        return true;
+      }
+
       state = state.copyWith(
         isPurchasing: false,
         errorMessage: 'Purchase could not be completed. Please try again.',
@@ -204,6 +216,16 @@ class PlansNotifier extends Notifier<PlansState> {
   Future<bool> restorePurchases() async {
     state = state.copyWith(isRestoring: true, clearError: true);
     try {
+      if (RevenueCatPurchaseService.isRcTest) {
+        await Future.delayed(const Duration(milliseconds: 800));
+        ref.read(entitlementProvider.notifier).setMockPlanForTesting(
+          tier: PlanTier.global,
+          status: SubscriptionStatus.active,
+        );
+        state = state.copyWith(isRestoring: false);
+        return true;
+      }
+
       final customerInfo = await _purchaseService.restorePurchases();
       state = state.copyWith(isRestoring: false);
 
@@ -213,6 +235,15 @@ class PlansNotifier extends Notifier<PlansState> {
       }
       return false;
     } catch (e) {
+      if (RevenueCatPurchaseService.isRcTest) {
+        ref.read(entitlementProvider.notifier).setMockPlanForTesting(
+          tier: PlanTier.global,
+          status: SubscriptionStatus.active,
+        );
+        state = state.copyWith(isRestoring: false);
+        return true;
+      }
+
       state = state.copyWith(
         isRestoring: false,
         errorMessage: 'Unable to restore purchases at this time.',
