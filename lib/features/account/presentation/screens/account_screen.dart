@@ -19,7 +19,9 @@ class AccountScreen extends ConsumerWidget {
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Row(
             children: [
               Icon(Icons.logout_rounded, color: Colors.redAccent, size: 24),
@@ -58,7 +60,9 @@ class AccountScreen extends ConsumerWidget {
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () async {
                 Navigator.pop(dialogContext);
@@ -68,7 +72,10 @@ class AccountScreen extends ConsumerWidget {
                   debugPrint('Logout error: $e');
                 }
                 if (context.mounted) {
-                  FloatingSuccessBar.show(context, message: 'Logged out successfully');
+                  FloatingSuccessBar.show(
+                    context,
+                    message: 'Logged out successfully',
+                  );
                   context.go('/onboarding');
                 }
               },
@@ -154,7 +161,9 @@ class AccountScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    profile.name.isNotEmpty ? profile.name : 'IP Law Scholar',
+                                    profile.name.isNotEmpty
+                                        ? profile.name
+                                        : 'IP Law Scholar',
                                     style: const TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w600,
@@ -169,18 +178,28 @@ class AccountScreen extends ConsumerWidget {
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
-                                  if (profile.profession.isNotEmpty || profile.profileType.isNotEmpty) ...[
+                                  if (profile.profession.isNotEmpty ||
+                                      profile.profileType.isNotEmpty) ...[
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: AppColors.primary.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(6),
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Text(
-                                            profile.profession.isNotEmpty ? profile.profession : profile.profileType,
+                                            profile.profession.isNotEmpty
+                                                ? profile.profession
+                                                : profile.profileType,
                                             style: const TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -194,7 +213,11 @@ class AccountScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                           ],
                         ),
                       ),
@@ -202,161 +225,182 @@ class AccountScreen extends ConsumerWidget {
                   ),
                 ),
 
-            const SizedBox(height: 30),
-            // Notifications Toggle Tile (Single-line)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                    spreadRadius: 0,
-                  ),
-                ],
+              const SizedBox(height: 30),
+              // Notifications Toggle Tile (Single-line)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.notifications,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Text(
+                        'Push Notifications',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Transform.scale(
+                      scaleX: 0.7,
+                      scaleY: 0.7,
+                      child: CupertinoSwitch(
+                        value: profile.notificationsEnabled,
+                        activeTrackColor: AppColors.primary,
+                        onChanged: (val) async {
+                          final enabled = await ref
+                              .read(accountProvider.notifier)
+                              .toggleNotifications(val);
+                          if (!context.mounted) return;
+                          FloatingSuccessBar.show(
+                            context,
+                            message: enabled
+                                ? 'Notifications turned ON'
+                                : val
+                                ? 'Notification permission was not granted'
+                                : 'Notifications turned OFF',
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 10),
+
+              // Referral Settings Tile (Single-line)
+              _buildSingleLineTile(
+                icon: Icons.card_giftcard_outlined,
+                title: 'Referral Setting',
+                badge: 'Earn \$5',
+                onTap: () => context.push('/referral'),
+              ),
+              const SizedBox(height: 10),
+
+              // Manage Subscription Tile (Single-line)
+              _buildSingleLineTile(
+                icon: Icons.add_card_outlined,
+                title: 'Subscription Plan',
+                badge: entitlement.isActive
+                    ? '${entitlement.planId.displayName} Active'
+                    : null,
+                onTap: () => context.push('/subscription'),
+              ),
+              const SizedBox(height: 10),
+
+              // Settings Tile (Single-line)
+              _buildSingleLineTile(
+                icon: Icons.settings_outlined,
+                title: 'Settings',
+                onTap: () => context.push('/settings'),
+              ),
+              const SizedBox(height: 10),
+
+              // Help & Support Tile (Single-line)
+              _buildSingleLineTile(
+                icon: Icons.help_outline,
+                title: 'Help & Support',
+                onTap: () => context.push('/support'),
+              ),
+              const SizedBox(height: 32),
+
+              // Log Out Button (Authenticated) or Sign In Button (Guest)
+              if (isAuth)
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      side: const BorderSide(
+                        color: Color(0xFFFFCDD2),
+                        width: 1.4,
+                      ),
+                      //backgroundColor: const Color(0xFFFFF5F5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: AppColors.primary,
+                    onPressed: () => _showLogoutDialog(context, ref),
+                    icon: const Icon(
+                      Icons.logout_rounded,
                       size: 20,
+                      color: Colors.redAccent,
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Text(
-                      'Push Notifications',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    label: const Text(
+                      'Log Out',
                       style: TextStyle(
-                        fontSize: 15,
+                        color: Colors.redAccent,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        fontSize: 15,
                       ),
                     ),
                   ),
-                  Transform.scale(
-                    scaleX: 0.7,
-                    scaleY: 0.7,
-                    child: CupertinoSwitch(
-                      value: profile.notificationsEnabled,
-                      activeTrackColor: AppColors.primary,
-                      onChanged: (val) {
-                        ref.read(accountProvider.notifier).toggleNotifications(val);
-                        FloatingSuccessBar.show(
-                          context,
-                          message: val
-                              ? 'Notifications turned ON'
-                              : 'Notifications turned OFF',
-                        );
-                      },
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Referral Settings Tile (Single-line)
-            _buildSingleLineTile(
-              icon: Icons.card_giftcard_outlined,
-              title: 'Referral Setting',
-              badge: 'Earn \$5',
-              onTap: () => context.push('/referral'),
-            ),
-            const SizedBox(height: 10),
-
-            // Manage Subscription Tile (Single-line)
-            _buildSingleLineTile(
-              icon: Icons.add_card_outlined,
-              title: 'Subscription Plan',
-              badge: entitlement.isActive ? '${entitlement.planId.displayName} Active' : null,
-              onTap: () => context.push('/subscription'),
-            ),
-            const SizedBox(height: 10),
-
-            // Settings Tile (Single-line)
-            _buildSingleLineTile(
-              icon: Icons.settings_outlined,
-              title: 'Settings',
-              onTap: () => context.push('/settings'),
-            ),
-            const SizedBox(height: 10),
-
-            // Help & Support Tile (Single-line)
-            _buildSingleLineTile(
-              icon: Icons.help_outline,
-              title: 'Help & Support',
-              onTap: () => context.push('/support'),
-            ),
-            const SizedBox(height: 32),
-
-            // Log Out Button (Authenticated) or Sign In Button (Guest)
-            if (isAuth)
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.redAccent,
-                    side: const BorderSide(color: Color(0xFFFFCDD2), width: 1.4),
-                    //backgroundColor: const Color(0xFFFFF5F5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => _showLogoutDialog(context, ref),
-                  icon: const Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
-                  label: const Text(
-                    'Log Out',
-                    style: TextStyle(
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              )
-            else
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => context.push('/sign-in'),
-                  icon: const Icon(Icons.login_rounded, size: 20, color: Colors.white),
-                  label: const Text(
-                    'Sign In to Account',
-                    style: TextStyle(
+                    onPressed: () => context.push('/sign-in'),
+                    icon: const Icon(
+                      Icons.login_rounded,
+                      size: 20,
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                    ),
+                    label: const Text(
+                      'Sign In to Account',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildGuestProfileCard(BuildContext context) {
@@ -485,7 +529,10 @@ class AccountScreen extends ConsumerWidget {
                       if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
@@ -503,7 +550,11 @@ class AccountScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
               ],
             ),
           ),

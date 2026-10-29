@@ -46,6 +46,31 @@ class LocalStorage {
     await prefs.remove(AppConstants.tempTokenKey);
   }
 
+  Future<void> saveFcmToken(String token) async {
+    final prefs = await _instance;
+    await prefs.setString(AppConstants.fcmTokenKey, token);
+  }
+
+  Future<String?> getFcmToken() async {
+    final prefs = await _instance;
+    return prefs.getString(AppConstants.fcmTokenKey);
+  }
+
+  Future<void> clearFcmToken() async {
+    final prefs = await _instance;
+    await prefs.remove(AppConstants.fcmTokenKey);
+  }
+
+  Future<void> saveNotificationsEnabled(bool enabled) async {
+    final prefs = await _instance;
+    await prefs.setBool(AppConstants.notificationsEnabledKey, enabled);
+  }
+
+  Future<bool> getNotificationsEnabled() async {
+    final prefs = await _instance;
+    return prefs.getBool(AppConstants.notificationsEnabledKey) ?? true;
+  }
+
   Future<void> saveUserData(Map<String, dynamic> userMap) async {
     final prefs = await _instance;
     await prefs.setString(AppConstants.userDataKey, jsonEncode(userMap));

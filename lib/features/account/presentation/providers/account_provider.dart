@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/local_storage.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../data/models/profile_model.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/repositories/account_repository.dart';
@@ -18,6 +19,7 @@ class ProfileState {
   final String profession;
   final bool showFirstName;
   final bool showProfession;
+
   /// Consent to marketing e-mail. Off unless the subscriber agreed.
   final bool marketingEmails;
   final bool notificationsEnabled;
@@ -107,7 +109,10 @@ class AccountNotifier extends Notifier<ProfileState> {
 
   Future<void> _initProfile() async {
     try {
-      final localData = await ref.read(localStorageProvider).getUserData();
+      final storage = ref.read(localStorageProvider);
+      final localData = await storage.getUserData();
+      final notificationsEnabled = await storage.getNotificationsEnabled();
+      state = state.copyWith(notificationsEnabled: notificationsEnabled);
       if (localData != null) {
         _syncEntityToState(ProfileModel.fromJson(localData));
       }
@@ -133,7 +138,9 @@ class AccountNotifier extends Notifier<ProfileState> {
       email: profile.email.isNotEmpty ? profile.email : state.email,
       phone: profile.phone.isNotEmpty ? profile.phone : state.phone,
       bio: profile.bio.isNotEmpty ? profile.bio : state.bio,
-      avatarUrl: profile.avatarUrl.isNotEmpty ? profile.avatarUrl : state.avatarUrl,
+      avatarUrl: profile.avatarUrl.isNotEmpty
+          ? profile.avatarUrl
+          : state.avatarUrl,
       profileType: profile.profileType,
       profession: profile.profession,
       showFirstName: profile.showFirstName,
@@ -143,8 +150,10 @@ class AccountNotifier extends Notifier<ProfileState> {
     );
   }
 
-  void toggleNotifications(bool value) {
-    state = state.copyWith(notificationsEnabled: value);
+  Future<bool> toggleNotifications(bool value) async {
+    final enabled = await PushNotificationService.instance.setEnabled(value);
+    state = state.copyWith(notificationsEnabled: enabled);
+    return enabled;
   }
 
   void clear() {
@@ -179,7 +188,10 @@ class AccountNotifier extends Notifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -198,7 +210,10 @@ class AccountNotifier extends Notifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -226,7 +241,10 @@ class AccountNotifier extends Notifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
@@ -245,11 +263,16 @@ class AccountNotifier extends Notifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
       return false;
     }
   }
 }
 
-final accountProvider = NotifierProvider<AccountNotifier, ProfileState>(AccountNotifier.new);
+final accountProvider = NotifierProvider<AccountNotifier, ProfileState>(
+  AccountNotifier.new,
+);

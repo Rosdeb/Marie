@@ -117,6 +117,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     color: AppColors.textSecondary,
                   ),
                 ),
+                
                 const SizedBox(height: 48),
             
               ],

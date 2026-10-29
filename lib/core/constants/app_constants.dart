@@ -4,6 +4,8 @@ class AppConstants {
   static const String userDataKey = 'user_data';
   static const String profileTypeKey = 'profile_type';
   static const String tempTokenKey = 'temp_token';
+  static const String fcmTokenKey = 'fcm_token';
+  static const String notificationsEnabledKey = 'notifications_enabled';
 
   static const String defaultProfileType = 'Attorney';
   static const List<String> profileTypes = ['Attorney', 'Paralegal'];

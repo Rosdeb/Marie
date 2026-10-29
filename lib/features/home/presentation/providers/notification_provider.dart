@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../data/models/notification_model.dart';
 
@@ -38,6 +39,9 @@ class NotificationNotifier extends Notifier<NotificationState> {
   @override
   NotificationState build() {
     _apiClient = ref.watch(apiClientProvider);
+    final messageSubscription = PushNotificationService.instance.messages
+        .listen((_) => fetchNotifications());
+    ref.onDispose(messageSubscription.cancel);
     Future.microtask(() => fetchNotifications());
     return const NotificationState(isLoading: true);
   }
@@ -45,7 +49,11 @@ class NotificationNotifier extends Notifier<NotificationState> {
   Future<void> fetchNotifications() async {
     final token = await ref.read(localStorageProvider).getAccessToken();
     if (token == null || token.isEmpty) {
-      state = const NotificationState(isLoading: false, items: [], unreadCount: 0);
+      state = const NotificationState(
+        isLoading: false,
+        items: [],
+        unreadCount: 0,
+      );
       return;
     }
 
@@ -60,7 +68,8 @@ class NotificationNotifier extends Notifier<NotificationState> {
       );
 
       final List<NotificationItem> loadedItems = [];
-      if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
+      if (response is Map<String, dynamic> &&
+          response['data'] is Map<String, dynamic>) {
         final data = response['data'] as Map<String, dynamic>;
         if (data['results'] is List) {
           for (final item in (data['results'] as List)) {
@@ -77,7 +86,8 @@ class NotificationNotifier extends Notifier<NotificationState> {
           ApiConstants.notificationUnreadCount,
           requiresAuth: true,
         );
-        if (unreadResp is Map<String, dynamic> && unreadResp['data'] is Map<String, dynamic>) {
+        if (unreadResp is Map<String, dynamic> &&
+            unreadResp['data'] is Map<String, dynamic>) {
           unread = (unreadResp['data']['count'] as num?)?.toInt() ?? unread;
         }
       } catch (_) {}
@@ -88,10 +98,7 @@ class NotificationNotifier extends Notifier<NotificationState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
@@ -129,7 +136,8 @@ class NotificationNotifier extends Notifier<NotificationState> {
 
 final notificationProvider =
     NotifierProvider<NotificationNotifier, NotificationState>(
-        NotificationNotifier.new);
+      NotificationNotifier.new,
+    );
 
 final unreadNotificationCountProvider = Provider<int>((ref) {
   final notifState = ref.watch(notificationProvider);
