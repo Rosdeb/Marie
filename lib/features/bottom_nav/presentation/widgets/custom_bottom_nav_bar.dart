@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../account/presentation/providers/account_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'nav_item.dart';
@@ -26,6 +28,15 @@ class CustomBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavProvider);
+    final isAuth = ref.watch(authProvider).isAuthenticated;
+    final profile = isAuth ? ref.watch(accountProvider) : null;
+    final avatarUrl = (isAuth && profile != null && profile.avatarUrl.trim().isNotEmpty)
+        ? profile.avatarUrl.trim()
+        : null;
+    final hasAvatar = avatarUrl != null &&
+        avatarUrl.isNotEmpty &&
+        avatarUrl != 'null' &&
+        avatarUrl != 'undefined';
 
     return Container(
       height: 72,
@@ -75,9 +86,43 @@ class CustomBottomNav extends ConsumerWidget {
             onTap: () => _onTabSelected(context, ref, 2, 'Review'),
           ),
           NavItem(
-            icon: currentIndex == 3
-                ? CupertinoIcons.person_fill
-                : CupertinoIcons.person,
+            icon: hasAvatar
+                ? null
+                : (currentIndex == 3
+                    ? CupertinoIcons.person_fill
+                    : CupertinoIcons.person),
+            customIcon: hasAvatar
+                ? Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: currentIndex == 3
+                            ? AppColors.primary
+                            : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: Image.network(
+                        avatarUrl,
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          currentIndex == 3
+                              ? CupertinoIcons.person_fill
+                              : CupertinoIcons.person,
+                          size: 22,
+                          color: currentIndex == 3
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
             label: 'Account',
             index: 3,
             isSelected: currentIndex == 3,

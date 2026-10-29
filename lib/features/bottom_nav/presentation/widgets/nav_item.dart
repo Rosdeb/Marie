@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class NavItem extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget? customIcon;
   final String label;
   final int index;
   final bool isSelected;
@@ -10,12 +11,13 @@ class NavItem extends StatelessWidget {
 
   const NavItem({
     super.key,
-    required this.icon,
+    this.icon,
+    this.customIcon,
     required this.label,
     required this.index,
     required this.isSelected,
     required this.onTap,
-  });
+  }) : assert(icon != null || customIcon != null);
 
   @override
   Widget build(BuildContext context) {
@@ -36,11 +38,12 @@ class NavItem extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            ),
+            child: customIcon ??
+                Icon(
+                  icon!,
+                  size: 22,
+                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                ),
           ),
           const SizedBox(height: 2),
           Text(
