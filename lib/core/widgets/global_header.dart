@@ -58,11 +58,17 @@ class GlobalHeader extends ConsumerWidget {
                   children: [
                     _buildHeaderIconButton(
                       icon: Icons.notifications,
-                      onTap: onNotificationTap ??
+                      onTap:
+                          onNotificationTap ??
                           () {
-                            final isAuth = ref.read(authProvider).isAuthenticated;
+                            final isAuth = ref
+                                .read(authProvider)
+                                .isAuthenticated;
                             if (!isAuth) {
-                              AuthGateBottomSheet.show(context, targetFeature: 'Notifications');
+                              AuthGateBottomSheet.show(
+                                context,
+                                targetFeature: 'Notifications',
+                              );
                               return;
                             }
                             context.push('/notifications');
@@ -89,13 +95,9 @@ class GlobalHeader extends ConsumerWidget {
                 _buildProfileButton(
                   context: context,
                   ref: ref,
-                  onTap: onProfileTap ??
+                  onTap:
+                      onProfileTap ??
                       () {
-                        final isAuth = ref.read(authProvider).isAuthenticated;
-                        if (!isAuth) {
-                          AuthGateBottomSheet.show(context, targetFeature: 'Profile');
-                          return;
-                        }
                         ref.read(bottomNavProvider.notifier).changeIndex(3);
                         if (Navigator.canPop(context)) {
                           Navigator.pop(context);
@@ -117,11 +119,13 @@ class GlobalHeader extends ConsumerWidget {
     final isAuth = ref.watch(authProvider).isAuthenticated;
     final profile = isAuth ? ref.watch(accountProvider) : null;
 
-    final avatarUrl = (isAuth && profile != null && profile.avatarUrl.trim().isNotEmpty)
+    final avatarUrl =
+        (isAuth && profile != null && profile.avatarUrl.trim().isNotEmpty)
         ? profile.avatarUrl.trim()
         : null;
 
-    final hasAvatar = avatarUrl != null &&
+    final hasAvatar =
+        avatarUrl != null &&
         avatarUrl.isNotEmpty &&
         avatarUrl != 'null' &&
         avatarUrl != 'undefined';

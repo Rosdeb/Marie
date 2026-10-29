@@ -11,14 +11,16 @@ import 'nav_item.dart';
 class CustomBottomNav extends ConsumerWidget {
   const CustomBottomNav({super.key});
 
-  void _onTabSelected(BuildContext context, WidgetRef ref, int index, String label) {
-    if (index != 0) {
+  void _onTabSelected(
+    BuildContext context,
+    WidgetRef ref,
+    int index,
+    String label,
+  ) {
+    if (index == 1 || index == 2) {
       final isAuth = ref.read(authProvider).isAuthenticated;
       if (!isAuth) {
-        AuthGateBottomSheet.show(
-          context,
-          targetFeature: '$label mode',
-        );
+        AuthGateBottomSheet.show(context, targetFeature: '$label mode');
         return;
       }
     }
@@ -30,10 +32,12 @@ class CustomBottomNav extends ConsumerWidget {
     final currentIndex = ref.watch(bottomNavProvider);
     final isAuth = ref.watch(authProvider).isAuthenticated;
     final profile = isAuth ? ref.watch(accountProvider) : null;
-    final avatarUrl = (isAuth && profile != null && profile.avatarUrl.trim().isNotEmpty)
+    final avatarUrl =
+        (isAuth && profile != null && profile.avatarUrl.trim().isNotEmpty)
         ? profile.avatarUrl.trim()
         : null;
-    final hasAvatar = avatarUrl != null &&
+    final hasAvatar =
+        avatarUrl != null &&
         avatarUrl.isNotEmpty &&
         avatarUrl != 'null' &&
         avatarUrl != 'undefined';
@@ -89,8 +93,8 @@ class CustomBottomNav extends ConsumerWidget {
             icon: hasAvatar
                 ? null
                 : (currentIndex == 3
-                    ? CupertinoIcons.person_fill
-                    : CupertinoIcons.person),
+                      ? CupertinoIcons.person_fill
+                      : CupertinoIcons.person),
             customIcon: hasAvatar
                 ? Container(
                     width: 24,
