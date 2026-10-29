@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
+import '../../features/account/presentation/providers/account_provider.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/providers/notification_provider.dart';
 import 'auth_gate_bottom_sheet.dart';
@@ -84,8 +85,9 @@ class GlobalHeader extends ConsumerWidget {
                 if (showProfile) const SizedBox(width: 10),
               ],
               if (showProfile)
-                _buildHeaderIconButton(
-                  icon: Icons.person,
+                _buildProfileButton(
+                  context: context,
+                  ref: ref,
                   onTap: onProfileTap ??
                       () {
                         final isAuth = ref.read(authProvider).isAuthenticated;
@@ -99,6 +101,76 @@ class GlobalHeader extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileButton({
+    required BuildContext context,
+    required WidgetRef ref,
+    required VoidCallback onTap,
+  }) {
+    final isAuth = ref.watch(authProvider).isAuthenticated;
+    final profile = isAuth ? ref.watch(accountProvider) : null;
+
+    final avatarUrl = (isAuth && profile != null && profile.avatarUrl.trim().isNotEmpty)
+        ? profile.avatarUrl.trim()
+        : null;
+
+    final hasAvatar = avatarUrl != null &&
+        avatarUrl.isNotEmpty &&
+        avatarUrl != 'null' &&
+        avatarUrl != 'undefined';
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: hasAvatar
+              ? Image.network(
+                  avatarUrl,
+                  width: 38,
+                  height: 38,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.person,
+                    size: 20,
+                    color: AppColors.textPrimary,
+                  ),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : const Icon(
+                  Icons.person,
+                  size: 20,
+                  color: AppColors.textPrimary,
+                ),
+        ),
       ),
     );
   }
