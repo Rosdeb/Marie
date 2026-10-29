@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -98,6 +98,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -233,18 +234,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 ),
                 onPressed: authState.isLoading ? null : _onGoogleSignIn,
               ),
-              if (Platform.isIOS) ...[
+              if (isIOS) ...[
                 const SizedBox(height: 12),
                 AuthButton(
                   text: 'Continue with Apple',
                   textColor: Colors.black87,
                   backgroundColor: Colors.white,
                   isLoading: authState.authMode == AuthMode.loadingApple,
-                  icon: const Icon(
-                    Icons.apple,
-                    color: Colors.black,
-                    size: 22,
-                  ),
+                  icon: const Icon(Icons.apple, color: Colors.black, size: 22),
                   onPressed: authState.isLoading ? null : _onAppleSignIn,
                 ),
               ],

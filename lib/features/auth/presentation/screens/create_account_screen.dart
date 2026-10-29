@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +13,8 @@ class CreateAccountScreen extends ConsumerStatefulWidget {
   const CreateAccountScreen({super.key});
 
   @override
-  ConsumerState<CreateAccountScreen> createState() => _CreateAccountScreenState();
+  ConsumerState<CreateAccountScreen> createState() =>
+      _CreateAccountScreenState();
 }
 
 class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
@@ -40,11 +41,17 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       return;
     }
     if (email.isEmpty) {
-      FloatingErrorBar.show(context, message: 'Please enter your email address');
+      FloatingErrorBar.show(
+        context,
+        message: 'Please enter your email address',
+      );
       return;
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-      FloatingErrorBar.show(context, message: 'Please enter a valid email address');
+      FloatingErrorBar.show(
+        context,
+        message: 'Please enter a valid email address',
+      );
       return;
     }
     if (password.isEmpty) {
@@ -52,11 +59,16 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       return;
     }
     if (password.length < 6) {
-      FloatingErrorBar.show(context, message: 'Password must be at least 6 characters');
+      FloatingErrorBar.show(
+        context,
+        message: 'Password must be at least 6 characters',
+      );
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).signUp(
+    final success = await ref
+        .read(authProvider.notifier)
+        .signUp(
           name: name,
           email: email,
           password: password,
@@ -64,10 +76,14 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         );
     if (!mounted) return;
     if (success) {
-      FloatingSuccessBar.show(context, message: 'Verification code sent to your email');
+      FloatingSuccessBar.show(
+        context,
+        message: 'Verification code sent to your email',
+      );
       context.push('/otp-verification');
     } else {
-      final error = ref.read(authProvider).errorMessage ?? 'Registration failed';
+      final error =
+          ref.read(authProvider).errorMessage ?? 'Registration failed';
       FloatingErrorBar.show(context, message: error);
     }
   }
@@ -76,7 +92,10 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     final success = await ref.read(authProvider.notifier).loginWithGoogle();
     if (!mounted) return;
     if (success) {
-      FloatingSuccessBar.show(context, message: 'Signed in with Google successfully');
+      FloatingSuccessBar.show(
+        context,
+        message: 'Signed in with Google successfully',
+      );
       context.go('/main');
     } else {
       final err = ref.read(authProvider).errorMessage;
@@ -90,7 +109,10 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     final success = await ref.read(authProvider.notifier).loginWithApple();
     if (!mounted) return;
     if (success) {
-      FloatingSuccessBar.show(context, message: 'Signed in with Apple successfully');
+      FloatingSuccessBar.show(
+        context,
+        message: 'Signed in with Apple successfully',
+      );
       context.go('/main');
     } else {
       final err = ref.read(authProvider).errorMessage;
@@ -103,6 +125,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -110,7 +133,11 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 18, color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 18,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -141,17 +168,18 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               const SizedBox(height: 6),
               const Text(
                 'Create an account to track your study progress and access premium materials.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 20),
               CustomTextField(
                 label: 'Full Name',
                 hint: 'Enter your name',
                 controller: _nameController,
-                prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.person_outline,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
               const SizedBox(height: 12),
               CustomTextField(
@@ -159,7 +187,11 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 hint: 'Enter your email',
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.email_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
               const SizedBox(height: 12),
               CustomTextField(
@@ -167,7 +199,11 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 hint: 'Create a Password',
                 isPassword: true,
                 controller: _passwordController,
-                prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -186,7 +222,8 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                       title: 'Attorney',
                       subtitle: 'Legal practitioner',
                       isSelected: _selectedProfileType == 'Attorney',
-                      onTap: () => setState(() => _selectedProfileType = 'Attorney'),
+                      onTap: () =>
+                          setState(() => _selectedProfileType = 'Attorney'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -195,7 +232,8 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                       title: 'Paralegal',
                       subtitle: 'Legal assistant',
                       isSelected: _selectedProfileType == 'Paralegal',
-                      onTap: () => setState(() => _selectedProfileType = 'Paralegal'),
+                      onTap: () =>
+                          setState(() => _selectedProfileType = 'Paralegal'),
                     ),
                   ),
                 ],
@@ -203,7 +241,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               const SizedBox(height: 28),
               CustomButton(
                 text: 'Sign Up',
-                isLoading: authState.isLoading && authState.authMode != AuthMode.loadingGoogle,
+                isLoading:
+                    authState.isLoading &&
+                    authState.authMode != AuthMode.loadingGoogle,
                 onPressed: authState.isLoading ? null : _onSignUp,
               ),
               const SizedBox(height: 16),
@@ -250,18 +290,14 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 ),
                 onPressed: authState.isLoading ? null : _onGoogleSignUp,
               ),
-              if (Platform.isIOS) ...[
+              if (isIOS) ...[
                 const SizedBox(height: 12),
                 AuthButton(
                   text: 'Continue with Apple',
                   textColor: Colors.black87,
                   backgroundColor: Colors.white,
                   isLoading: authState.authMode == AuthMode.loadingApple,
-                  icon: const Icon(
-                    Icons.apple,
-                    color: Colors.black,
-                    size: 22,
-                  ),
+                  icon: const Icon(Icons.apple, color: Colors.black, size: 22),
                   onPressed: authState.isLoading ? null : _onAppleSignUp,
                 ),
               ],
@@ -304,7 +340,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.08)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primary : Colors.grey.shade300,
@@ -328,7 +366,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   Text(

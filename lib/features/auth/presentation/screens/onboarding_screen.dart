@@ -99,8 +99,47 @@ class OnboardingScreen extends ConsumerWidget {
                   const Spacer(flex: 2),
                   const SizedBox(height: 24),
 
-                  if (isIOS)
-                    // Apple sign-in is available on iOS.
+                  AuthButton(
+                    text: 'Continue with Google',
+                    textColor: Colors.black87,
+                    backgroundColor: Colors.white,
+                    isLoading: authState.authMode == AuthMode.loadingGoogle,
+                    icon: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        'G',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    onPressed: authState.isLoading
+                        ? null
+                        : () async {
+                            final success = await authNotifier
+                                .loginWithGoogle();
+                            if (!context.mounted) return;
+                            if (success) {
+                              context.go('/main');
+                            } else {
+                              final error = ref.read(authProvider).errorMessage;
+                              if (error != null && error.isNotEmpty) {
+                                FloatingErrorBar.show(context, message: error);
+                              }
+                            }
+                          },
+                  ),
+
+                  if (isIOS) ...[
+                    const SizedBox(height: 12),
                     AuthButton(
                       text: 'Continue with Apple',
                       textColor: Colors.black87,
@@ -111,56 +150,28 @@ class OnboardingScreen extends ConsumerWidget {
                         color: Colors.black,
                         size: 22,
                       ),
-                      onPressed: () async {
-                        final success = await authNotifier.loginWithApple();
-                        if (!context.mounted) return;
-                        if (success) {
-                          context.go('/main');
-                        } else {
-                          final error = ref.read(authProvider).errorMessage;
-                          if (error != null && error.isNotEmpty) {
-                            FloatingErrorBar.show(context, message: error);
-                          }
-                        }
-                      },
-                    )
-                  else
-                    // Google sign-in is used on Android and other platforms.
-                    AuthButton(
-                      text: 'Continue with Google',
-                      textColor: Colors.black87,
-                      backgroundColor: Colors.white,
-                      isLoading: authState.authMode == AuthMode.loadingGoogle,
-                      icon: Container(
-                        width: 24,
-                        height: 24,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Text(
-                          'G',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      onPressed: () async {
-                        final success = await authNotifier.loginWithGoogle();
-                        if (!context.mounted) return;
-                        if (success) {
-                          context.go('/main');
-                        } else {
-                          final error = ref.read(authProvider).errorMessage;
-                          if (error != null && error.isNotEmpty) {
-                            FloatingErrorBar.show(context, message: error);
-                          }
-                        }
-                      },
+                      onPressed: authState.isLoading
+                          ? null
+                          : () async {
+                              final success = await authNotifier
+                                  .loginWithApple();
+                              if (!context.mounted) return;
+                              if (success) {
+                                context.go('/main');
+                              } else {
+                                final error = ref
+                                    .read(authProvider)
+                                    .errorMessage;
+                                if (error != null && error.isNotEmpty) {
+                                  FloatingErrorBar.show(
+                                    context,
+                                    message: error,
+                                  );
+                                }
+                              }
+                            },
                     ),
+                  ],
 
                   const SizedBox(height: 12),
 
