@@ -351,16 +351,16 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            _buildSectionHeader('Account Actions'),
-            const SizedBox(height: 8),
+            // _buildSectionHeader('Account Actions'),
+            // const SizedBox(height: 8),
 
-            // Log Out
-            _buildSingleLineCard(
-              icon: Icons.logout_rounded,
-              title: 'Log Out',
-              onTap: () => _showLogoutDialog(context, ref),
-            ),
-            const SizedBox(height: 28),
+            // // Log Out
+            // _buildSingleLineCard(
+            //   icon: Icons.logout_rounded,
+            //   title: 'Log Out',
+            //   onTap: () => _showLogoutDialog(context, ref),
+            // ),
+            //const SizedBox(height: 28),
 
             _buildSectionHeader('Danger Zone'),
             const SizedBox(height: 10),

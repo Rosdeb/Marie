@@ -79,7 +79,9 @@ class ExamReadyScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -99,7 +101,6 @@ class ExamReadyScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -118,7 +119,6 @@ class ExamReadyScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,

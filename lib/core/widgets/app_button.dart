@@ -54,12 +54,20 @@ class CustomButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[icon!, const SizedBox(width: 10)],
-                  Text(
-                    text,
-                    style: TextStyle(
-                      color: isSecondary ? AppColors.textPrimary : Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: isSecondary
+                              ? AppColors.textPrimary
+                              : Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -115,12 +123,18 @@ class AuthButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[icon!, const SizedBox(width: 12)],
-                  Text(
-                    text,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
