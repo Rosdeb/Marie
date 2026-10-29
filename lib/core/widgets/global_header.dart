@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../../features/account/presentation/providers/account_provider.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../features/home/presentation/providers/notification_provider.dart';
 import 'auth_gate_bottom_sheet.dart';
 
@@ -95,7 +96,10 @@ class GlobalHeader extends ConsumerWidget {
                           AuthGateBottomSheet.show(context, targetFeature: 'Profile');
                           return;
                         }
-                        context.push('/edit-profile');
+                        ref.read(bottomNavProvider.notifier).changeIndex(3);
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
                       },
                 ),
             ],
