@@ -48,7 +48,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Study App',
+      title: 'IPro',
       theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
     );

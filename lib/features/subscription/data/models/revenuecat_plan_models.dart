@@ -144,7 +144,7 @@ class RevenueCatPlanGroup {
         title: focusApi?.name.isNotEmpty == true ? focusApi!.name : 'Focus',
         description: focusApi?.subtitle.isNotEmpty == true
             ? focusApi!.subtitle
-            : 'Practice 1 office of your choice with unlimited questions and mock exams.',
+            : 'Practice 1 office of your choice with unlimited questions and quizzes.',
         features: const [
           'Choose any 1 office (e.g. USPTO, EPO, IPI)',
           'Change office once per billing period',
@@ -192,7 +192,7 @@ class RevenueCatPlanGroup {
             : '6 major global IP offices for international practitioners.',
         features: const [
           'USPTO, EPO, JPO, CNIPA, KIPO & WIPO',
-          'Over 15,000 official exam questions',
+          'Over 15,000 practice questions',
           'Study across every office in the plan',
           'All difficulty levels included',
         ],

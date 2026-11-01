@@ -17,6 +17,8 @@ class ProfileState {
   final String avatarUrl;
   final String profileType;
   final String profession;
+  final String company;
+  final String city;
   final bool showFirstName;
   final bool showProfession;
 
@@ -40,6 +42,8 @@ class ProfileState {
     this.avatarUrl = '',
     this.profileType = 'Attorney',
     this.profession = '',
+    this.company = '',
+    this.city = '',
     this.showFirstName = false,
     this.showProfession = false,
     this.marketingEmails = false,
@@ -62,6 +66,8 @@ class ProfileState {
     String? avatarUrl,
     String? profileType,
     String? profession,
+    String? company,
+    String? city,
     bool? showFirstName,
     bool? showProfession,
     bool? marketingEmails,
@@ -84,6 +90,8 @@ class ProfileState {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       profileType: profileType ?? this.profileType,
       profession: profession ?? this.profession,
+      company: company ?? this.company,
+      city: city ?? this.city,
       showFirstName: showFirstName ?? this.showFirstName,
       showProfession: showProfession ?? this.showProfession,
       marketingEmails: marketingEmails ?? this.marketingEmails,
@@ -143,6 +151,8 @@ class AccountNotifier extends Notifier<ProfileState> {
           : state.avatarUrl,
       profileType: profile.profileType,
       profession: profile.profession,
+      company: profile.company,
+      city: profile.city,
       showFirstName: profile.showFirstName,
       showProfession: profile.showProfession,
       marketingEmails: profile.marketingEmails,
@@ -168,6 +178,8 @@ class AccountNotifier extends Notifier<ProfileState> {
     String? firstName,
     String? lastName,
     String? profession,
+    String? company,
+    String? city,
     String? profileFilePath,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -180,6 +192,8 @@ class AccountNotifier extends Notifier<ProfileState> {
         firstName: firstName,
         lastName: lastName,
         profession: profession,
+        company: company,
+        city: city,
         profileFilePath: profileFilePath,
       );
       _syncEntityToState(updated);

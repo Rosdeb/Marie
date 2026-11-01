@@ -35,9 +35,10 @@ class _ChooseJurisdictionScreenState
     final selection = ref.read(practiceProvider);
     final entitlement = ref.read(entitlementProvider);
 
-    // Preselect user's selected office (Focus/Track) or first included office
+    // Preselect user's selected office (Focus/Track) or first included office, or WIPO
     if (selection.jurisdiction == null ||
-        !entitlement.canAccessOffice(selection.jurisdiction!)) {
+        (!entitlement.canAccessOffice(selection.jurisdiction!) &&
+            entitlement.includedOffices.isNotEmpty)) {
       if (entitlement.selectedOffices.isNotEmpty &&
           entitlement.canAccessOffice(entitlement.selectedOffices.first)) {
         ref
@@ -47,6 +48,10 @@ class _ChooseJurisdictionScreenState
         ref
             .read(practiceProvider.notifier)
             .setJurisdiction(entitlement.includedOffices.first);
+      } else {
+        ref
+            .read(practiceProvider.notifier)
+            .setJurisdiction('WIPO');
       }
     }
   }
@@ -152,7 +157,7 @@ class _ChooseJurisdictionScreenState
                   ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Select an IP office to practice official exam-level questions.',
+                  'Select an IP office to practice.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -223,7 +228,7 @@ class _ChooseJurisdictionScreenState
                   text: isSelectedJurisdictionEntitled
                       ? 'Continue'
                       : (selection.jurisdiction != null
-                          ? 'Unlock ${selection.jurisdiction}'
+                          ? 'Unlock ${_formatOfficeName(selection.jurisdiction!, selection.jurisdiction!)}'
                           : 'Select an Office'),
                   onPressed: selection.jurisdiction != null
                       ? () {
@@ -235,7 +240,7 @@ class _ChooseJurisdictionScreenState
                               (o) => o.code == selectedCode,
                               orElse: () => OfficeEntity(
                                 code: selectedCode,
-                                name: selectedCode,
+                                name: _formatOfficeName(selectedCode, selectedCode),
                                 territory: '',
                                 type: 'national',
                                 disciplines: const [],
@@ -249,7 +254,7 @@ class _ChooseJurisdictionScreenState
                             PlanUpsellBottomSheet.show(
                               context,
                               officeCode: targetOffice.code,
-                              officeName: targetOffice.name,
+                              officeName: _formatOfficeName(targetOffice.code, targetOffice.name),
                               territory: targetOffice.territory,
                             );
                           }
@@ -283,35 +288,8 @@ class _ChooseJurisdictionScreenState
     required EntitlementEntity entitlement,
   }) {
     final canAccess = entitlement.canAccessOffice(office.code);
-    final meta = _officeDetailsMap[office.code.toUpperCase().trim()];
-    final fullName =
-        meta?.fullName ?? (office.name.isNotEmpty ? office.name : office.code);
-    final specialNote = meta?.specialNote;
-
-    final List<_DisciplineInfo> displayDisciplines = [];
-    if (office.disciplines.isNotEmpty) {
-      for (final d in office.disciplines) {
-        displayDisciplines.add(
-          _DisciplineInfo(
-            name: d.name,
-            levels: '4 levels',
-            questions: d.questions > 0 ? d.questions : null,
-          ),
-        );
-      }
-    } else if (meta != null && meta.disciplines.isNotEmpty) {
-      displayDisciplines.addAll(meta.disciplines);
-    } else {
-      displayDisciplines.add(const _DisciplineInfo(name: 'Patents', levels: '4 levels'));
-      displayDisciplines.add(const _DisciplineInfo(name: 'Trademarks', levels: '4 levels'));
-      displayDisciplines.add(const _DisciplineInfo(name: 'Designs', levels: '4 levels'));
-    }
-
-    final totalSheets =
-        office.sheets > 0 ? office.sheets : (meta?.defaultSheets ?? 12);
-    final totalQuestions = office.questions > 0
-        ? office.questions
-        : (meta?.defaultQuestions ?? 2400);
+    final fullName = _formatOfficeName(office.code, office.name);
+    final disciplineNames = _getStandardDisciplines(office.code);
 
     final statusText = canAccess
         ? (entitlement.planId != PlanTier.none
@@ -346,14 +324,6 @@ class _ChooseJurisdictionScreenState
           borderRadius: BorderRadius.circular(20),
           onTap: () {
             ref.read(practiceProvider.notifier).setJurisdiction(office.code);
-            if (!canAccess) {
-              PlanUpsellBottomSheet.show(
-                context,
-                officeCode: office.code,
-                officeName: fullName,
-                territory: office.territory,
-              );
-            }
           },
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -446,24 +416,14 @@ class _ChooseJurisdictionScreenState
                 ),
                 const SizedBox(height: 12),
 
-                // Office Code Header & Full Name
+                // Office Header & Full Name
                 Text(
-                  office.code,
+                  fullName,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
                     letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  fullName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                    height: 1.35,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -525,7 +485,7 @@ class _ChooseJurisdictionScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ...displayDisciplines.map((item) {
+                      ...disciplineNames.map((name) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
@@ -544,7 +504,7 @@ class _ChooseJurisdictionScreenState
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        item.name,
+                                        name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -567,9 +527,9 @@ class _ChooseJurisdictionScreenState
                                   border: Border.all(
                                       color: const Color(0xFFE2E8F0), width: 0.8),
                                 ),
-                                child: Text(
-                                  item.levels,
-                                  style: const TextStyle(
+                                child: const Text(
+                                  '4 levels',
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
@@ -584,103 +544,59 @@ class _ChooseJurisdictionScreenState
                   ),
                 ),
 
-                // Special inclusion note (e.g. WIPO access includes PCT, Madrid, and Hague.)
-                if (specialNote != null && specialNote.isNotEmpty) ...[
+                if (office.questions > 0) ...[
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
                   const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        size: 15,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          specialNote,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                            height: 1.35,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'Total questions: ${_formatNumber(office.questions)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
-
-                const SizedBox(height: 14),
-                const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                const SizedBox(height: 12),
-
-                // Footer stats: Total sheets & Total questions
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Total sheets: ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              '$totalSheets sheets',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'Total questions: ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              '${_formatNumber(totalQuestions)} questions',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  static String _formatOfficeName(String code, String rawName) {
+    final upper = code.toUpperCase().trim();
+    if (upper == 'IPAU') return 'IP Australia';
+    if (upper == 'INDIA' || upper == 'IPO INDIA') return 'IPO India';
+    if (upper == 'INPI') return 'INPI';
+    if (upper == 'UKIPO') return 'UKIPO';
+    if (upper == 'USPTO') return 'USPTO';
+    if (upper == 'EPO') return 'EPO';
+    if (upper == 'EUIPO') return 'EUIPO';
+    if (upper == 'WIPO') return 'WIPO';
+    if (upper == 'UPC') return 'UPC';
+    if (upper == 'IPI') return 'IPI';
+    if (upper == 'DPMA') return 'DPMA';
+    if (upper == 'JPO') return 'JPO';
+    if (upper == 'CNIPA') return 'CNIPA';
+    if (upper == 'CIPO') return 'CIPO';
+    if (upper == 'KIPO') return 'KIPO';
+    if (rawName.isNotEmpty && rawName != code) {
+      return rawName;
+    }
+    return code;
+  }
+
+  static List<String> _getStandardDisciplines(String officeCode) {
+    final code = officeCode.toUpperCase().trim();
+    if (code == 'WIPO') {
+      return const ['PCT', 'Madrid', 'Hague'];
+    }
+    if (code == 'UPC') {
+      return const ['Court of First Instance', 'Court of Appeal', 'Mediation & Arbitration'];
+    }
+    return const ['Patents', 'Trademarks', 'Designs'];
   }
 
   static String _formatNumber(int n) {
@@ -697,203 +613,7 @@ class _ChooseJurisdictionScreenState
   }
 }
 
-class _OfficeDetails {
-  final String fullName;
-  final String? specialNote;
-  final List<_DisciplineInfo> disciplines;
-  final int defaultSheets;
-  final int defaultQuestions;
-
-  const _OfficeDetails({
-    required this.fullName,
-    this.specialNote,
-    this.disciplines = const [],
-    this.defaultSheets = 12,
-    this.defaultQuestions = 2400,
-  });
-}
-
-class _DisciplineInfo {
-  final String name;
-  final String levels;
-  final int? questions;
-
-  const _DisciplineInfo({
-    required this.name,
-    this.levels = '4 levels',
-    this.questions,
-  });
-}
-
-final Map<String, _OfficeDetails> _officeDetailsMap = {
-  'WIPO': const _OfficeDetails(
-    fullName: 'World Intellectual Property Organization',
-    specialNote: 'WIPO access includes PCT, Madrid, and Hague.',
-    disciplines: [
-      _DisciplineInfo(name: 'PCT · Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Madrid · Trademarks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Hague · Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2740,
-  ),
-  'EPO': const _OfficeDetails(
-    fullName: 'European Patent Office',
-    specialNote: 'EPC patent grant, opposition, and legal procedures.',
-    disciplines: [
-      _DisciplineInfo(name: 'European Patents (EPC)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Opposition & Appeals', levels: '4 levels'),
-      _DisciplineInfo(name: 'Unitary Patent (UP)', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'EUIPO': const _OfficeDetails(
-    fullName: 'European Union Intellectual Property Office',
-    specialNote: 'EU-wide protection for trademarks and industrial designs.',
-    disciplines: [
-      _DisciplineInfo(name: 'EU Trademarks (EUTM)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Registered Community Designs (RCD)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Cancellation & Opposition', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'UPC': const _OfficeDetails(
-    fullName: 'Unified Patent Court',
-    specialNote: 'Unified litigation and patent revocation across participating EU states.',
-    disciplines: [
-      _DisciplineInfo(name: 'Unitary Patents Litigation', levels: '4 levels'),
-      _DisciplineInfo(name: 'Court Proceedings & Rules', levels: '4 levels'),
-      _DisciplineInfo(name: 'Revocation & Infringement', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'USPTO': const _OfficeDetails(
-    fullName: 'United States Patent and Trademark Office',
-    specialNote: 'Complete coverage of Title 35 (Patents), MPEP, and Lanham Act.',
-    disciplines: [
-      _DisciplineInfo(name: 'Utility & Plant Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trademarks & Lanham Act', levels: '4 levels'),
-      _DisciplineInfo(name: 'Design Patents', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'CNIPA': const _OfficeDetails(
-    fullName: 'China National Intellectual Property Administration',
-    specialNote: 'Chinese Patent Law, Trademark Law, and Copyright Administration.',
-    disciplines: [
-      _DisciplineInfo(name: 'Invention & Utility Model Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trademarks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'UKIPO': const _OfficeDetails(
-    fullName: 'Intellectual Property Office of the United Kingdom',
-    specialNote: 'UK Patents Act 1977, Trade Marks Act 1994, and Registered Designs Act 1949.',
-    disciplines: [
-      _DisciplineInfo(name: 'UK Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trade Marks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Registered Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'JPO': const _OfficeDetails(
-    fullName: 'Japan Patent Office',
-    specialNote: 'Japanese Patent Act, Utility Model Act, and Trademark Act.',
-    disciplines: [
-      _DisciplineInfo(name: 'Patents & Utility Models', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trademarks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'KIPO': const _OfficeDetails(
-    fullName: 'Korean Intellectual Property Office',
-    specialNote: 'Korean Patent Act, Trademark Act, and Design Protection Act.',
-    disciplines: [
-      _DisciplineInfo(name: 'Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trademarks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'INDIA': const _OfficeDetails(
-    fullName: 'Indian Patent Office (CGPDTM)',
-    specialNote: 'The Patents Act 1970, Trade Marks Act 1999, and The Designs Act 2000.',
-    disciplines: [
-      _DisciplineInfo(name: 'Patents & Examination', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trademarks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'INPI': const _OfficeDetails(
-    fullName: 'National Institute of Industrial Property',
-    specialNote: 'French Intellectual Property Code for Brevets, Marques, and Dessins.',
-    disciplines: [
-      _DisciplineInfo(name: 'Brevets (Patents)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Marques (Trademarks)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Dessins et Modèles (Designs)', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'IPI': const _OfficeDetails(
-    fullName: 'Swiss Federal Institute of Intellectual Property',
-    specialNote: 'Swiss federal legislation on Patents, Trade Marks, and Designs.',
-    disciplines: [
-      _DisciplineInfo(name: 'Patents', levels: '4 levels', questions: 800),
-      _DisciplineInfo(name: 'Trademarks', levels: '4 levels', questions: 800),
-      _DisciplineInfo(name: 'Designs', levels: '4 levels', questions: 800),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'DPMA': const _OfficeDetails(
-    fullName: 'German Patent and Trade Mark Office',
-    specialNote: 'German Patent Act (PatG), Trade Mark Act (MarkenG), and Design Act (DesignG).',
-    disciplines: [
-      _DisciplineInfo(name: 'Patents & Utility Models (PatG)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trade Marks (MarkenG)', levels: '4 levels'),
-      _DisciplineInfo(name: 'Designs (DesignG)', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'IPAU': const _OfficeDetails(
-    fullName: 'IP Australia',
-    specialNote: 'Australian Patents Act 1990, Trade Marks Act 1995, and Designs Act 2003.',
-    disciplines: [
-      _DisciplineInfo(name: 'Standard Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trade Marks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-  'CIPO': const _OfficeDetails(
-    fullName: 'Canadian Intellectual Property Office',
-    specialNote: 'Canadian Patent Act, Trademarks Act, and Industrial Design Act.',
-    disciplines: [
-      _DisciplineInfo(name: 'Patents', levels: '4 levels'),
-      _DisciplineInfo(name: 'Trademarks', levels: '4 levels'),
-      _DisciplineInfo(name: 'Industrial Designs', levels: '4 levels'),
-    ],
-    defaultSheets: 12,
-    defaultQuestions: 2400,
-  ),
-};
-
-// Fallback office list of 15 official IP offices when remote catalogue is loading
+// Fallback office list of 15 IP offices when remote catalogue is loading
 const List<OfficeEntity> _standardOffices = [
   OfficeEntity(
     code: 'WIPO',
@@ -1005,7 +725,7 @@ const List<OfficeEntity> _standardOffices = [
   ),
   OfficeEntity(
     code: 'INDIA',
-    name: 'Indian Patent Office',
+    name: 'IPO India',
     territory: 'India',
     type: 'national',
     disciplines: [],

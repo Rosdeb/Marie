@@ -298,7 +298,7 @@ class ReviewSession {
             ? 'Demo Session'
             : (mode == 'review_mistakes'
                 ? 'Mistakes Review'
-                : (mode == 'by_theme' ? 'Theme Practice' : 'Official Exam')));
+                : (mode == 'by_theme' ? 'Theme Practice' : 'Practice Quiz')));
 
     final title = discipline.isNotEmpty
         ? '$discipline - $modeLabel'

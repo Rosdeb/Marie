@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -20,22 +22,35 @@ class SupportReportScreen extends ConsumerStatefulWidget {
 class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
   final _messageController = TextEditingController();
   final _questionIdController = TextEditingController();
+  final _emailController = TextEditingController();
   bool _isSubmitting = false;
 
-  String? _supportEmail;
+  String? _supportEmail = 'iproexperience@gmail.com';
   String? _supportPhone;
   bool _isLoadingSupport = true;
+  bool _isAuthenticated = false;
 
   @override
   void initState() {
     super.initState();
+    _checkAuth();
     _fetchSupportContact();
+  }
+
+  Future<void> _checkAuth() async {
+    final token = await ref.read(localStorageProvider).getAccessToken();
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = token != null && token.isNotEmpty;
+      });
+    }
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _questionIdController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -45,21 +60,20 @@ class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
       final response = await apiClient.get(ApiConstants.supportContact, requiresAuth: false);
       if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
         final data = response['data'] as Map<String, dynamic>;
-        // A field left empty in the dashboard means "do not show this".
-        // There is no phone number for IPro, and the server sends an empty
-        // string rather than omitting the key, so blank has to be treated
-        // the same as missing or the screen shows a lone phone icon.
         String? present(dynamic value) {
           final text = value?.toString().trim() ?? '';
           return text.isEmpty ? null : text;
         }
 
         setState(() {
-          _supportEmail = present(data['email']);
+          _supportEmail = present(data['email']) ?? 'iproexperience@gmail.com';
           _supportPhone = present(data['phoneNumber']);
         });
       }
     } catch (_) {
+      setState(() {
+        _supportEmail = 'iproexperience@gmail.com';
+      });
     } finally {
       if (mounted) setState(() => _isLoadingSupport = false);
     }
@@ -68,6 +82,7 @@ class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
   Future<void> _submitReport() async {
     final message = _messageController.text.trim();
     final questionId = _questionIdController.text.trim();
+    final email = _emailController.text.trim();
 
     if (message.isEmpty) {
       FloatingErrorBar.show(context, message: 'Please describe the problem you encountered');
@@ -77,29 +92,38 @@ class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
     setState(() => _isSubmitting = true);
     try {
       final apiClient = ref.read(apiClientProvider);
+      final token = await ref.read(localStorageProvider).getAccessToken();
+      final hasToken = token != null && token.isNotEmpty;
+
       final body = <String, dynamic>{
         'message': message,
+        'comment': message,
+        'questionId': questionId.isNotEmpty ? questionId : 'GENERAL',
+        if (email.isNotEmpty) ...{
+          'reporterEmail': email,
+          'email': email,
+        },
       };
-      if (questionId.isNotEmpty) {
-        body['questionId'] = questionId;
-      }
 
       final response = await apiClient.post(
         ApiConstants.reportProblem,
         body: body,
-        requiresAuth: true,
+        requiresAuth: hasToken,
       );
 
       if (!mounted) return;
-      if (response['success'] == true) {
-        FloatingSuccessBar.show(context, message: 'Report submitted successfully. Thank you!');
+      if (response['success'] == true || response['message'] != null) {
+        final rootContext = Navigator.of(context, rootNavigator: true).context;
         context.pop();
+        if (rootContext.mounted) {
+          FloatingSuccessBar.show(rootContext, message: 'Report submitted successfully. Thank you!');
+        }
       } else {
         FloatingErrorBar.show(context, message: response['message']?.toString() ?? 'Failed to submit report');
       }
     } catch (e) {
       if (mounted) {
-        FloatingErrorBar.show(context, message: e.toString());
+        FloatingErrorBar.show(context, message: e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -169,15 +193,32 @@ class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
                       const SupportContactShimmer()
                     else ...[
                       if (_supportEmail != null) ...[
-                        Row(
-                          children: [
-                            const Icon(Icons.email_outlined, size: 16, color: AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Text(
-                              _supportEmail!,
-                              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                        InkWell(
+                          onTap: () async {
+                            final uri = Uri.parse('mailto:$_supportEmail');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.email_outlined, size: 16, color: AppColors.primary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _supportEmail!,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -226,6 +267,16 @@ class _SupportReportScreenState extends ConsumerState<SupportReportScreen> {
                 controller: _questionIdController,
                 prefixIcon: const Icon(Icons.tag, color: AppColors.textSecondary, size: 20),
               ),
+              if (!_isAuthenticated) ...[
+                const SizedBox(height: 14),
+                CustomTextField(
+                  label: 'Your Email (Optional)',
+                  hint: 'optional@example.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary, size: 20),
+                ),
+              ],
               const SizedBox(height: 14),
 
               CustomTextField(

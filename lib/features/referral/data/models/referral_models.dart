@@ -6,7 +6,7 @@ class ReferralInfo {
   ///
   /// ipro.legal is not a domain IPro owns and nothing answers on it, so it
   /// must never appear in a post. ipro-law.com is the real one.
-  static const String fallbackUrl = 'https://ipro-law.com/app';
+  static const String fallbackUrl = 'https://iprospace.com/ipro/app';
 
   const ReferralInfo({
     this.code = '',
@@ -124,8 +124,7 @@ class SharePreviewSection {
     this.screenTitle = 'Share Preview',
     this.shareHint = 'Share the video on LinkedIn to earn 10% off your plan.',
     this.postMessageLabel = 'LinkedIn Post Message',
-    this.postMessage =
-        "I've been using IPro to streamline my IP law practice — it's been a game changer! Use my referral link to sign up and we both get 10% off. Check it out 👇",
+    this.postMessage = "I am preparing for IP law examinations with IPro-exam-style quizzes across fifteen offices, each with an explanation and the legal source,",
     this.postMessageTemplate = '',
     this.editable = true,
     this.maxLength = 3000,
@@ -316,7 +315,7 @@ class SharePreviewModel {
   String get previewDomain =>
       legacyPreviewDomain ??
       Uri.tryParse(referral.url)?.host ??
-      'ipro-law.com';
+      'iprospace.com';
   String get bannerTag => legacyBannerTag ?? 'LINKEDIN EXCLUSIVE';
   String get bannerDiscountTag => '${reward.discountPercentage}% OFF';
   String get bannerTitle =>

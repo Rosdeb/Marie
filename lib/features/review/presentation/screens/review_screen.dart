@@ -165,7 +165,7 @@ class ReviewScreen extends ConsumerWidget {
                                       context,
                                       officeCode: defaultOffice,
                                       officeName: defaultOffice,
-                                      territory: 'Official IP Office',
+                                      territory: 'IP Office',
                                     );
                                     return;
                                   }

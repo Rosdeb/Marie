@@ -9,6 +9,15 @@ class QuizNotifier extends Notifier<QuizState> {
   Timer? _timer;
   late final PracticeRepository _practiceRepository;
 
+  static int resolveLevelMinutes(String? level, {bool isDemo = false}) {
+    if (isDemo) return 20;
+    final lvl = (level ?? '').toLowerCase();
+    if (lvl.contains('intermediate')) return 30;
+    if (lvl.contains('advanced')) return 40;
+    if (lvl.contains('expert')) return 50;
+    return 20; // Beginner / Default
+  }
+
   @override
   QuizState build() {
     _practiceRepository = ref.watch(practiceRepositoryProvider);
@@ -49,13 +58,13 @@ class QuizNotifier extends Notifier<QuizState> {
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
       final sessionId = data['sessionId'] as String? ?? '';
-      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final rawQuestions = data['questions'] as List<dynamic>? ?? [];
 
       final questions = rawQuestions
           .map((q) => Question.fromJson(q as Map<String, dynamic>))
           .toList();
 
+      final timeLimitMinutes = resolveLevelMinutes(null, isDemo: true);
       final totalSec = timeLimitMinutes * 60;
 
       state = QuizState(
@@ -77,8 +86,15 @@ class QuizNotifier extends Notifier<QuizState> {
       _startTimer();
       return true;
     } catch (e) {
-      // Fallback to offline start if server is unreachable
-      startQuiz(timePerQuestion: 60);
+      final err = e.toString()
+          .replaceFirst('ApiException: ', '')
+          .replaceFirst('ServerException: ', '')
+          .replaceFirst('AuthException: ', '')
+          .replaceFirst('Exception: ', '');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: err,
+      );
       return false;
     }
   }
@@ -116,13 +132,14 @@ class QuizNotifier extends Notifier<QuizState> {
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
       final sessionId = data['sessionId'] as String? ?? '';
-      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final rawQuestions = data['questions'] as List<dynamic>? ?? [];
 
       final questions = rawQuestions
           .map((q) => Question.fromJson(q as Map<String, dynamic>))
           .toList();
 
+      final resolvedLevel = level ?? (questions.isNotEmpty ? questions.first.level : 'Beginner');
+      final timeLimitMinutes = resolveLevelMinutes(resolvedLevel);
       final totalSec = timeLimitMinutes * 60;
 
       state = QuizState(
@@ -160,11 +177,12 @@ class QuizNotifier extends Notifier<QuizState> {
     int timePerQuestion = 60,
     String? officeCode,
     List<Question>? questions,
+    bool isDemo = false,
   }) {
     final targetOffice = officeCode ?? state.selectedOffice;
     final entitlement = ref.read(entitlementProvider);
 
-    if (!entitlement.canAccessOffice(targetOffice)) {
+    if (!isDemo && !entitlement.canAccessOffice(targetOffice)) {
       state = state.copyWith(
         errorMessage: 'Subscription required to practice $targetOffice.',
       );
@@ -259,11 +277,6 @@ class QuizNotifier extends Notifier<QuizState> {
   }
 
   void nextQuestion() {
-    // Block advancing if user has not selected an answer for current question
-    if (!state.userAnswers.containsKey(state.currentIndex) ||
-        state.userAnswers[state.currentIndex] == null) {
-      return;
-    }
     if (state.currentIndex < state.questions.length - 1) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
     }
@@ -310,9 +323,29 @@ class QuizNotifier extends Notifier<QuizState> {
           sessionId: sessionId,
         );
 
-        final reviewQuestions = reviewList
-            .map((item) => Question.fromJson(item))
-            .toList();
+        final reviewQuestions = <Question>[];
+        for (int i = 0; i < reviewList.length; i++) {
+          final item = reviewList[i];
+          final parsed = Question.fromJson(item);
+          final existing = i < state.questions.length ? state.questions[i] : null;
+          reviewQuestions.add(Question(
+            id: parsed.id.isNotEmpty ? parsed.id : (existing?.id ?? ''),
+            number: parsed.number,
+            progress: parsed.progress.isNotEmpty ? parsed.progress : (existing?.progress ?? ''),
+            office: parsed.office.isNotEmpty ? parsed.office : (existing?.office ?? state.selectedOffice),
+            discipline: parsed.discipline.isNotEmpty ? parsed.discipline : (existing?.discipline ?? state.selectedSubdiscipline),
+            level: parsed.level.isNotEmpty ? parsed.level : (existing?.level ?? state.selectedLevel),
+            theme: parsed.theme.isNotEmpty ? parsed.theme : (existing?.theme ?? ''),
+            questionText: parsed.questionText,
+            options: parsed.options,
+            correctOptionIndex: parsed.correctOptionIndex,
+            selectedKey: parsed.selectedKey,
+            isCorrect: parsed.isCorrect,
+            timeSpentSeconds: parsed.timeSpentSeconds,
+            explanation: parsed.explanation,
+            legalBasis: parsed.legalBasis,
+          ));
+        }
 
         state = state.copyWith(
           isSubmitting: false,

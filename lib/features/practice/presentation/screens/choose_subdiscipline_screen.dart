@@ -15,6 +15,10 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
     final jurisdiction = selection.jurisdiction ?? 'IPI';
     final disciplines = selection.disciplines;
 
+    final effectiveDisciplines = disciplines.isNotEmpty
+        ? disciplines.map((d) => d.name).toList()
+        : const ['Patents', 'Trademarks', 'Designs'];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -67,29 +71,13 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: selection.isLoadingDisciplines
-                  ? const Center(child: CircularProgressIndicator())
-                  : disciplines.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          selection.errorMessage ??
-                              'No disciplines are available for this office yet.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: disciplines.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = disciplines[index].name;
-                        final isSelected = item == selectedSubdiscipline;
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: effectiveDisciplines.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = effectiveDisciplines[index];
+                  final isSelected = item == selectedSubdiscipline;
 
                         return Container(
                           decoration: BoxDecoration(
@@ -149,7 +137,7 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Full syllabus & official questions',
+                                          'Full syllabus & practice questions',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Colors.grey.shade600,

@@ -9,6 +9,8 @@ class ProfileEntity {
   final String avatarUrl;
   final String profileType; // 'Attorney' | 'Paralegal'
   final String profession;
+  final String company;
+  final String city;
   final bool showFirstName;
   final bool showProfession;
   /// Consent to marketing e-mail; off unless the user agreed.
@@ -29,6 +31,8 @@ class ProfileEntity {
     this.avatarUrl = '',
     this.profileType = 'Attorney',
     this.profession = '',
+    this.company = '',
+    this.city = '',
     this.showFirstName = false,
     this.showProfession = false,
     this.marketingEmails = false,
@@ -49,6 +53,8 @@ class ProfileEntity {
     String? avatarUrl,
     String? profileType,
     String? profession,
+    String? company,
+    String? city,
     bool? showFirstName,
     bool? showProfession,
     bool? marketingEmails,
@@ -68,6 +74,8 @@ class ProfileEntity {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       profileType: profileType ?? this.profileType,
       profession: profession ?? this.profession,
+      company: company ?? this.company,
+      city: city ?? this.city,
       showFirstName: showFirstName ?? this.showFirstName,
       showProfession: showProfession ?? this.showProfession,
       marketingEmails: marketingEmails ?? this.marketingEmails,

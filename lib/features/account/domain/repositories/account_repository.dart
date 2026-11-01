@@ -9,6 +9,8 @@ abstract class AccountRepository {
     String? firstName,
     String? lastName,
     String? profession,
+    String? company,
+    String? city,
     String? email,
     String? phoneNumber,
     String? bio,

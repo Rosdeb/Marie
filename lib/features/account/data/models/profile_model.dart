@@ -12,6 +12,8 @@ class ProfileModel extends ProfileEntity {
     super.avatarUrl,
     super.profileType,
     super.profession,
+    super.company,
+    super.city,
     super.showFirstName,
     super.marketingEmails,
     super.showProfession,
@@ -38,17 +40,26 @@ class ProfileModel extends ProfileEntity {
         ? target['profileVisibility'] as Map<String, dynamic>
         : <String, dynamic>{};
 
+    String resolvedName = (target['name'] ?? '').toString();
+    final fName = (target['firstName'] ?? '').toString();
+    final lName = (target['lastName'] ?? '').toString();
+    if (resolvedName.isEmpty && (fName.isNotEmpty || lName.isNotEmpty)) {
+      resolvedName = '$fName $lName'.trim();
+    }
+
     return ProfileModel(
       id: (target['_id'] ?? target['id'] ?? '').toString(),
-      name: (target['name'] ?? '').toString(),
-      firstName: (target['firstName'] ?? '').toString(),
-      lastName: (target['lastName'] ?? '').toString(),
+      name: resolvedName,
+      firstName: fName,
+      lastName: lName,
       email: (target['email'] ?? '').toString(),
       phone: (target['phoneNumber'] ?? target['phone'] ?? '').toString(),
       bio: (target['bio'] ?? '').toString(),
       avatarUrl: (target['profileUrl'] ?? target['avatarUrl'] ?? '').toString(),
       profileType: (target['profileType'] ?? 'Attorney').toString(),
       profession: (target['profession'] ?? '').toString(),
+      company: (target['company'] ?? '').toString(),
+      city: (target['city'] ?? '').toString(),
       showFirstName: visibility['showFirstName'] == true,
       showProfession: visibility['showProfession'] == true,
       // Opt-in: anything other than an explicit true means no consent.
@@ -75,6 +86,8 @@ class ProfileModel extends ProfileEntity {
       'profileUrl': avatarUrl,
       'profileType': profileType,
       'profession': profession,
+      'company': company,
+      'city': city,
       'profileVisibility': {
         'showFirstName': showFirstName,
         'showProfession': showProfession,

@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
 import '../../../practice/presentation/providers/offices_provider.dart';
-import '../providers/demo_provider.dart';
 
 class DemoConfigScreen extends ConsumerWidget {
   const DemoConfigScreen({super.key});
@@ -19,9 +18,8 @@ class DemoConfigScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedDemo = ref.watch(selectedDemoProvider);
     final selectedOffice = ref.watch(officesProvider).selectedOffice;
-    final questions = selectedDemo?.questions ?? 20;
+    const questions = 20;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -98,7 +96,7 @@ class DemoConfigScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${selectedOffice.name} · ${selectedOffice.territory}',
+                              '${_formatOfficeName(selectedOffice.code, selectedOffice.name)} · ${selectedOffice.territory}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -195,12 +193,22 @@ class DemoConfigScreen extends ConsumerWidget {
                     isLoading: quiz.isLoading,
                     onPressed: () async {
                       final officeCode = selectedOffice?.code ?? 'IPI';
-                      await ref.read(quizProvider.notifier).startDemoSession(
+                      final success = await ref.read(quizProvider.notifier).startDemoSession(
                             office: officeCode,
                             profileType: 'Paralegal',
                           );
                       if (context.mounted) {
-                        context.pushReplacement('/practice/active-quiz');
+                        if (success) {
+                          context.pushReplacement('/practice/active-quiz');
+                        } else {
+                          final error = ref.read(quizProvider).errorMessage ?? 'Unable to start demo session.';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
                       }
                     },
                   );
@@ -264,5 +272,28 @@ class DemoConfigScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  static String _formatOfficeName(String code, String rawName) {
+    final upper = code.toUpperCase().trim();
+    if (upper == 'IPAU') return 'IP Australia';
+    if (upper == 'INDIA' || upper == 'IPO INDIA') return 'IPO India';
+    if (upper == 'INPI') return 'INPI';
+    if (upper == 'UKIPO') return 'UKIPO';
+    if (upper == 'USPTO') return 'USPTO';
+    if (upper == 'EPO') return 'EPO';
+    if (upper == 'EUIPO') return 'EUIPO';
+    if (upper == 'WIPO') return 'WIPO';
+    if (upper == 'UPC') return 'UPC';
+    if (upper == 'IPI') return 'IPI';
+    if (upper == 'DPMA') return 'DPMA';
+    if (upper == 'JPO') return 'JPO';
+    if (upper == 'CNIPA') return 'CNIPA';
+    if (upper == 'CIPO') return 'CIPO';
+    if (upper == 'KIPO') return 'KIPO';
+    if (rawName.isNotEmpty && rawName != code) {
+      return rawName;
+    }
+    return code;
   }
 }

@@ -50,7 +50,7 @@ class SubscriptionScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Choose a plan that fits your study routine and unlock unlimited practice sets, explanations, and simulated mock exams.',
+                      'Choose a plan that fits your study routine and unlock unlimited practice sets, explanations, and simulated quizzes.',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
@@ -64,13 +64,13 @@ class SubscriptionScreen extends ConsumerWidget {
                       title: 'Annual Premium',
                       price: '\$80.00 / year',
                       subPrice: '(\$6.67 / month • Billed annually)',
-                      description: 'Save 33% with full unlimited access to all subjects, mock exams, and analytics.',
+                      description: 'Save 33% with full unlimited access to all subjects, practice sets, and analytics.',
                       badge: 'BEST VALUE',
                       badgeColor: AppColors.success,
                       planKey: 'yearly',
                       features: const [
                         'Unlimited access to 500+ real practice questions',
-                        'Timed mock exam simulation mode',
+                        'Timed quiz simulation mode',
                         'Detailed legal rationales & reference links',
                         'Strengths & weaknesses analytics dashboard',
                       ],

@@ -178,7 +178,7 @@ void main() {
     );
 
     test(
-      'nextQuestion blocks advancing if user has not selected an answer for current question',
+      'nextQuestion allows advancing even without selecting an answer for current question',
       () {
         final container = ProviderContainer(
           overrides: [
@@ -219,16 +219,11 @@ void main() {
 
         expect(container.read(quizProvider).currentIndex, 0);
 
-        // Attempt to advance without selecting an answer -> blocked!
-        notifier.nextQuestion();
-        expect(container.read(quizProvider).currentIndex, 0);
-
-        // Select an answer for question 0 -> now allowed to advance!
-        notifier.selectAnswer(0);
+        // Advance without selecting an answer -> allowed!
         notifier.nextQuestion();
         expect(container.read(quizProvider).currentIndex, 1);
 
-        // Question 1 has no answer selected yet -> blocked from advancing further!
+        // At last question, nextQuestion does not exceed bounds
         notifier.nextQuestion();
         expect(container.read(quizProvider).currentIndex, 1);
       },

@@ -193,6 +193,18 @@ class ActiveQuizScreen extends ConsumerWidget {
                           context,
                           ref,
                           questionId: question.id,
+                          office: question.office.isNotEmpty
+                              ? question.office
+                              : quizState.selectedOffice,
+                          sheet: question.discipline.isNotEmpty
+                              ? question.discipline
+                              : quizState.selectedSubdiscipline,
+                          caseNo: question.number > 0
+                              ? 'Case ${question.number}'
+                              : '',
+                          userAnswer: isAnswerSelected
+                              ? '${String.fromCharCode(65 + selectedOption!)}: ${question.options[selectedOption].text}'
+                              : 'Unanswered',
                         );
                       },
                       borderRadius: BorderRadius.circular(6),
@@ -276,9 +288,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final isSelected = selectedOption == index;
                       final option = question.options[index];
-                      final optionKey = option.key.isNotEmpty
-                          ? option.key
-                          : String.fromCharCode(65 + index);
+                      final optionKey = String.fromCharCode(65 + index);
 
                       return Container(
                         decoration: BoxDecoration(
@@ -381,34 +391,19 @@ class ActiveQuizScreen extends ConsumerWidget {
                       child: CustomButton(
                         text: isLastQuestion ? 'Submit' : 'Next',
                         isLoading: quizState.isSubmitting,
-                        onPressed: isAnswerSelected
-                            ? () {
-                                if (isLastQuestion) {
-                                  ref.read(quizProvider.notifier).submitQuiz();
-                                } else {
-                                  ref
-                                      .read(quizProvider.notifier)
-                                      .nextQuestion();
-                                }
-                              }
-                            : null,
+                        onPressed: () {
+                          if (isLastQuestion) {
+                            ref.read(quizProvider.notifier).submitQuiz();
+                          } else {
+                            ref
+                                .read(quizProvider.notifier)
+                                .nextQuestion();
+                          }
+                        },
                       ),
                     ),
                   ],
                 ),
-                if (!isAnswerSelected) ...[
-                  const SizedBox(height: 8),
-                  const Center(
-                    child: Text(
-                      'Please select an answer to proceed',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 12),
               ],
             ),
@@ -423,8 +418,9 @@ class ActiveQuizScreen extends ConsumerWidget {
     int remainingSeconds,
     int totalSeconds,
   ) {
-    final minutes = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (elapsedSeconds % 60).toString().padLeft(2, '0');
+    final displaySec = remainingSeconds > 0 ? remainingSeconds : 0;
+    final minutes = (displaySec ~/ 60).toString().padLeft(2, '0');
+    final seconds = (displaySec % 60).toString().padLeft(2, '0');
     final timeText = '$minutes:$seconds';
 
     final isLowTime = remainingSeconds <= 30;

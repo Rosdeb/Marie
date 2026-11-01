@@ -11,6 +11,8 @@ abstract class AccountRemoteDataSource {
     String? firstName,
     String? lastName,
     String? profession,
+    String? company,
+    String? city,
     String? email,
     String? phoneNumber,
     String? bio,
@@ -46,6 +48,8 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
     String? firstName,
     String? lastName,
     String? profession,
+    String? company,
+    String? city,
     String? email,
     String? phoneNumber,
     String? bio,
@@ -56,6 +60,8 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
     if (firstName != null && firstName.trim().isNotEmpty) fields['firstName'] = firstName.trim();
     if (lastName != null && lastName.trim().isNotEmpty) fields['lastName'] = lastName.trim();
     if (profession != null && profession.trim().isNotEmpty) fields['profession'] = profession.trim();
+    if (company != null && company.trim().isNotEmpty) fields['company'] = company.trim();
+    if (city != null && city.trim().isNotEmpty) fields['city'] = city.trim();
     if (email != null && email.trim().isNotEmpty) fields['email'] = email.trim();
     if (phoneNumber != null && phoneNumber.trim().isNotEmpty) fields['phoneNumber'] = phoneNumber.trim();
     if (bio != null && bio.trim().isNotEmpty) fields['bio'] = bio.trim();

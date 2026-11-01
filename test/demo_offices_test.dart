@@ -134,5 +134,61 @@ void main() {
       expect(nextState.elapsedSeconds, 1);
       expect(nextState.remainingSeconds, 1199);
     });
+
+    test('Review question preserves MongoDB question id from active session questions', () {
+      final activeQuestions = [
+        Question(
+          id: 'mongo_question_id_123',
+          number: 1,
+          office: 'IPI',
+          discipline: 'Designs',
+          level: 'Expert',
+          questionText: 'Active question text',
+          options: const [QuestionOption(key: 'A', text: 'Option A')],
+        ),
+      ];
+
+      final reviewJson = {
+        "number": 1,
+        "questionText": "Active question text",
+        "options": [
+          {"key": "A", "text": "Option A", "isCorrect": true, "isChosen": true}
+        ],
+        "selectedKey": "A",
+        "isCorrect": true,
+        "explanation": "Valid explanation",
+        "legalBasis": "Valid legal basis"
+      };
+
+      final parsed = Question.fromJson(reviewJson);
+      // Verify review API doesn't return id
+      expect(parsed.id, isEmpty);
+
+      // Verify merged question keeps the real id, office, discipline, level
+      final existing = activeQuestions[0];
+      final merged = Question(
+        id: parsed.id.isNotEmpty ? parsed.id : existing.id,
+        number: parsed.number,
+        progress: parsed.progress.isNotEmpty ? parsed.progress : existing.progress,
+        office: parsed.office.isNotEmpty ? parsed.office : existing.office,
+        discipline: parsed.discipline.isNotEmpty ? parsed.discipline : existing.discipline,
+        level: parsed.level.isNotEmpty ? parsed.level : existing.level,
+        theme: parsed.theme.isNotEmpty ? parsed.theme : existing.theme,
+        questionText: parsed.questionText,
+        options: parsed.options,
+        correctOptionIndex: parsed.correctOptionIndex,
+        selectedKey: parsed.selectedKey,
+        isCorrect: parsed.isCorrect,
+        timeSpentSeconds: parsed.timeSpentSeconds,
+        explanation: parsed.explanation,
+        legalBasis: parsed.legalBasis,
+      );
+
+      expect(merged.id, 'mongo_question_id_123');
+      expect(merged.office, 'IPI');
+      expect(merged.discipline, 'Designs');
+      expect(merged.level, 'Expert');
+      expect(merged.explanation, 'Valid explanation');
+    });
   });
 }

@@ -88,10 +88,36 @@ class AnswerReviewScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () {
+                          final chosenOptionText = (userChoice != null &&
+                                  userChoice >= 0 &&
+                                  userChoice < question.options.length)
+                              ? '${String.fromCharCode(65 + userChoice)}: ${question.options[userChoice].text}'
+                              : 'Unanswered';
+
+                          final resolvedQuestionId = question.id.isNotEmpty
+                              ? question.id
+                              : (quizState.questions.length > qIndex
+                                  ? quizState.questions[qIndex].id
+                                  : '');
+
                           QuestionReportBottomSheet.show(
                             context,
                             ref,
-                            questionId: question.id,
+                            questionId: resolvedQuestionId,
+                            office: question.office.isNotEmpty
+                                ? question.office
+                                : (quizState.questions.length > qIndex
+                                    ? quizState.questions[qIndex].office
+                                    : quizState.selectedOffice),
+                            sheet: question.discipline.isNotEmpty
+                                ? question.discipline
+                                : (quizState.questions.length > qIndex
+                                    ? quizState.questions[qIndex].discipline
+                                    : quizState.selectedSubdiscipline),
+                            caseNo: question.number > 0
+                                ? 'Case ${question.number}'
+                                : '',
+                            userAnswer: chosenOptionText,
                           );
                         },
                         borderRadius: BorderRadius.circular(6),
@@ -127,6 +153,43 @@ class AnswerReviewScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  if (userChoice == null &&
+                      !question.options.any((o) => o.isChosen)) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Colors.amber.shade300,
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.help_outline_rounded,
+                            size: 13,
+                            color: Colors.amber.shade800,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Unanswered',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   ...List.generate(question.options.length, (optIndex) {
                     final option = question.options[optIndex];
@@ -173,9 +236,7 @@ class AnswerReviewScreen extends ConsumerWidget {
                               shape: BoxShape.circle,
                             ),
                             child: Text(
-                              option.key.isNotEmpty
-                                  ? option.key
-                                  : String.fromCharCode(65 + optIndex),
+                              String.fromCharCode(65 + optIndex),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,

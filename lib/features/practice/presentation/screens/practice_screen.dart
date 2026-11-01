@@ -130,7 +130,7 @@ class PracticeScreen extends ConsumerWidget {
                           const Divider(height: 1, color: Color(0xFFE2E8F0)),
                           const SizedBox(height: 10),
                           const Text(
-                            'Choose a discipline and practice difficulty. All available questions and official exams are included with your selected office.',
+                            'Choose a discipline and a level. All questions of your selected office are included',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -220,15 +220,15 @@ class PracticeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 10),
                           _buildContentBullet(
-                            '5,500+ official IP exams, mock tests & quizzes',
+                            'Exam style question in four levels',
                           ),
                           const SizedBox(height: 6),
                           _buildContentBullet(
-                            'Detailed legal explanations & precedent rationales',
+                            'Explanation and legal basis for every answer',
                           ),
                           const SizedBox(height: 6),
                           _buildContentBullet(
-                            'Unlimited practice sessions & personalized analytics',
+                            'Progress and statistics'
                           ),
                         ],
                       ),
@@ -249,124 +249,139 @@ class PracticeScreen extends ConsumerWidget {
     PracticeSelection selection,
     String activeDiscipline,
   ) {
-    if (selection.isLoadingDisciplines) {
-      return Row(
-        children: [
-          Expanded(child: _buildSkeletonChip()),
-          const SizedBox(width: 10),
-          Expanded(child: _buildSkeletonChip()),
-        ],
-      );
-    }
+    if (selection.disciplines.isNotEmpty) {
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: selection.disciplines.map((discipline) {
+          final isSelected =
+              activeDiscipline.toLowerCase() == discipline.name.toLowerCase();
+          final availableLevels = discipline.levels
+              .where((level) => level.isAvailable)
+              .length;
+          final levelsCount = availableLevels > 0 ? availableLevels : 4;
+          final subtitle = '$levelsCount levels';
+          final isLastOdd = selection.disciplines.length.isOdd &&
+              discipline == selection.disciplines.last;
 
-    final disciplines = selection.disciplines;
-
-    if (disciplines.isEmpty) {
-      return Text(
-        selection.errorMessage ??
-            'No disciplines are available for this office yet.',
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-      );
-    }
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: disciplines.map((d) {
-        final isSelected =
-            activeDiscipline.toLowerCase() == d.name.toLowerCase();
-        final levelCount = d.levels.where((level) => level.isAvailable).length;
-        final sub =
-            '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
-        return SizedBox(
-          width: (MediaQuery.of(context).size.width - 50) / 2,
-          child: _buildDisciplineChip(
-            context: context,
-            ref: ref,
-            title: d.name,
-            subtitle: sub,
-            isSelected: isSelected,
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildSkeletonChip() {
-    return Container(
-      height: 76,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDisciplineChip({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-  }) {
-    return InkWell(
-      onTap: () {
-        ref.read(practiceProvider.notifier).setTopic(title);
-        ref.read(quizProvider.notifier).setSubdiscipline(title);
-        context.push('/practice/choose-mode');
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        width: double.infinity,
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
-            width: isSelected ? 1.6 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
+          return SizedBox(
+            width: isLastOdd
+                ? double.infinity
+                : (MediaQuery.of(context).size.width - 52) / 2,
+            child: _buildDisciplineCard(
+              context,
+              ref,
+              discipline.name,
               subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              isSelected: isSelected,
+              isFullWidth: isLastOdd,
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    // Always available fallback standard disciplines so buttons are never missing
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildDisciplineCard(
+                context,
+                ref,
+                'Patents',
+                'Practice patent law\nquestions',
+                isSelected: activeDiscipline.toLowerCase() == 'patents',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildDisciplineCard(
+                context,
+                ref,
+                'Trademarks',
+                'Test your trademark\nknowledge',
+                isSelected: activeDiscipline.toLowerCase() == 'trademarks',
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        _buildDisciplineCard(
+          context,
+          ref,
+          'Designs',
+          'Practice design\nconcepts.',
+          isSelected: activeDiscipline.toLowerCase() == 'designs',
+          isFullWidth: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDisciplineCard(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    String subtitle, {
+    bool isSelected = false,
+    bool isFullWidth = false,
+  }) {
+    return Container(
+      width: isFullWidth ? double.infinity : null,
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.primaryLight : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
+          width: isSelected ? 1.6 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            ref.read(practiceProvider.notifier).setTopic(title);
+            ref.read(quizProvider.notifier).setSubdiscipline(title);
+            context.push('/practice/choose-mode');
+          },
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

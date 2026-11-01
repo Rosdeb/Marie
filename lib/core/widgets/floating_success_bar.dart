@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'floating_error_bar.dart';
 
 class FloatingSuccessBar extends StatefulWidget {
   final String message;
@@ -15,36 +17,56 @@ class FloatingSuccessBar extends StatefulWidget {
 
   static OverlayEntry? _currentEntry;
 
+  static void dismiss() {
+    try {
+      if (_currentEntry != null) {
+        final entry = _currentEntry!;
+        _currentEntry = null;
+        if (entry.mounted) {
+          entry.remove();
+        }
+      }
+    } catch (_) {
+      _currentEntry = null;
+    }
+  }
+
   static void show(
     BuildContext context, {
     required String message,
     Duration duration = const Duration(seconds: 4),
     VoidCallback? onDismiss,
   }) {
-    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
-    if (overlayState == null) {
-      return;
-    }
+    FloatingErrorBar.dismiss();
+    dismiss();
 
-    if (_currentEntry != null) {
+    void insert() {
       try {
-        if (_currentEntry!.mounted) {
-          _currentEntry!.remove();
+        final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+        if (overlayState == null || !overlayState.mounted) {
+          return;
         }
-      } catch (_) {}
+
+        final entry = OverlayEntry(
+          builder: (_) => FloatingSuccessBar(
+            message: message,
+            duration: duration,
+            onDismiss: onDismiss,
+          ),
+        );
+
+        _currentEntry = entry;
+        overlayState.insert(entry);
+      } catch (_) {
+        _currentEntry = null;
+      }
     }
-    _currentEntry = null;
 
-    final entry = OverlayEntry(
-      builder: (_) => FloatingSuccessBar(
-        message: message,
-        duration: duration,
-        onDismiss: onDismiss,
-      ),
-    );
-
-    _currentEntry = entry;
-    overlayState.insert(entry);
+    if (WidgetsBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => insert());
+    } else {
+      insert();
+    }
   }
 
   @override
@@ -84,12 +106,8 @@ class _FloatingSuccessBarState extends State<FloatingSuccessBar>
   void _dismiss() {
     if (!mounted) return;
     _controller.reverse().then((_) {
-      try {
-        if (FloatingSuccessBar._currentEntry?.mounted ?? false) {
-          FloatingSuccessBar._currentEntry?.remove();
-        }
-      } catch (_) {}
-      FloatingSuccessBar._currentEntry = null;
+      if (!mounted) return;
+      FloatingSuccessBar.dismiss();
       widget.onDismiss?.call();
     });
   }
@@ -104,7 +122,7 @@ class _FloatingSuccessBarState extends State<FloatingSuccessBar>
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 12,
+      top: MediaQuery.paddingOf(context).top + 12,
       left: 16,
       right: 16,
       child: SlideTransition(

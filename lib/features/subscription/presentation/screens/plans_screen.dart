@@ -466,7 +466,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                   child: _buildPriceBox(
                     label: 'Annual',
                     price: plan.annualPriceString,
-                    subtitle: 'Save up to 20%',
+                    subtitle: 'Save about 17%',
                     isBestValue: true,
                     isSelected: selectedInterval == PlanBillingInterval.annual,
                     onTap: () {

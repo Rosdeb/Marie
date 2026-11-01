@@ -105,7 +105,7 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           content: const Text(
-            'Are you sure you want to delete your account? All your study progress, bookmarks, and subscriptions will be permanently erased. This action cannot be undone.',
+            'Are you sure you want to delete your account? Your study progress will be permanently erased. Deleting your account does not cancel your subscriptions, cancel it in your App Store or Google Play settings,',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -351,16 +351,16 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // _buildSectionHeader('Account Actions'),
-            // const SizedBox(height: 8),
+            _buildSectionHeader('Account Actions'),
+            const SizedBox(height: 8),
 
-            // // Log Out
-            // _buildSingleLineCard(
-            //   icon: Icons.logout_rounded,
-            //   title: 'Log Out',
-            //   onTap: () => _showLogoutDialog(context, ref),
-            // ),
-            //const SizedBox(height: 28),
+            // Log Out
+            _buildSingleLineCard(
+              icon: Icons.logout_rounded,
+              title: 'Log Out',
+              onTap: () => _showLogoutDialog(context, ref),
+            ),
+            const SizedBox(height: 24),
 
             _buildSectionHeader('Danger Zone'),
             const SizedBox(height: 10),

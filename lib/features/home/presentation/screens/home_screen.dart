@@ -13,7 +13,6 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAuth = ref.watch(authProvider).isAuthenticated;
     final practice = ref.watch(practiceProvider);
 
     return Scaffold(
@@ -161,7 +160,7 @@ class HomeScreen extends ConsumerWidget {
 
                     // Subtitle Text
                     const Text(
-                      'Learn IP law through focused practice and\nexam-style quizzes.',
+                      'Learn IP law through focused practice and\nquizzes.',
                       style: TextStyle(
                         color: Color(0xFF6E6E6E),
                         fontSize: 13,
@@ -171,10 +170,8 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
 
                     // 3. Featured Try Free Demo Card (Moves to Demo Offices Catalogue)
-                    if (!isAuth) ...[
-                      _buildTryFreeDemoCard(context, ref),
-                      const SizedBox(height: 12),
-                    ],
+                    _buildTryFreeDemoCard(context, ref),
+                    const SizedBox(height: 12),
 
                     // 4. Topics Section Header
                     const Text(
@@ -187,17 +184,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    if (practice.isLoadingDisciplines)
-                      const Center(child: CircularProgressIndicator())
-                    else if (practice.disciplines.isEmpty)
-                      const Text(
-                        'No disciplines are available for the selected office yet.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      )
-                    else
+                    if (practice.disciplines.isNotEmpty)
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
@@ -205,24 +192,54 @@ class HomeScreen extends ConsumerWidget {
                           final availableLevels = discipline.levels
                               .where((level) => level.isAvailable)
                               .length;
+                          final levelsCount = availableLevels > 0 ? availableLevels : 4;
+                          final subtitle = '$levelsCount levels';
                           return SizedBox(
-                            width:
-                                practice.disciplines.length.isOdd &&
-                                    discipline == practice.disciplines.last
+                            width: practice.disciplines.length.isOdd && discipline == practice.disciplines.last
                                 ? double.infinity
                                 : (MediaQuery.of(context).size.width - 52) / 2,
                             child: _buildTopicCard(
                               context,
                               ref,
                               discipline.name,
-                              '$availableLevels levels • ${discipline.questions} questions',
-                              isFullWidth:
-                                  practice.disciplines.length.isOdd &&
-                                  discipline == practice.disciplines.last,
+                              subtitle,
+                              isFullWidth: practice.disciplines.length.isOdd && discipline == practice.disciplines.last,
                             ),
                           );
                         }).toList(),
+                      )
+                    else ...[
+                      // Always available fallback standard disciplines so buttons are never missing
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTopicCard(
+                              context,
+                              ref,
+                              'Patents',
+                              'Practice patent law\nquestions',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTopicCard(
+                              context,
+                              ref,
+                              'Trademarks',
+                              'Test your trademark\nknowledge',
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 12),
+                      _buildTopicCard(
+                        context,
+                        ref,
+                        'Designs',
+                        'Practice design\nconcepts.',
+                        isFullWidth: true,
+                      ),
+                    ],
 
                     const SizedBox(height: 20),
 
@@ -253,7 +270,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Practice across more offices, disciplines and\nlevels.',
+                            'Practice across more offices.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,

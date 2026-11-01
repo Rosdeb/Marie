@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'floating_success_bar.dart';
 
 class FloatingErrorBar extends StatefulWidget {
   final String message;
@@ -15,32 +17,56 @@ class FloatingErrorBar extends StatefulWidget {
 
   static OverlayEntry? _currentEntry;
 
+  static void dismiss() {
+    try {
+      if (_currentEntry != null) {
+        final entry = _currentEntry!;
+        _currentEntry = null;
+        if (entry.mounted) {
+          entry.remove();
+        }
+      }
+    } catch (_) {
+      _currentEntry = null;
+    }
+  }
+
   static void show(
     BuildContext context, {
     required String message,
     Duration duration = const Duration(seconds: 4),
     VoidCallback? onDismiss,
   }) {
-    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
-    if (overlayState == null) {
-      return;
+    FloatingSuccessBar.dismiss();
+    dismiss();
+
+    void insert() {
+      try {
+        final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+        if (overlayState == null || !overlayState.mounted) {
+          return;
+        }
+
+        final entry = OverlayEntry(
+          builder: (_) => FloatingErrorBar(
+            message: message,
+            duration: duration,
+            onDismiss: onDismiss,
+          ),
+        );
+
+        _currentEntry = entry;
+        overlayState.insert(entry);
+      } catch (_) {
+        _currentEntry = null;
+      }
     }
 
-    if (_currentEntry?.mounted ?? false) {
-      _currentEntry?.remove();
+    if (WidgetsBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => insert());
+    } else {
+      insert();
     }
-    _currentEntry = null;
-
-    final entry = OverlayEntry(
-      builder: (_) => FloatingErrorBar(
-        message: message,
-        duration: duration,
-        onDismiss: onDismiss,
-      ),
-    );
-
-    _currentEntry = entry;
-    overlayState.insert(entry);
   }
 
   @override
@@ -80,10 +106,8 @@ class _FloatingErrorBarState extends State<FloatingErrorBar>
   void _dismiss() {
     if (!mounted) return;
     _controller.reverse().then((_) {
-      if (FloatingErrorBar._currentEntry?.mounted ?? false) {
-        FloatingErrorBar._currentEntry?.remove();
-      }
-      FloatingErrorBar._currentEntry = null;
+      if (!mounted) return;
+      FloatingErrorBar.dismiss();
       widget.onDismiss?.call();
     });
   }
@@ -98,7 +122,7 @@ class _FloatingErrorBarState extends State<FloatingErrorBar>
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 12,
+      top: MediaQuery.paddingOf(context).top + 12,
       left: 16,
       right: 16,
       child: SlideTransition(

@@ -78,43 +78,44 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 96,
+                  height: 96,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.auto_stories,
-                      color: Colors.white,
-                      size: 52,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/image/app_icon.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 const Text(
-                  'Study App',
+                  'IPro',
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 const Text(
-                  'The best way to study & practice',
+                  'Trust your excellence',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.textSecondary,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 

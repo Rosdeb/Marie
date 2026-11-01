@@ -115,7 +115,7 @@ class HowSubscriptionsWorkScreen extends StatelessWidget {
                       icon: Icons.shield_outlined,
                       title: 'One active subscription',
                       description:
-                          'Upgrading or changing plans immediately replaces your current subscription. You never pay for two subscriptions at once.',
+                          'You can hold several subscription at the same time, e.g one Track and one Focus, to add offices.',
                     ),
 
                     const SizedBox(height: 24),

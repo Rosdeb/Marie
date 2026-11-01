@@ -5,8 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../practice/domain/entities/office_entity.dart';
 import '../../../practice/presentation/providers/offices_provider.dart';
-import '../../data/models/demo_model.dart';
-import '../providers/demo_provider.dart';
 
 class DemoOfficesScreen extends ConsumerStatefulWidget {
   const DemoOfficesScreen({super.key});
@@ -290,6 +288,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
   }
 
   Widget _buildOfficeCard(BuildContext context, OfficeEntity office) {
+    final displayName = _formatOfficeName(office.code, office.name);
     final isAvailable = office.isAvailable;
 
     return Container(
@@ -314,7 +313,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
             children: [
               Expanded(
                 child: Text(
-                  office.name == office.code ? office.name : '${office.code} · ${office.name}',
+                  displayName,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
@@ -328,7 +327,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
                 decoration: BoxDecoration(
                   color: isAvailable
                       ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                      : Colors.white.withValues(alpha: 0.1),
+                      : Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isAvailable
@@ -340,7 +339,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
                 child: Text(
                   isAvailable ? 'Available' : 'Coming Soon',
                   style: TextStyle(
-                    color: isAvailable ? const Color(0xFF34D399) : const Color(0xFFB0BEC5),
+                    color: isAvailable ? const Color(0xFF34D399) : Colors.white70,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -350,7 +349,9 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${office.territory} · 20 questions · No account required',
+            isAvailable
+                ? '${office.territory} · 20 questions · No account required'
+                : '${office.territory} · Questions importing soon',
             style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5)),
           ),
           if (office.disciplines.isNotEmpty) ...[
@@ -358,7 +359,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: office.disciplines.map((d) {
+              children: office.disciplines.map((discipline) {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -366,7 +367,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${d.name} (${d.questions})',
+                    discipline.name,
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -383,31 +384,21 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
             height: 42,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: isAvailable ? Colors.white : Colors.white.withValues(alpha: 0.12),
+                backgroundColor: isAvailable ? Colors.white : Colors.white.withValues(alpha: 0.2),
+                foregroundColor: isAvailable ? const Color(0xFF1A3050) : Colors.white70,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: isAvailable
-                  ? () => _onSelectOffice(context, office)
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${office.name} questions are currently being imported and will be available soon.',
-                          ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
+              onPressed: () => _onSelectOffice(context, office),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     isAvailable ? 'Start the demo' : 'Coming Soon',
                     style: TextStyle(
-                      color: isAvailable ? const Color(0xFF1A3050) : const Color(0xFFB0BEC5),
+                      color: isAvailable ? const Color(0xFF1A3050) : Colors.white70,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -430,22 +421,55 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
   }
 
   void _onSelectOffice(BuildContext context, OfficeEntity office) {
+    if (!office.isAvailable) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            _formatOfficeName(office.code, office.name),
+            style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          ),
+          content: Text(
+            '${_formatOfficeName(office.code, office.name)} questions are currently being imported.',
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     ref.read(officesProvider.notifier).selectOffice(office);
-
-    // Also populate DemoItem for compatibility with DemoConfigScreen
-    final demoItem = DemoItem(
-      id: office.code,
-      title: '${office.name} Demo Practice',
-      questions: 20,
-      minutes: 20,
-      subdiscipline: office.disciplines.isNotEmpty
-          ? office.disciplines.map((d) => d.name).join(', ')
-          : 'IP Law Essentials',
-      level: 'All Levels',
-    );
-    ref.read(selectedDemoProvider.notifier).selectDemo(demoItem);
-
-    // Navigate to Demo Config
     context.push('/home/demo-config');
+  }
+
+  static String _formatOfficeName(String code, String rawName) {
+    final upper = code.toUpperCase().trim();
+    if (upper == 'IPAU') return 'IP Australia';
+    if (upper == 'INDIA' || upper == 'IPO INDIA') return 'IPO India';
+    if (upper == 'INPI') return 'INPI';
+    if (upper == 'UKIPO') return 'UKIPO';
+    if (upper == 'USPTO') return 'USPTO';
+    if (upper == 'EPO') return 'EPO';
+    if (upper == 'EUIPO') return 'EUIPO';
+    if (upper == 'WIPO') return 'WIPO';
+    if (upper == 'UPC') return 'UPC';
+    if (upper == 'IPI') return 'IPI';
+    if (upper == 'DPMA') return 'DPMA';
+    if (upper == 'JPO') return 'JPO';
+    if (upper == 'CNIPA') return 'CNIPA';
+    if (upper == 'CIPO') return 'CIPO';
+    if (upper == 'KIPO') return 'KIPO';
+    if (rawName.isNotEmpty && rawName != code) {
+      return rawName;
+    }
+    return code;
   }
 }

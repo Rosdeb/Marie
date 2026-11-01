@@ -75,7 +75,7 @@ class QuizResultScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '$percentage% Score Completed',
+                      '$percentage % · Completed',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 15,

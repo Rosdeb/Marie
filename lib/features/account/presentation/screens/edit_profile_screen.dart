@@ -24,8 +24,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _professionController;
+  late TextEditingController _companyController;
+  late TextEditingController _cityController;
   late TextEditingController _bioController;
   String? _selectedImagePath;
+  bool _isSyncingName = false;
 
   @override
   void initState() {
@@ -37,17 +40,44 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _emailController = TextEditingController(text: profile.email);
     _phoneController = TextEditingController(text: profile.phone);
     _professionController = TextEditingController(text: profile.profession);
+    _companyController = TextEditingController(text: profile.company);
+    _cityController = TextEditingController(text: profile.city);
     _bioController = TextEditingController(text: profile.bio);
+
+    if (_nameController.text.isEmpty &&
+        (_firstNameController.text.isNotEmpty || _lastNameController.text.isNotEmpty)) {
+      _nameController.text =
+          '${_firstNameController.text} ${_lastNameController.text}'.trim();
+    }
+
+    _firstNameController.addListener(_syncFromFirstLastName);
+    _lastNameController.addListener(_syncFromFirstLastName);
+  }
+
+  void _syncFromFirstLastName() {
+    if (_isSyncingName) return;
+    _isSyncingName = true;
+    final first = _firstNameController.text.trim();
+    final last = _lastNameController.text.trim();
+    final combined = '$first $last'.trim();
+    if (combined.isNotEmpty && _nameController.text != combined) {
+      _nameController.text = combined;
+    }
+    _isSyncingName = false;
   }
 
   @override
   void dispose() {
+    _firstNameController.removeListener(_syncFromFirstLastName);
+    _lastNameController.removeListener(_syncFromFirstLastName);
     _nameController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _professionController.dispose();
+    _companyController.dispose();
+    _cityController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -69,6 +99,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
     final profession = _professionController.text.trim();
+    final company = _companyController.text.trim();
+    final city = _cityController.text.trim();
     final bio = _bioController.text.trim();
 
     if (name.isEmpty) {
@@ -95,6 +127,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           email: email,
           phone: phone,
           profession: profession.isNotEmpty ? profession : null,
+          company: company.isNotEmpty ? company : null,
+          city: city.isNotEmpty ? city : null,
           bio: bio,
           profileFilePath: _selectedImagePath,
         );
@@ -121,6 +155,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         if (_emailController.text.isEmpty) _emailController.text = next.email;
         if (_phoneController.text.isEmpty) _phoneController.text = next.phone;
         if (_professionController.text.isEmpty) _professionController.text = next.profession;
+        if (_companyController.text.isEmpty) _companyController.text = next.company;
+        if (_cityController.text.isEmpty) _cityController.text = next.city;
         if (_bioController.text.isEmpty) _bioController.text = next.bio;
       }
     });
@@ -216,6 +252,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 hint: 'e.g. Patent Attorney, Paralegal',
                 controller: _professionController,
                 prefixIcon: const Icon(Icons.work_outline, color: AppColors.textSecondary, size: 20),
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'Company / Organization (Optional)',
+                hint: 'Enter your law firm or company',
+                controller: _companyController,
+                prefixIcon: const Icon(Icons.business_outlined, color: AppColors.textSecondary, size: 20),
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: 'City (Optional)',
+                hint: 'Enter your city',
+                controller: _cityController,
+                prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.textSecondary, size: 20),
               ),
               const SizedBox(height: 12),
               CustomTextField(

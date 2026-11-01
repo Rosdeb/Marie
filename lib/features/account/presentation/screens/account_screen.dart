@@ -161,9 +161,11 @@ class AccountScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    profile.name.isNotEmpty
-                                        ? profile.name
-                                        : 'IP Law Scholar',
+                                    (profile.firstName.isNotEmpty || profile.lastName.isNotEmpty)
+                                        ? '${profile.firstName} ${profile.lastName}'.trim()
+                                        : (profile.name.isNotEmpty
+                                            ? profile.name
+                                            : 'IP Law Scholar'),
                                     style: const TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w600,
@@ -178,8 +180,8 @@ class AccountScreen extends ConsumerWidget {
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
-                                  if (profile.profession.isNotEmpty ||
-                                      profile.profileType.isNotEmpty) ...[
+                                  if (profile.profileType.isNotEmpty ||
+                                      profile.profession.isNotEmpty) ...[
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
@@ -197,9 +199,9 @@ class AccountScreen extends ConsumerWidget {
                                             ),
                                           ),
                                           child: Text(
-                                            profile.profession.isNotEmpty
-                                                ? profile.profession
-                                                : profile.profileType,
+                                            profile.profileType.isNotEmpty
+                                                ? profile.profileType
+                                                : profile.profession,
                                             style: const TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -302,7 +304,7 @@ class AccountScreen extends ConsumerWidget {
               _buildSingleLineTile(
                 icon: Icons.card_giftcard_outlined,
                 title: 'Referral Setting',
-                badge: 'Earn \$5',
+                badge: '10% Off',
                 onTap: () => context.push('/referral'),
               ),
               const SizedBox(height: 10),

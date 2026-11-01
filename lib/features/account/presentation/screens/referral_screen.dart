@@ -120,7 +120,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Invite Colleagues & Get 10% Off',
+                  'Invite Colleagues & Get 10%\nOff',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
@@ -130,7 +130,7 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Share your referral code with friends and fellow practitioners. When they sign up, both of you get 10% discount on subscription plans!',
+                  'Share IPro on Linkedin and get 10% off your first paid period {once per account}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,

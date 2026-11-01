@@ -363,7 +363,7 @@ class _ConfirmSubscriptionScreenState
                           ),
                           const SizedBox(height: 10),
                           _buildIncludedItem(
-                            'Full access to all 500+ practice questions & mock exams',
+                            'Full access to all 500+ practice questions & quizzes',
                           ),
                           _buildIncludedItem(
                             'Comprehensive legal rationales & reference links',

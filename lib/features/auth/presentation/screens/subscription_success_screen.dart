@@ -192,7 +192,7 @@ class SubscriptionSuccessScreen extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          _buildPerkRow('Unlimited mock exams & timed mode'),
+                          _buildPerkRow('Unlimited practice & timed mode'),
                           _buildPerkRow('In-depth answer rationales & citations'),
                           _buildPerkRow('Real-time score & weak area tracking'),
                         ],

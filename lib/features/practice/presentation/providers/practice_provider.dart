@@ -15,16 +15,54 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
       topic: 'Patents',
       jurisdiction: 'IPI',
       level: 'Beginner',
-      language: 'German',
+      language: 'English',
+      disciplines: _getDefaultDisciplinesForOffice('IPI'),
     );
+  }
+
+  static List<DisciplineDetailModel> _getDefaultDisciplinesForOffice(String office) {
+    final code = office.toUpperCase().trim();
+    final names = switch (code) {
+      'WIPO' => ['PCT', 'Madrid', 'Hague'],
+      'UPC' => ['Court of First Instance', 'Court of Appeal', 'Mediation & Arbitration'],
+      _ => ['Patents', 'Trademarks', 'Designs'],
+    };
+
+    return names.map((name) => DisciplineDetailModel(
+      name: name,
+      questions: 0,
+      levels: const [
+        LevelDetailModel(level: 'Beginner', isAvailable: true, minutes: 20),
+        LevelDetailModel(level: 'Intermediate', isAvailable: true, minutes: 30),
+        LevelDetailModel(level: 'Advanced', isAvailable: true, minutes: 40),
+        LevelDetailModel(level: 'Expert', isAvailable: true, minutes: 50),
+      ],
+    )).toList();
+  }
+
+  static List<DisciplineDetailModel> _sortDisciplines(List<DisciplineDetailModel> list) {
+    int getOrder(String name) {
+      final n = name.toLowerCase().trim();
+      if (n.contains('patent') || n == 'pct') return 1;
+      if (n.contains('trademark') || n == 'madrid') return 2;
+      if (n.contains('design') || n == 'hague') return 3;
+      return 4;
+    }
+
+    final sorted = List<DisciplineDetailModel>.from(list);
+    sorted.sort((a, b) => getOrder(a.name).compareTo(getOrder(b.name)));
+    return sorted;
   }
 
   Future<void> loadDisciplines(String office) async {
     state = state.copyWith(isLoadingDisciplines: true, clearError: true);
     try {
-      final disciplines = await _practiceRepository.getOfficeDisciplines(
+      final fetched = await _practiceRepository.getOfficeDisciplines(
         office,
       );
+      final rawList = fetched.isNotEmpty ? fetched : _getDefaultDisciplinesForOffice(office);
+      final disciplines = _sortDisciplines(rawList);
+
       String? updatedTopic = state.topic;
       if (disciplines.isNotEmpty) {
         final hasCurrentTopic = disciplines.any(
@@ -43,7 +81,9 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
         loadThemes(office, updatedTopic);
       }
     } catch (e) {
+      final fallback = _sortDisciplines(_getDefaultDisciplinesForOffice(office));
       state = state.copyWith(
+        disciplines: state.disciplines.isNotEmpty ? state.disciplines : fallback,
         isLoadingDisciplines: false,
         errorMessage: e.toString().replaceFirst('Exception: ', ''),
       );
@@ -65,7 +105,7 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
 
   void setTopic(String topic) {
     state = state.copyWith(topic: topic);
-    final office = state.jurisdiction ?? 'IPI';
+    final office = state.jurisdiction ?? 'WIPO';
     loadThemes(office, topic);
   }
 
@@ -126,11 +166,11 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   void reset() {
     state = PracticeSelection(
       topic: 'Patents',
-      jurisdiction: 'IPI',
+      jurisdiction: 'WIPO',
       level: 'Beginner',
       language: 'German',
     );
-    loadDisciplines('IPI');
+    loadDisciplines('WIPO');
   }
 }
 

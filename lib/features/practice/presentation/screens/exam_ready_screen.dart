@@ -267,7 +267,7 @@ class ExamReadyScreen extends ConsumerWidget {
                             context,
                             officeCode: jurisdiction,
                             officeName: jurisdiction,
-                            territory: 'Official IP Office',
+                            territory: 'IP Office',
                           );
                           return;
                         }
@@ -300,7 +300,7 @@ class ExamReadyScreen extends ConsumerWidget {
                                 context,
                                 officeCode: jurisdiction,
                                 officeName: jurisdiction,
-                                territory: 'Official IP Office',
+                                territory: 'IP Office',
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(

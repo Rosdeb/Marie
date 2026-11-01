@@ -152,7 +152,7 @@ class PlanUpsellBottomSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Access to official exam practice questions and comprehensive legal rationales requires an active subscription plan.',
+                  'All questions of this office, with explanations and legal basis, require and active subscription',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,

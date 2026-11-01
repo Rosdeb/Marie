@@ -35,51 +35,51 @@ class OnboardingScreen extends ConsumerWidget {
                 children: [
                   const Spacer(flex: 1),
 
-                  // Hero Illustration Section
-                  SizedBox(
-                    height: 240,
-                    width: 240,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Scribble background accent
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: CustomPaint(
-                            size: const Size(90, 90),
-                            painter: ScribblePainter(),
-                          ),
-                        ),
-                        // Circular avatar frame
-                        Container(
-                          width: 260,
-                          height: 260,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: AssetImage(
-                                "assets/image/splash_image.png",
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                  // IPro Logo Section
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset(
+                        'assets/image/app_icon.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
                   // Title Header
                   const Text(
-                    'The best way to study\nSign up for free',
+                    'IPro',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
-                      height: 1.25,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Trust your excellence',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 0.2,
                     ),
                   ),
 
