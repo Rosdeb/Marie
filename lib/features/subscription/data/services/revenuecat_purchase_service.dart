@@ -1,22 +1,36 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatPurchaseService {
-  static const bool isRcTest = bool.fromEnvironment('RC_TEST', defaultValue: true);
-  static const String testApiKey = String.fromEnvironment(
-    'RC_TEST_API_KEY',
-    defaultValue: 'test_FyhEeGsYzCAHcXnHaCOnIlQxNyg',
-  );
-  static const String appleApiKey = String.fromEnvironment(
-    'RC_APPLE_KEY',
-    defaultValue: 'appl_revenuecat_key',
-  );
-  static const String googleApiKey = String.fromEnvironment(
-    'RC_GOOGLE_KEY',
-    defaultValue: 'goog_revenuecat_key',
-  );
+  static bool get isRcTest {
+    final envVal = dotenv.env['RC_TEST'];
+    if (envVal != null) return envVal.toLowerCase() == 'true';
+    return const bool.fromEnvironment('RC_TEST', defaultValue: true);
+  }
+
+  static String get testApiKey =>
+      dotenv.env['RC_TEST_API_KEY'] ??
+      const String.fromEnvironment(
+        'RC_TEST_API_KEY',
+        defaultValue: 'test_FyhEeGsYzCAHcXnHaCOnIlQxNyg',
+      );
+
+  static String get appleApiKey =>
+      dotenv.env['RC_APPLE_KEY'] ??
+      const String.fromEnvironment(
+        'RC_APPLE_KEY',
+        defaultValue: 'appl_revenuecat_key',
+      );
+
+  static String get googleApiKey =>
+      dotenv.env['RC_GOOGLE_KEY'] ??
+      const String.fromEnvironment(
+        'RC_GOOGLE_KEY',
+        defaultValue: 'goog_revenuecat_key',
+      );
 
   bool _isConfigured = false;
   bool get isConfigured => _isConfigured;

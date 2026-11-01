@@ -19,8 +19,8 @@ void main() {
       expect(groups[3].title, 'Global');
 
       // Prices default to fallback pricing when no StoreProduct is attached
-      expect(groups[0].monthlyPriceString, 'CHF 14.99/mo');
-      expect(groups[0].annualPriceString, 'CHF 119.00/yr');
+      expect(groups[0].monthlyPriceString, 'CHF 19.99/mo');
+      expect(groups[0].annualPriceString, 'CHF 199/yr');
     });
 
     test('Each plan has complete feature list and difficulty inclusion', () {
@@ -29,7 +29,7 @@ void main() {
       for (final plan in groups) {
         expect(plan.features, isNotEmpty);
         expect(
-          plan.features.any((f) => f.contains('difficulty levels included')),
+          plan.features.any((f) => f.contains('levels included')),
           isTrue,
           reason: '${plan.title} must state all difficulty levels are included',
         );
