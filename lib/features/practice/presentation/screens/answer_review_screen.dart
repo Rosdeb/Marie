@@ -92,6 +92,19 @@ class AnswerReviewScreen extends ConsumerWidget {
                             context,
                             ref,
                             questionId: question.id,
+                            // On the review screen the answer is known, so
+                            // the report can carry it (F7). The option's text
+                            // rather than its position: an import can reorder
+                            // the options, and a letter would then point at a
+                            // different answer than the reader saw.
+                            chosenAnswer:
+                                userChoice != null &&
+                                    userChoice >= 0 &&
+                                    userChoice < question.options.length
+                                ? describeChosenOption(
+                                    question.options[userChoice],
+                                  )
+                                : null,
                           );
                         },
                         borderRadius: BorderRadius.circular(6),

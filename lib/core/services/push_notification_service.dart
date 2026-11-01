@@ -63,7 +63,7 @@ class PushNotificationService {
     );
     await notifications.show(
       id: (message.messageId?.hashCode ?? message.hashCode) & 0x7fffffff,
-      title: title ?? 'IPRO',
+      title: title ?? 'IPro',
       body: body ?? '',
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -275,7 +275,7 @@ class PushNotificationService {
 
     await _localNotifications.show(
       id: (message.messageId?.hashCode ?? message.hashCode) & 0x7fffffff,
-      title: title ?? 'IPRO',
+      title: title ?? 'IPro',
       body: body ?? '',
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(

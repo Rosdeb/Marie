@@ -32,12 +32,19 @@ class ApiConstants {
 
   // Common & Legal
   //
-  // Three separate documents, shown on three separate screens: Privacy
-  // Policy, Terms of Use and Legal Notice. They are not interchangeable and
-  // the app must never substitute one for another.
-  static const String privacyPolicy = '/common/privacy-policy';
-  static const String terms = '/common/terms';
-  static const String legalNotice = '/common/legal-notice';
+  // The three legal documents live on Marie's own Google Site, and the app
+  // opens those pages rather than carrying a copy. Her instruction of
+  // 31 October 2026:
+  //
+  //   "I would prefer the app to simply open my Google Site pages, using the
+  //    three links already in App Settings, and the copies to be removed.
+  //    That way there is only one version to update, and no risk of the app
+  //    showing an outdated text."
+  //
+  // So the app reads the addresses from here and never stores them: she can
+  // change a link in the dashboard and every phone follows at once, with no
+  // new release.
+  static const String publicAppSettings = '/settings/app/public';
   static const String about = '/common/about';
   static const String supportContact = '/common/support';
 

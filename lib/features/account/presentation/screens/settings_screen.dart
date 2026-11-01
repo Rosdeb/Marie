@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/legal_links_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
@@ -10,6 +11,10 @@ import '../providers/account_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  /// Said under a row that leaves the app for a published page, so the
+  /// browser opening is never a surprise.
+  static const String _opensExternallyNote = 'Opens the published page';
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -328,27 +333,16 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionHeader('Legal & Policies'),
             const SizedBox(height: 8),
 
-            // The three legal documents, each on its own screen and in the
-            // order they are published.
-            _buildSingleLineCard(
-              icon: Icons.privacy_tip_outlined,
-              title: 'Privacy Policy',
-              onTap: () => context.push('/privacy-policy'),
-            ),
-            const SizedBox(height: 10),
-
-            _buildSingleLineCard(
-              icon: Icons.description_outlined,
-              title: 'Terms of Use',
-              onTap: () => context.push('/terms-of-use'),
-            ),
-            const SizedBox(height: 10),
-
-            _buildSingleLineCard(
-              icon: Icons.gavel_outlined,
-              title: 'Legal Notice',
-              onTap: () => context.push('/legal-notice'),
-            ),
+            // The three published documents, opened on the site that
+            // publishes them.
+            //
+            // Marie, 31 October 2026: the app is to open her Google Site
+            // pages through the three links in App Settings, and to keep no
+            // copy of its own - "only one version to update, and no risk of
+            // the app showing an outdated text". A copy in the app was
+            // exactly that risk: she could correct her Privacy Policy and the
+            // app would quietly go on showing the old one.
+            ..._buildLegalCards(context, ref),
             const SizedBox(height: 24),
 
             // _buildSectionHeader('Account Actions'),
@@ -467,11 +461,87 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  /// The three legal rows, built from the links Marie maintains.
+  ///
+  /// While the links are loading the rows are shown but not tappable, so the
+  /// list does not jump about. If a link is missing the row says so rather
+  /// than opening nothing: a legal document the app cannot reach is worth
+  /// stating plainly.
+  List<Widget> _buildLegalCards(BuildContext context, WidgetRef ref) {
+    final links = ref.watch(legalLinksProvider);
+
+    final documents = <({IconData icon, String title, String Function(LegalLinks) url})>[
+      (
+        icon: Icons.privacy_tip_outlined,
+        title: 'Privacy Policy',
+        url: (l) => l.privacyPolicyUrl,
+      ),
+      (
+        icon: Icons.description_outlined,
+        title: 'Terms of Use',
+        url: (l) => l.termsOfUseUrl,
+      ),
+      (
+        icon: Icons.gavel_outlined,
+        title: 'Legal Notice',
+        url: (l) => l.legalNoticeUrl,
+      ),
+    ];
+
+    final rows = <Widget>[];
+
+    for (var i = 0; i < documents.length; i++) {
+      final doc = documents[i];
+      final url = links.maybeWhen(
+        data: (value) => doc.url(value),
+        orElse: () => '',
+      );
+      final loading = links.isLoading;
+
+      rows.add(
+        _buildSingleLineCard(
+          icon: doc.icon,
+          title: doc.title,
+          note: loading
+              ? 'Loading...'
+              : url.isEmpty
+                  ? 'Not published yet'
+                  : _opensExternallyNote,
+          onTap: url.isEmpty
+              ? null
+              : () async {
+                  final opened = await openLegalDocument(url);
+                  if (!opened && context.mounted) {
+                    FloatingErrorBar.show(
+                      context,
+                      message:
+                          'Could not open ${doc.title}. Please check your connection and try again.',
+                    );
+                  }
+                },
+        ),
+      );
+
+      if (i < documents.length - 1) rows.add(const SizedBox(height: 10));
+    }
+
+    return rows;
+  }
+
+  /// One row in the list.
+  ///
+  /// [onTap] is nullable so a row can be present but not yet usable - a legal
+  /// document whose address has not been filled in, for instance. The row then
+  /// greys out and explains itself in [note] instead of looking broken when
+  /// tapped.
   Widget _buildSingleLineCard({
     required IconData icon,
     required String title,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    String? note,
   }) {
+    final enabled = onTap != null;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -499,23 +569,50 @@ class SettingsScreen extends ConsumerWidget {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color: AppColors.primary, size: 20),
+                  child: Icon(
+                    icon,
+                    color: enabled
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: enabled
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      if (note != null && note.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          note,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
+                Icon(
+                  // An outward arrow where the row leaves the app, so nobody
+                  // is surprised by a browser opening.
+                  enabled && note == _opensExternallyNote
+                      ? Icons.open_in_new_rounded
+                      : Icons.arrow_forward_ios,
                   size: 14,
                   color: AppColors.textSecondary,
                 ),

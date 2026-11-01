@@ -193,6 +193,18 @@ class ActiveQuizScreen extends ConsumerWidget {
                           context,
                           ref,
                           questionId: question.id,
+                          // Whatever is selected at the moment of reporting
+                          // (F7). Null when nothing has been chosen yet,
+                          // which the dashboard shows as "not recorded"
+                          // rather than inventing a choice.
+                          chosenAnswer:
+                              selectedOption != null &&
+                                  selectedOption >= 0 &&
+                                  selectedOption < question.options.length
+                              ? describeChosenOption(
+                                  question.options[selectedOption],
+                                )
+                              : null,
                         );
                       },
                       borderRadius: BorderRadius.circular(6),

@@ -2,25 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/api_constants.dart';
 import '../network/api_client.dart';
+import '../../features/practice/data/models/quiz_models.dart';
 import '../storage/local_storage.dart';
 import '../theme/app_colors.dart';
 import 'floating_error_bar.dart';
 import 'floating_success_bar.dart';
+
+/// How a chosen option is written into a problem report (F7).
+///
+/// Both the letter the reader saw and the text of the option: the letter is
+/// what they would quote in their message, and the text is what survives a
+/// re-import that reorders the options. Either alone could mislead whoever
+/// reads the report weeks later.
+String describeChosenOption(QuestionOption option) {
+  final key = option.key.trim();
+  final text = option.text.trim();
+
+  if (key.isEmpty) return text;
+  if (text.isEmpty) return key;
+  return '$key. $text';
+}
 
 Future<Map<String, dynamic>> submitQuestionReport({
   required ApiClient apiClient,
   required String questionId,
   required String message,
   String? reporterEmail,
+  String? chosenAnswer,
   String? authToken,
 }) async {
   final hasToken = authToken != null && authToken.isNotEmpty;
   final email = reporterEmail?.trim() ?? '';
+  final chosen = chosenAnswer?.trim() ?? '';
 
   final body = <String, dynamic>{
     'questionId': questionId,
     'message': message,
     if (!hasToken && email.isNotEmpty) 'reporterEmail': email,
+    // The option the reader had selected, so the report can be judged against
+    // it (Marie's F7). Sent as the option's own text, not its letter: an
+    // import may reorder the options and "B" would then mean something else.
+    // Omitted when the question was reported before answering.
+    if (chosen.isNotEmpty) 'chosenAnswer': chosen,
   };
 
   final response = await apiClient.post(
@@ -37,6 +60,11 @@ class QuestionReportBottomSheet {
     BuildContext context,
     WidgetRef ref, {
     required String questionId,
+    /// The option the reader had selected, when the sheet is opened from a
+    /// screen where they had already answered. It travels with the report so
+    /// that Marie sees the claim and the answer together (F7). Null from the
+    /// question screen, where nothing has been answered yet.
+    String? chosenAnswer,
   }) async {
     final token = await ref.read(localStorageProvider).getAccessToken();
     final isAuthenticated = token != null && token.isNotEmpty;
@@ -396,6 +424,7 @@ class QuestionReportBottomSheet {
                                           message: msg,
                                           reporterEmail: emailController.text
                                               .trim(),
+                                          chosenAnswer: chosenAnswer,
                                           authToken: token,
                                         );
 
