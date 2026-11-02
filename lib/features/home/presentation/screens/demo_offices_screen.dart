@@ -366,7 +366,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${d.name} (${d.questions})',
+                    '${d.displayName} (${d.questions})',
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -439,7 +439,7 @@ class _DemoOfficesScreenState extends ConsumerState<DemoOfficesScreen> {
       questions: 20,
       minutes: 20,
       subdiscipline: office.disciplines.isNotEmpty
-          ? office.disciplines.map((d) => d.name).join(', ')
+          ? office.disciplines.map((d) => d.displayName).join(', ')
           : 'IP Law Essentials',
       level: 'All Levels',
     );

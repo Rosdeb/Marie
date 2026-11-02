@@ -88,7 +88,12 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                       itemCount: disciplines.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
+                        // The key that is stored and sent back, kept apart
+                        // from the wording shown: a sheet called
+                        // UnitaryPatent reads "Unitary Patent" on screen but
+                        // must still be looked up under its own name.
                         final item = disciplines[index].name;
+                        final itemLabel = disciplines[index].displayName;
                         final isSelected = item == selectedSubdiscipline;
 
                         return Container(
@@ -138,7 +143,7 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          item,
+                                          itemLabel,
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 15,

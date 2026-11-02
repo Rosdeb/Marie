@@ -334,7 +334,9 @@ class SharePreviewModel {
       legacyPreviewDomain ??
       Uri.tryParse(referral.url)?.host ??
       'ipro-law.com';
-  String get bannerTag => legacyBannerTag ?? 'LINKEDIN EXCLUSIVE';
+  // Neutral wording, never anything that reads as LinkedIn's own offer
+  // (Marie, 1 November 2026, LinkedIn brand guidelines).
+  String get bannerTag => legacyBannerTag ?? 'SHARE & SAVE';
   String get bannerDiscountTag => '${reward.discountPercentage}% OFF';
   String get bannerTitle =>
       legacyBannerTitle ??
