@@ -35,10 +35,9 @@ class _ChooseJurisdictionScreenState
     final selection = ref.read(practiceProvider);
     final entitlement = ref.read(entitlementProvider);
 
-    // Preselect user's selected office (Focus/Track) or first included office, or WIPO
+    // Preselect user's selected office (Focus/Track) or first included office
     if (selection.jurisdiction == null ||
-        (!entitlement.canAccessOffice(selection.jurisdiction!) &&
-            entitlement.includedOffices.isNotEmpty)) {
+        !entitlement.canAccessOffice(selection.jurisdiction!)) {
       if (entitlement.selectedOffices.isNotEmpty &&
           entitlement.canAccessOffice(entitlement.selectedOffices.first)) {
         ref
@@ -48,10 +47,6 @@ class _ChooseJurisdictionScreenState
         ref
             .read(practiceProvider.notifier)
             .setJurisdiction(entitlement.includedOffices.first);
-      } else {
-        ref
-            .read(practiceProvider.notifier)
-            .setJurisdiction('WIPO');
       }
     }
   }
@@ -62,19 +57,26 @@ class _ChooseJurisdictionScreenState
     final entitlement = ref.watch(entitlementProvider);
     final officesState = ref.watch(officesProvider);
 
-    // Fallback list of 15 standard offices if remote catalogue is still loading
-    final allOffices = officesState.offices.isNotEmpty
-        ? officesState.offices
-        : _standardOffices;
+    /*
+     * The catalogue, and nothing else. A written-in list of fifteen offices
+     * used to stand in while the real one loaded: it marked every office
+     * available, so an office with no content read as ready to practise
+     * until the real answer arrived and quietly replaced it.
+     */
+    final allOffices = officesState.offices;
 
-    final internationalOffices =
-        allOffices.where((o) => o.type.toLowerCase() == 'international').toList();
-    final regionalOffices =
-        allOffices.where((o) => o.type.toLowerCase() == 'regional').toList();
-    final nationalOffices =
-        allOffices.where((o) => o.type.toLowerCase() == 'national').toList();
+    final internationalOffices = allOffices
+        .where((o) => o.type.toLowerCase() == 'international')
+        .toList();
+    final regionalOffices = allOffices
+        .where((o) => o.type.toLowerCase() == 'regional')
+        .toList();
+    final nationalOffices = allOffices
+        .where((o) => o.type.toLowerCase() == 'national')
+        .toList();
 
-    final isSelectedJurisdictionEntitled = selection.jurisdiction != null &&
+    final isSelectedJurisdictionEntitled =
+        selection.jurisdiction != null &&
         entitlement.canAccessOffice(selection.jurisdiction!);
 
     return Scaffold(
@@ -116,9 +118,12 @@ class _ChooseJurisdictionScreenState
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics()),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 12.0,
+                ),
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -139,7 +144,9 @@ class _ChooseJurisdictionScreenState
                       if (entitlement.isActive)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -155,63 +162,109 @@ class _ChooseJurisdictionScreenState
                         ),
                     ],
                   ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Select an IP office to practice.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Select an IP office to practice official exam-level questions.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // 1. International Systems
-                if (internationalOffices.isNotEmpty) ...[
-                  _buildSectionHeader('International Systems'),
-                  const SizedBox(height: 10),
-                  ...internationalOffices.map((office) => _buildOfficeCard(
+                  // Nothing stands in for the catalogue any more, so the two
+                  // states it can be in before it arrives have to be shown.
+                  if (allOffices.isEmpty && officesState.isLoading) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ] else if (allOffices.isEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.cloud_off_rounded,
+                            size: 36,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            officesState.errorMessage?.isNotEmpty == true
+                                ? officesState.errorMessage!
+                                : 'The office list could not be loaded. Pull down to try again.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // 1. International Systems
+                  if (internationalOffices.isNotEmpty) ...[
+                    _buildSectionHeader('International Systems'),
+                    const SizedBox(height: 10),
+                    ...internationalOffices.map(
+                      (office) => _buildOfficeCard(
                         context: context,
                         office: office,
                         isSelected: selection.jurisdiction == office.code,
                         entitlement: entitlement,
-                      )),
-                  const SizedBox(height: 16),
-                ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
-                // 2. Regional Systems
-                if (regionalOffices.isNotEmpty) ...[
-                  _buildSectionHeader('Regional Systems'),
-                  const SizedBox(height: 10),
-                  ...regionalOffices.map((office) => _buildOfficeCard(
+                  // 2. Regional Systems
+                  if (regionalOffices.isNotEmpty) ...[
+                    _buildSectionHeader('Regional Systems'),
+                    const SizedBox(height: 10),
+                    ...regionalOffices.map(
+                      (office) => _buildOfficeCard(
                         context: context,
                         office: office,
                         isSelected: selection.jurisdiction == office.code,
                         entitlement: entitlement,
-                      )),
-                  const SizedBox(height: 16),
-                ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
-                // 3. National Systems
-                if (nationalOffices.isNotEmpty) ...[
-                  _buildSectionHeader('National Offices'),
-                  const SizedBox(height: 10),
-                  ...nationalOffices.map((office) => _buildOfficeCard(
+                  // 3. National Systems
+                  if (nationalOffices.isNotEmpty) ...[
+                    _buildSectionHeader('National Offices'),
+                    const SizedBox(height: 10),
+                    ...nationalOffices.map(
+                      (office) => _buildOfficeCard(
                         context: context,
                         office: office,
                         isSelected: selection.jurisdiction == office.code,
                         entitlement: entitlement,
-                      )),
-                  const SizedBox(height: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
 
           // Bottom Continue Action
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -228,8 +281,8 @@ class _ChooseJurisdictionScreenState
                   text: isSelectedJurisdictionEntitled
                       ? 'Continue'
                       : (selection.jurisdiction != null
-                          ? 'Unlock ${_formatOfficeName(selection.jurisdiction!, selection.jurisdiction!)}'
-                          : 'Select an Office'),
+                            ? 'Unlock ${selection.jurisdiction}'
+                            : 'Select an Office'),
                   onPressed: selection.jurisdiction != null
                       ? () {
                           final selectedCode = selection.jurisdiction!;
@@ -240,7 +293,7 @@ class _ChooseJurisdictionScreenState
                               (o) => o.code == selectedCode,
                               orElse: () => OfficeEntity(
                                 code: selectedCode,
-                                name: _formatOfficeName(selectedCode, selectedCode),
+                                name: selectedCode,
                                 territory: '',
                                 type: 'national',
                                 disciplines: const [],
@@ -254,7 +307,7 @@ class _ChooseJurisdictionScreenState
                             PlanUpsellBottomSheet.show(
                               context,
                               officeCode: targetOffice.code,
-                              officeName: _formatOfficeName(targetOffice.code, targetOffice.name),
+                              officeName: targetOffice.name,
                               territory: targetOffice.territory,
                             );
                           }
@@ -288,16 +341,48 @@ class _ChooseJurisdictionScreenState
     required EntitlementEntity entitlement,
   }) {
     final canAccess = entitlement.canAccessOffice(office.code);
-    final fullName = _formatOfficeName(office.code, office.name);
-    final disciplineNames = _getStandardDisciplines(office.code);
+    final fullName = office.fullName.isNotEmpty
+        ? office.fullName
+        : (office.name.isNotEmpty ? office.name : office.code);
+
+    /*
+     * Marie, 1 November 2026:
+     *   "These choices should be read from the imported workbooks, never
+     *    from a fixed list."
+     *
+     * There used to be a written-in list here: every office with its
+     * disciplines, and Patents/Trademarks/Designs for anything it did not
+     * cover. That is what showed trade marks and designs under the EPO,
+     * whose workbook has patents only, and three court instances under the
+     * UPC, which are not its streams at all. The counts lied the same way -
+     * an office with nothing imported still read "12 sheets, 2400
+     * questions".
+     *
+     * The server derives all of it from the imported sheets, in the order of
+     * the tabs in her file. An office with no content now says so, which is
+     * also what she asked for: "combinations with no questions must not be
+     * offered."
+     */
+    final displayDisciplines = office.disciplines
+        .map(
+          (d) => _DisciplineInfo(
+            name: d.displayName,
+            levels: '4 levels',
+            questions: d.questions > 0 ? d.questions : null,
+          ),
+        )
+        .toList();
+
+    final totalSheets = office.sheets;
+    final totalQuestions = office.questions;
 
     final statusText = canAccess
         ? (entitlement.planId != PlanTier.none
-            ? 'Included with your ${entitlement.planId.displayName} plan'
-            : 'Access granted')
+              ? 'Included with your ${entitlement.planId.displayName} plan'
+              : 'Access granted')
         : (entitlement.isActive
-            ? 'Not included with your current ${entitlement.planId.displayName} plan'
-            : 'Subscription required to access');
+              ? 'Not included with your current ${entitlement.planId.displayName} plan'
+              : 'Subscription required to access');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -324,6 +409,14 @@ class _ChooseJurisdictionScreenState
           borderRadius: BorderRadius.circular(20),
           onTap: () {
             ref.read(practiceProvider.notifier).setJurisdiction(office.code);
+            if (!canAccess) {
+              PlanUpsellBottomSheet.show(
+                context,
+                officeCode: office.code,
+                officeName: fullName,
+                territory: office.territory,
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -335,13 +428,16 @@ class _ChooseJurisdictionScreenState
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.primary
                             : (canAccess
-                                ? AppColors.primaryLight
-                                : const Color(0xFFF1F5F9)),
+                                  ? AppColors.primaryLight
+                                  : const Color(0xFFF1F5F9)),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -352,19 +448,25 @@ class _ChooseJurisdictionScreenState
                           color: isSelected
                               ? Colors.white
                               : (canAccess
-                                  ? AppColors.primary
-                                  : const Color(0xFF64748B)),
+                                    ? AppColors.primary
+                                    : const Color(0xFF64748B)),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     if (office.territory.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+                          border: Border.all(
+                            color: const Color(0xFFE2E8F0),
+                            width: 0.8,
+                          ),
                         ),
                         child: Text(
                           office.territory,
@@ -390,16 +492,26 @@ class _ChooseJurisdictionScreenState
                       )
                     else
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEF2F2),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFFECACA), width: 0.8),
+                          border: Border.all(
+                            color: const Color(0xFFFECACA),
+                            width: 0.8,
+                          ),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.lock_rounded, size: 12, color: Color(0xFFDC2626)),
+                            Icon(
+                              Icons.lock_rounded,
+                              size: 12,
+                              color: Color(0xFFDC2626),
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Locked',
@@ -416,9 +528,9 @@ class _ChooseJurisdictionScreenState
                 ),
                 const SizedBox(height: 12),
 
-                // Office Header & Full Name
+                // Office Code Header & Full Name
                 Text(
-                  fullName,
+                  office.code,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -426,11 +538,24 @@ class _ChooseJurisdictionScreenState
                     letterSpacing: -0.3,
                   ),
                 ),
+                const SizedBox(height: 3),
+                Text(
+                  fullName,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                    height: 1.35,
+                  ),
+                ),
                 const SizedBox(height: 10),
 
                 // Plan Access Status Banner
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: canAccess
                         ? const Color(0xFFECFDF5)
@@ -485,7 +610,23 @@ class _ChooseJurisdictionScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ...disciplineNames.map((name) {
+                      // Nothing imported for this office yet. Saying so is
+                      // the honest answer; the old code invented three
+                      // disciplines and a question count instead.
+                      if (displayDisciplines.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            'No questions have been published for this office yet.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ...displayDisciplines.map((item) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
@@ -504,7 +645,7 @@ class _ChooseJurisdictionScreenState
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        name,
+                                        item.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -520,16 +661,20 @@ class _ChooseJurisdictionScreenState
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                      color: const Color(0xFFE2E8F0), width: 0.8),
+                                    color: const Color(0xFFE2E8F0),
+                                    width: 0.8,
+                                  ),
                                 ),
-                                child: const Text(
-                                  '4 levels',
-                                  style: TextStyle(
+                                child: Text(
+                                  item.levels,
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
@@ -544,59 +689,87 @@ class _ChooseJurisdictionScreenState
                   ),
                 ),
 
-                if (office.questions > 0) ...[
-                  const SizedBox(height: 12),
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Total questions: ${_formatNumber(office.questions)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    ),
+                /*
+                 * A sentence per office used to sit here - "WIPO access
+                 * includes PCT, Madrid, and Hague", "UK Patents Act 1977,
+                 * Trade Marks Act 1994..." - written into the app. Every one
+                 * of them described content that had not been delivered, and
+                 * the disciplines listed above already say what an office
+                 * holds, from the workbook itself.
+                 */
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 12),
+
+                // Footer stats: Total sheets & Total questions. Nothing
+                // imported means nothing to count, and "0 sheets, 0
+                // questions" says less than the line above it already does.
+                if (totalQuestions > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Total sheets: ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Flexible(
+                              child: Text(
+                                '$totalSheets sheets',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'Total questions: ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Flexible(
+                              child: Text(
+                                '${_formatNumber(totalQuestions)} questions',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  static String _formatOfficeName(String code, String rawName) {
-    final upper = code.toUpperCase().trim();
-    if (upper == 'IPAU') return 'IP Australia';
-    if (upper == 'INDIA' || upper == 'IPO INDIA') return 'IPO India';
-    if (upper == 'INPI') return 'INPI';
-    if (upper == 'UKIPO') return 'UKIPO';
-    if (upper == 'USPTO') return 'USPTO';
-    if (upper == 'EPO') return 'EPO';
-    if (upper == 'EUIPO') return 'EUIPO';
-    if (upper == 'WIPO') return 'WIPO';
-    if (upper == 'UPC') return 'UPC';
-    if (upper == 'IPI') return 'IPI';
-    if (upper == 'DPMA') return 'DPMA';
-    if (upper == 'JPO') return 'JPO';
-    if (upper == 'CNIPA') return 'CNIPA';
-    if (upper == 'CIPO') return 'CIPO';
-    if (upper == 'KIPO') return 'KIPO';
-    if (rawName.isNotEmpty && rawName != code) {
-      return rawName;
-    }
-    return code;
-  }
-
-  static List<String> _getStandardDisciplines(String officeCode) {
-    final code = officeCode.toUpperCase().trim();
-    if (code == 'WIPO') {
-      return const ['PCT', 'Madrid', 'Hague'];
-    }
-    if (code == 'UPC') {
-      return const ['Court of First Instance', 'Court of Appeal', 'Mediation & Arbitration'];
-    }
-    return const ['Patents', 'Trademarks', 'Designs'];
   }
 
   static String _formatNumber(int n) {
@@ -613,186 +786,15 @@ class _ChooseJurisdictionScreenState
   }
 }
 
-// Fallback office list of 15 IP offices when remote catalogue is loading
-const List<OfficeEntity> _standardOffices = [
-  OfficeEntity(
-    code: 'WIPO',
-    name: 'WIPO',
-    territory: 'International (PCT, Madrid, Hague)',
-    type: 'international',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'EPO',
-    name: 'European Patent Office',
-    territory: 'Europe',
-    type: 'regional',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'EUIPO',
-    name: 'European Union IP Office',
-    territory: 'European Union',
-    type: 'regional',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'UPC',
-    name: 'Unified Patent Court',
-    territory: 'Europe',
-    type: 'regional',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'USPTO',
-    name: 'United States Patent & Trademark Office',
-    territory: 'United States',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'UKIPO',
-    name: 'UK Intellectual Property Office',
-    territory: 'United Kingdom',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'JPO',
-    name: 'Japan Patent Office',
-    territory: 'Japan',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'CNIPA',
-    name: 'China National IP Administration',
-    territory: 'China',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'KIPO',
-    name: 'Korean Intellectual Property Office',
-    territory: 'South Korea',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'INDIA',
-    name: 'IPO India',
-    territory: 'India',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'INPI',
-    name: 'National Institute of Industrial Property',
-    territory: 'France',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'IPI',
-    name: 'Swiss Federal Institute of IP',
-    territory: 'Switzerland',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'DPMA',
-    name: 'German Patent and Trade Mark Office',
-    territory: 'Germany',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'IPAU',
-    name: 'IP Australia',
-    territory: 'Australia',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-  OfficeEntity(
-    code: 'CIPO',
-    name: 'Canadian Intellectual Property Office',
-    territory: 'Canada',
-    type: 'national',
-    disciplines: [],
-    sheets: 0,
-    questions: 0,
-    levels: [],
-    hasAccess: false,
-    isAvailable: true,
-  ),
-];
+/// One line in the card's discipline box, built from what the server sent.
+class _DisciplineInfo {
+  final String name;
+  final String levels;
+  final int? questions;
+
+  const _DisciplineInfo({
+    required this.name,
+    this.levels = '4 levels',
+    this.questions,
+  });
+}

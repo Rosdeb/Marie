@@ -26,7 +26,16 @@ class Question {
   final int number;
   final String progress;
   final String office;
+  /// The key the question is stored under; matched on, never displayed raw.
   final String discipline;
+
+  /// The same discipline written for a reader, for the header above the
+  /// question. Empty on an older server, where the key is used instead.
+  final String disciplineLabel;
+
+  /// What the header shows.
+  String get displayDiscipline =>
+      disciplineLabel.isNotEmpty ? disciplineLabel : discipline;
   final String level;
   final String theme;
   final String questionText;
@@ -44,6 +53,7 @@ class Question {
     this.progress = '',
     this.office = '',
     this.discipline = '',
+    this.disciplineLabel = '',
     this.level = '',
     this.theme = '',
     required this.questionText,
@@ -76,6 +86,7 @@ class Question {
       progress: json['progress'] as String? ?? '',
       office: json['office'] as String? ?? '',
       discipline: json['discipline'] as String? ?? '',
+      disciplineLabel: json['disciplineLabel'] as String? ?? '',
       level: json['level'] as String? ?? '',
       theme: json['theme'] as String? ?? '',
       questionText: json['questionText'] as String? ?? json['question'] as String? ?? '',

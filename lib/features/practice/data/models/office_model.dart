@@ -3,12 +3,14 @@ import '../../domain/entities/office_entity.dart';
 class OfficeDisciplineModel extends OfficeDisciplineEntity {
   const OfficeDisciplineModel({
     required super.name,
+    super.label,
     required super.questions,
   });
 
   factory OfficeDisciplineModel.fromJson(Map<String, dynamic> json) {
     return OfficeDisciplineModel(
       name: json['name'] as String? ?? '',
+      label: json['label'] as String? ?? '',
       questions: (json['questions'] as num?)?.toInt() ?? 0,
     );
   }
@@ -16,6 +18,7 @@ class OfficeDisciplineModel extends OfficeDisciplineEntity {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
+      'label': label,
       'questions': questions,
     };
   }
@@ -25,6 +28,7 @@ class OfficeModel extends OfficeEntity {
   const OfficeModel({
     required super.code,
     required super.name,
+    super.fullName,
     required super.territory,
     required super.type,
     required super.disciplines,
@@ -47,6 +51,7 @@ class OfficeModel extends OfficeEntity {
     return OfficeModel(
       code: json['code'] as String? ?? '',
       name: json['name'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? '',
       territory: json['territory'] as String? ?? '',
       type: json['type'] as String? ?? '',
       disciplines: disciplines,
@@ -62,6 +67,7 @@ class OfficeModel extends OfficeEntity {
     return {
       'code': code,
       'name': name,
+      'fullName': fullName,
       'territory': territory,
       'type': type,
       'disciplines': disciplines

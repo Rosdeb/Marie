@@ -15,10 +15,6 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
     final jurisdiction = selection.jurisdiction ?? 'IPI';
     final disciplines = selection.disciplines;
 
-    final effectiveDisciplines = disciplines.isNotEmpty
-        ? disciplines.map((d) => d.name).toList()
-        : const ['Patents', 'Trademarks', 'Designs'];
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -71,13 +67,34 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: effectiveDisciplines.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final item = effectiveDisciplines[index];
-                  final isSelected = item == selectedSubdiscipline;
+              child: selection.isLoadingDisciplines
+                  ? const Center(child: CircularProgressIndicator())
+                  : disciplines.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Text(
+                          selection.errorMessage ??
+                              'No disciplines are available for this office yet.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: disciplines.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        // The key that is stored and sent back, kept apart
+                        // from the wording shown: a sheet called
+                        // UnitaryPatent reads "Unitary Patent" on screen but
+                        // must still be looked up under its own name.
+                        final item = disciplines[index].name;
+                        final itemLabel = disciplines[index].displayName;
+                        final isSelected = item == selectedSubdiscipline;
 
                         return Container(
                           decoration: BoxDecoration(
@@ -126,7 +143,7 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          item,
+                                          itemLabel,
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 15,
@@ -137,7 +154,7 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Full syllabus & practice questions',
+                                          'Full syllabus & official questions',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Colors.grey.shade600,

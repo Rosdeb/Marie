@@ -33,20 +33,28 @@ class LevelDetailModel {
 }
 
 class DisciplineDetailModel {
+  /// The key the questions are stored under; sent back, never displayed.
   final String name;
+
+  /// How the server writes it for a reader. Empty on an older server.
+  final String label;
   final int questions;
   final List<LevelDetailModel> levels;
 
   const DisciplineDetailModel({
     required this.name,
+    this.label = '',
     this.questions = 0,
     this.levels = const [],
   });
+
+  String get displayName => label.isNotEmpty ? label : name;
 
   factory DisciplineDetailModel.fromJson(Map<String, dynamic> json) {
     final rawLevels = json['levels'] as List<dynamic>? ?? [];
     return DisciplineDetailModel(
       name: json['name'] as String? ?? '',
+      label: json['label'] as String? ?? '',
       questions: (json['questions'] as num?)?.toInt() ?? 0,
       levels: rawLevels
           .map((l) => LevelDetailModel.fromJson(l as Map<String, dynamic>))
@@ -56,6 +64,7 @@ class DisciplineDetailModel {
 
   Map<String, dynamic> toJson() => {
     'name': name,
+    'label': label,
     'questions': questions,
     'levels': levels.map((l) => l.toJson()).toList(),
   };

@@ -144,7 +144,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          question.discipline,
+                          question.displayDiscipline,
                           style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 10,

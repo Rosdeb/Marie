@@ -33,7 +33,21 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 2. LinkedIn Exclusive Referral Banner
+                    /*
+                     * 2. Referral banner.
+                     *
+                     * Marie, 1 November 2026:
+                     *   "Replace the badge 'LINKEDIN EXCLUSIVE' with a
+                     *    neutral wording: 'SHARE & SAVE'. LinkedIn's brand
+                     *    rules do not allow anything that suggests a
+                     *    partnership with LinkedIn or its endorsement."
+                     *
+                     * The discount is hers, not LinkedIn's. The badge said
+                     * otherwise and wore LinkedIn's own blue while saying
+                     * it, so both the wording and the colour had to go.
+                     * Offering the share itself is allowed, and the button
+                     * below still reads "Share on LinkedIn".
+                     */
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20.0),
@@ -62,12 +76,12 @@ class HomeScreen extends ConsumerWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0077B5),
-                                  // LinkedIn Blue
+                                  // IPro's own blue, not LinkedIn's 0xFF0077B5.
+                                  color: AppColors.primary,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
-                                  'LINKEDIN EXCLUSIVE',
+                                  'SHARE & SAVE',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 9,
