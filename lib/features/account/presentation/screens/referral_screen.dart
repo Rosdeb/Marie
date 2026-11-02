@@ -65,9 +65,12 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     final profile = ref.watch(accountProvider);
     final referralState = ref.watch(referralProvider);
 
+    // Empty when the account has no code yet, which is said plainly below
+    // rather than filled with an invented one.
     final displayCode = referralState.sharePreview.referralCode.isNotEmpty
         ? referralState.sharePreview.referralCode
-        : (profile.referralCode.isNotEmpty ? profile.referralCode : 'IPRO-VIP');
+        : profile.referralCode;
+    final hasCode = displayCode.isNotEmpty;
 
     final activePromo = referralState.activePromoCode ??
         referralState.status.promoCode;
@@ -248,16 +251,21 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              displayCode,
-                              style: const TextStyle(
-                                fontSize: 18,
+                              hasCode ? displayCode : 'Not issued yet',
+                              style: TextStyle(
+                                fontSize: hasCode ? 18 : 15,
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 1.5,
-                                color: AppColors.primary,
+                                letterSpacing: hasCode ? 1.5 : 0,
+                                color: hasCode
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
                               ),
                             ),
                             InkWell(
-                              onTap: () {
+                              // Nothing to copy until a code exists.
+                              onTap: !hasCode
+                                  ? null
+                                  : () {
                                 Clipboard.setData(
                                   ClipboardData(text: displayCode),
                                 );

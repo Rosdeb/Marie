@@ -16,7 +16,6 @@ import '../../features/account/presentation/screens/edit_profile_screen.dart';
 import '../../features/account/presentation/screens/referral_screen.dart';
 import '../../features/account/presentation/screens/settings_screen.dart';
 import '../../features/account/presentation/screens/change_password_screen.dart';
-import '../../features/account/presentation/screens/legal_content_screen.dart';
 import '../../features/account/presentation/screens/support_report_screen.dart';
 import '../../features/home/presentation/screens/demo_config_screen.dart';
 import '../../features/home/presentation/screens/demo_offices_screen.dart';
@@ -185,27 +184,12 @@ class AppRouter {
         name: 'changePassword',
         builder: (context, state) => const ChangePasswordScreen(),
       ),
-      GoRoute(
-        path: '/privacy-policy',
-        name: 'privacyPolicy',
-        builder: (context, state) =>
-            const LegalContentScreen(type: LegalType.privacyPolicy),
-      ),
-      GoRoute(
-        path: '/legal-notice',
-        name: 'legalNotice',
-        builder: (context, state) =>
-            const LegalContentScreen(type: LegalType.legalNotice),
-      ),
-      // Terms of Use. It was routed as "eula" and served the same document as
-      // the Legal Notice; they are three separate texts on three separate
-      // screens.
-      GoRoute(
-        path: '/terms-of-use',
-        name: 'termsOfUse',
-        builder: (context, state) =>
-            const LegalContentScreen(type: LegalType.termsOfUse),
-      ),
+      // The Privacy Policy, Terms of Use and Legal Notice have no routes any
+      // more. They are published on Marie's Google Site and the app opens
+      // those pages (see core/services/legal_links_service.dart). A route
+      // here would mean a screen, and a screen would mean a copy - which is
+      // precisely what she asked us to remove on 31 October 2026, so that
+      // there is only ever one version of each text.
       GoRoute(
         path: '/support',
         name: 'support',

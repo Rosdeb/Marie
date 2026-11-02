@@ -112,7 +112,12 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
   }
 
   void _showRewardClaimedDialog(String? code) {
-    final promoCode = code ?? 'IPRO-10-OFF';
+    // The server issues the code. When it has not yet, the dialog says so
+    // instead of showing an invented one: a promo code is something the
+    // person copies into a store checkout, and a made-up one simply fails
+    // there.
+    final promoCode = code?.trim() ?? '';
+    final hasCode = promoCode.isNotEmpty;
 
     showDialog(
       context: context,
@@ -140,9 +145,13 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Thank you for sharing IPro on LinkedIn! Here is your exclusive 10% discount promo code for checkout:',
-                style: TextStyle(
+              Text(
+                hasCode
+                    ? 'Thank you for sharing IPro on LinkedIn! Here is your '
+                        '10% discount code for checkout:'
+                    : 'Thank you for sharing IPro on LinkedIn! Your 10% '
+                        'discount code is being issued.',
+                style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
                   height: 1.4,
@@ -160,29 +169,38 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      promoCode,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                        color: AppColors.primaryDeep,
+                    Expanded(
+                      child: Text(
+                        hasCode
+                            ? promoCode
+                            : 'Open Referrals in a moment to find it.',
+                        style: TextStyle(
+                          fontSize: hasCode ? 16 : 13,
+                          fontWeight:
+                              hasCode ? FontWeight.w800 : FontWeight.w500,
+                          letterSpacing: hasCode ? 1.0 : 0,
+                          color: hasCode
+                              ? AppColors.primaryDeep
+                              : AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.copy_rounded,
-                        size: 18,
-                        color: AppColors.primary,
+                    // No copy button with nothing to copy.
+                    if (hasCode)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.copy_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: promoCode));
+                          FloatingSuccessBar.show(
+                            context,
+                            message: 'Promo code copied to clipboard!',
+                          );
+                        },
                       ),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: promoCode));
-                        FloatingSuccessBar.show(
-                          context,
-                          message: 'Promo code copied to clipboard!',
-                        );
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -471,6 +489,20 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                           preview.sharePreview.shareHint,
                                           style: const TextStyle(
                                             fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        // Which period the discount comes off.
+                                        // The stores cannot reduce a running
+                                        // subscription, so saying so here is
+                                        // the difference between an offer and
+                                        // a promise we cannot keep.
+                                        Text(
+                                          preview.discountTerms,
+                                          style: const TextStyle(
+                                            fontSize: 11,
                                             color: AppColors.textSecondary,
                                             height: 1.35,
                                           ),

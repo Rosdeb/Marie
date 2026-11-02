@@ -38,11 +38,21 @@ class RewardInfo {
   final bool oneTimePerUser;
   final String appliesTo;
 
+  /// Which period the discount comes off, in one sentence, as the dashboard
+  /// shows it. Neither store can reduce a subscription that is already
+  /// running, so the first paid period is the only shape it can take.
+  final String termsNote;
+
   const RewardInfo({
     this.discountPercentage = 10,
-    this.validityDays = 30,
+    // No expiry, which is what the codes are set to. Thirty days was the old
+    // default and would have been shown on a code that never expires.
+    this.validityDays = 0,
     this.oneTimePerUser = true,
     this.appliesTo = 'standard IPro plans',
+    this.termsNote =
+        'Applies to the first paid period only - the first month on a monthly '
+        'plan, the first year on a yearly plan. One discount per user.',
   });
 
   factory RewardInfo.fromJson(
@@ -54,18 +64,24 @@ class RewardInfo {
         10;
     final validity = (json?['validityDays'] as num?)?.toInt() ??
         (rootJson?['validityDays'] as num?)?.toInt() ??
-        30;
+        0;
     final oneTime = json?['oneTimePerUser'] as bool? ??
         rootJson?['oneTimePerUser'] as bool? ??
         true;
     final applies = json?['appliesTo'] as String? ??
         rootJson?['appliesTo'] as String? ??
         'standard IPro plans';
+    final terms = (json?['termsNote'] as String?)?.trim().isNotEmpty == true
+        ? json!['termsNote'] as String
+        : (rootJson?['termsNote'] as String?)?.trim().isNotEmpty == true
+            ? rootJson!['termsNote'] as String
+            : null;
     return RewardInfo(
       discountPercentage: discount,
       validityDays: validity,
       oneTimePerUser: oneTime,
       appliesTo: applies,
+      termsNote: terms ?? const RewardInfo().termsNote,
     );
   }
 }
@@ -307,6 +323,7 @@ class SharePreviewModel {
   String get referralCode => referral.code;
   int get discountPercentage => reward.discountPercentage;
   int get validityDays => reward.validityDays;
+  String get discountTerms => reward.termsNote;
   String get buttonText => sharePreview.primaryButtonText;
   String? get previewImageUrl => video.thumbnailUrl;
   // "Trust your excellence" is the only slogan IPro uses.
@@ -323,7 +340,8 @@ class SharePreviewModel {
       'Share IPro & Get ${reward.discountPercentage}% Off Your Plan';
   String get bannerDescription =>
       legacyBannerDescription ??
-      'Invite your LinkedIn network to level up their IP law practice and unlock exclusive savings on premium access.';
+      'Share IPro on LinkedIn and your discount is unlocked straight away. '
+          'Nobody else has to sign up.';
 }
 
 class LinkedInStatusModel {
