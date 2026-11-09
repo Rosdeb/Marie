@@ -130,7 +130,7 @@ class PracticeScreen extends ConsumerWidget {
                           const Divider(height: 1, color: Color(0xFFE2E8F0)),
                           const SizedBox(height: 10),
                           const Text(
-                            'Choose a discipline and practice difficulty. All available questions and official exams are included with your selected office.',
+                            'Choose a discipline and a level. Every question of your selected office is included.',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -220,11 +220,16 @@ class PracticeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 10),
                           _buildContentBullet(
-                            '5,500+ official IP exams, mock tests & quizzes',
+                            // Marie, 3 November 2026, point 6.2. "5,500+" was
+                            // invented, and "official exams", "mock tests" and
+                            // "precedent rationales" are the exact words her
+                            // Terms of Use rule out: IPro reproduces no
+                            // official exam question.
+                            'Exam-style questions in four levels',
                           ),
                           const SizedBox(height: 6),
                           _buildContentBullet(
-                            'Detailed legal explanations & precedent rationales',
+                            'Explanation and legal basis for every answer',
                           ),
                           const SizedBox(height: 6),
                           _buildContentBullet(

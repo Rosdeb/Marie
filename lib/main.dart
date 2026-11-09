@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +12,18 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  // Firebase is configured for iOS and Android only - firebase_options.dart
+  // throws for web. The browser build exists so the screens can be reviewed
+  // on a computer alongside each TestFlight build, and push notifications are
+  // no part of that review, so on web the app starts without Firebase rather
+  // than not starting at all. On a device nothing changes.
+  if (!kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
 
   // Set status bar & system UI overlay to dark icons (black time, battery, wifi)
   SystemChrome.setSystemUIOverlayStyle(AppTheme.lightSystemOverlayStyle);
@@ -31,18 +42,20 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      PushNotificationService.instance.initialize(
-        localStorage: ref.read(localStorageProvider),
-      );
-    });
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        PushNotificationService.instance.initialize(
+          localStorage: ref.read(localStorageProvider),
+        );
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Study App',
+      title: 'IPro',
       theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
     );

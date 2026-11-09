@@ -362,24 +362,51 @@ class _ConfirmSubscriptionScreenState
                             ],
                           ),
                           const SizedBox(height: 10),
+                          // Point 6.2, and Marie on 8 November 2026: "please
+                          // remove them all; only true statements may remain."
+                          //
+                          // Four claims were replaced here:
+                          //
+                          //  - "all 500+ practice questions & mock exams".
+                          //    "Mock exams" is the wording her Terms of Use
+                          //    rule out, and the count was invented - what a
+                          //    plan gives access to depends on which offices
+                          //    it covers, so no single number is true of it.
+                          //  - "Comprehensive legal rationales & reference
+                          //    links". There are no links: Legal_Basis is a
+                          //    citation, and "comprehensive" is a claim
+                          //    nobody can stand behind.
+                          //  - "Cancel anytime easily from account settings".
+                          //    Plainly untrue. The subscription belongs to
+                          //    the App Store or Google Play, not to the IPro
+                          //    account, and it is cancelled there.
+                          //  - the weakness analysis, which is real, but is
+                          //    named for what the Progress page shows.
                           _buildIncludedItem(
-                            'Full access to all 500+ practice questions & mock exams',
+                            'Exam-style questions in four levels for every office in the plan',
                           ),
                           _buildIncludedItem(
-                            'Comprehensive legal rationales & reference links',
+                            'An explanation and the legal basis for every answer',
                           ),
                           _buildIncludedItem(
-                            'Personalized performance tracking & weakness analysis',
+                            'Progress by level and by theme, with your weakest themes named',
                           ),
                           _buildIncludedItem(
-                            'Cancel anytime easily from account settings',
+                            'Cancel at any time in your App Store or Google Play subscriptions',
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 18),
 
-                    // Security Guarantee
+                    // Who takes the payment.
+                    //
+                    // This read "256-Bit SSL Encrypted & Secure Checkout",
+                    // which is not IPro's to claim: there is no IPro
+                    // checkout. The purchase is made by the App Store or
+                    // Google Play, and the card never reaches our server.
+                    // That is both true and more reassuring than a cipher
+                    // length (point 6.2).
                     const Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -390,11 +417,15 @@ class _ConfirmSubscriptionScreenState
                             color: AppColors.textSecondary,
                           ),
                           SizedBox(width: 6),
-                          Text(
-                            '256-Bit SSL Encrypted & Secure Checkout',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
+                          Flexible(
+                            child: Text(
+                              'Payment is handled by the App Store or Google Play. '
+                              'IPro never sees your card details.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ),
                         ],

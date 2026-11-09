@@ -292,13 +292,22 @@ class ReviewSession {
       }
     }
 
+    // Every mode is named. The fallback used to read "Official Exam", which
+    // was both wrong - Marie's Terms of Use say no official exam question is
+    // reproduced (point 6.2) - and uninformative: random, learning path and
+    // cross-office sessions all landed on it.
+    const modeLabels = {
+      'demo': 'Demo Session',
+      'review_mistakes': 'Mistakes Review',
+      'by_theme': 'Theme Practice',
+      'random': 'Random Practice',
+      'theme_across_offices': 'Theme Across Offices',
+      'learning_path': 'Learning Path',
+    };
+
     final modeLabel = mode == 'by_level'
         ? (level.isNotEmpty ? '$level Level' : 'Level Practice')
-        : (mode == 'demo'
-            ? 'Demo Session'
-            : (mode == 'review_mistakes'
-                ? 'Mistakes Review'
-                : (mode == 'by_theme' ? 'Theme Practice' : 'Official Exam')));
+        : (modeLabels[mode] ?? 'Practice Session');
 
     final title = discipline.isNotEmpty
         ? '$discipline - $modeLabel'

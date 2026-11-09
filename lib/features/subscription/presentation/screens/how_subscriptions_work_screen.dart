@@ -111,11 +111,30 @@ class HowSubscriptionsWorkScreen extends StatelessWidget {
                           'Subscribers on Focus or Track can switch their chosen office once per billing period at no extra charge.',
                     ),
                     const SizedBox(height: 10),
+                    // The title used to read "One active subscription",
+                    // which said the opposite of its own description and the
+                    // opposite of what happens: plans add up, and each one is
+                    // a subscription of its own.
+                    //
+                    // Marie, 8 November 2026, agreeing to one App Store
+                    // subscription group per plan:
+                    //   "However, users must understand what this means.
+                    //    Before they buy a second plan, and in Help &
+                    //    Support, the app must explain clearly that each plan
+                    //    is a separate subscription on the iPhone and must be
+                    //    cancelled separately."
+                    //
+                    // This is the first of the three places that explain it.
+                    // The other two are the confirmation sheet shown before a
+                    // second plan is bought, and Help & Support.
                     _buildRuleCard(
-                      icon: Icons.shield_outlined,
-                      title: 'One active subscription',
+                      icon: Icons.layers_outlined,
+                      title: 'Each plan is its own subscription',
                       description:
-                          'Upgrading or changing plans immediately replaces your current subscription. You never pay for two subscriptions at once.',
+                          'Plans add up. Subscribing to a second plan leaves the first running, '
+                          'and your access becomes every office of both. Because they add up '
+                          'rather than replace each other, each plan is billed and cancelled '
+                          'separately in your App Store or Google Play subscriptions.',
                     ),
 
                     const SizedBox(height: 24),
@@ -132,7 +151,7 @@ class HowSubscriptionsWorkScreen extends StatelessWidget {
 
                     _buildPlanRow('Focus', '1 office of your choice (changeable each period)'),
                     _buildPlanRow('Track', '1 national office + 1 regional office (EPO, EUIPO or UPC) + WIPO'),
-                    _buildPlanRow('Majors', '6 fixed global offices: USPTO, EPO, JPO, CNIPA, KIPO, WIPO'),
+                    _buildPlanRow('Majors', '6 fixed global offices: USPTO, EPO, JPO, CNIPA, MOIP, WIPO'),
                     _buildPlanRow('Global', 'All 15 IP offices worldwide with full access'),
 
                     const SizedBox(height: 24),

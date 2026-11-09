@@ -75,6 +75,31 @@ class ChoosePracticeModeScreen extends ConsumerWidget {
               context.push('/practice/exam-ready');
             },
           ),
+
+          // The last two of the seven. The seventh is the demo, which lives
+          // on Home because it needs no account.
+          _ModeCard(
+            icon: Icons.public_rounded,
+            title: 'Theme across offices',
+            subtitle:
+                'One theme, compared across two or more offices in your plan.',
+            onTap: () {
+              ref
+                  .read(practiceProvider.notifier)
+                  .setMode('theme_across_offices');
+              context.push('/practice/choose-theme');
+            },
+          ),
+          _ModeCard(
+            icon: Icons.replay_rounded,
+            title: 'Review my mistakes',
+            subtitle:
+                'The questions you answered wrongly and have not got right since.',
+            onTap: () {
+              ref.read(practiceProvider.notifier).setMode('review_mistakes');
+              context.push('/practice/exam-ready');
+            },
+          ),
         ],
       ),
     );

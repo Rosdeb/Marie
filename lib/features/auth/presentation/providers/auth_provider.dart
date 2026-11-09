@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../../core/services/push_notification_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -107,7 +108,11 @@ class AuthNotifier extends Notifier<AuthState> {
       return;
     }
 
-    final firebaseUser = GoogleSignInService.currentUser;
+    // Reading the Firebase session needs an initialised Firebase app, and
+    // Firebase is configured for iOS and Android only. On the browser review
+    // build there is no Google session to restore, so asking for one would
+    // only throw before the first screen is drawn.
+    final firebaseUser = kIsWeb ? null : GoogleSignInService.currentUser;
     if (firebaseUser != null) {
       final user = _userFromFirebase(firebaseUser);
       ref.read(revenueCatServiceProvider).logIn(user.id);

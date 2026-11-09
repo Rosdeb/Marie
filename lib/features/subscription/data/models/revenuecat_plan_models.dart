@@ -191,10 +191,18 @@ class RevenueCatPlanGroup {
             ? majorsApi!.subtitle
             : '6 major global IP offices for international practitioners.',
         features: const [
-          'USPTO, EPO, JPO, CNIPA, KIPO & WIPO',
-          'Over 15,000 official exam questions',
+          // Marie, 3 November 2026, point 6.2: "No question count and only
+          // features that exist." The invented "Over 15,000" is gone, and
+          // "official exam questions" with it - her Terms of Use state that no
+          // official exam question is reproduced.
+          //
+          // Point 6.3: KIPO became the Ministry of Intellectual Property on
+          // 1 October 2025. The office code stays KIPO in the data and in the
+          // workbook file names; only what the reader sees changes.
+          'USPTO, EPO, JPO, CNIPA, MOIP & WIPO',
+          'Exam-style questions in four levels',
           'Study across every office in the plan',
-          'All difficulty levels included',
+          'Explanation and legal basis for every answer',
         ],
         monthlyPackage: resolvePackage(majorsOffering, PlanBillingInterval.monthly),
         annualPackage: resolvePackage(majorsOffering, PlanBillingInterval.annual),
@@ -213,10 +221,11 @@ class RevenueCatPlanGroup {
             ? globalApi!.subtitle
             : 'Complete access to all 15 international, regional and national offices.',
         features: const [
+          // "Priority updates for new legislation" was never offered (6.2).
           'All 15 IP offices worldwide',
           'No office selection needed — everything unlocked',
-          'Priority updates for new legislation',
-          'All 4 difficulty levels included',
+          'Exam-style questions in four levels',
+          'Explanation and legal basis for every answer',
         ],
         monthlyPackage: resolvePackage(globalOffering, PlanBillingInterval.monthly),
         annualPackage: resolvePackage(globalOffering, PlanBillingInterval.annual),
@@ -225,7 +234,10 @@ class RevenueCatPlanGroup {
             : 'CHF 139.99/mo',
         fallbackAnnualPrice: globalApi != null
             ? '${globalApi.currency} ${globalApi.priceYearly.toStringAsFixed(0)}/yr'
-            : 'CHF 959.00/yr',
+            // CHF 1,399, not 959: the yearly price is about 17% below twelve
+            // monthly payments on all four plans (12 x 139.99 = 1,679.88), and
+            // 959 matched neither that rule nor the server's own plan table.
+            : 'CHF 1399/yr',
       ),
     ];
   }

@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
+import '../../../account/presentation/providers/account_provider.dart';
 import '../providers/auth_provider.dart';
 
 class CreateAccountScreen extends ConsumerStatefulWidget {
@@ -88,6 +89,17 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     }
   }
 
+  /// Google and Apple skip this form, so they skip the Paralegal /
+  /// Attorney question on it (point 1.3). An account without a profile is
+  /// sent to choose one before Home.
+  Future<void> _afterSocialSignIn() async {
+    await ref.read(accountProvider.notifier).fetchProfile();
+    if (!mounted) return;
+
+    final profileType = ref.read(accountProvider).profileType;
+    context.go(profileType.isEmpty ? '/choose-profile' : '/main');
+  }
+
   Future<void> _onGoogleSignUp() async {
     final success = await ref.read(authProvider.notifier).loginWithGoogle();
     if (!mounted) return;
@@ -96,7 +108,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         context,
         message: 'Signed in with Google successfully',
       );
-      context.go('/main');
+      await _afterSocialSignIn();
     } else {
       final err = ref.read(authProvider).errorMessage;
       if (err != null && err.isNotEmpty) {
@@ -113,7 +125,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         context,
         message: 'Signed in with Apple successfully',
       );
-      context.go('/main');
+      await _afterSocialSignIn();
     } else {
       final err = ref.read(authProvider).errorMessage;
       if (err != null && err.isNotEmpty) {

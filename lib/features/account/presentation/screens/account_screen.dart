@@ -448,7 +448,7 @@ class AccountScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Sign in to save quizzes & settings',
+                    'Sign in to save your progress & settings',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,

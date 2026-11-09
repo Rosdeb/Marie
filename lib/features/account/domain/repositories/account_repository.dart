@@ -12,6 +12,9 @@ abstract class AccountRepository {
     String? email,
     String? phoneNumber,
     String? bio,
+    String? company,
+    String? city,
+    String? country,
     String? profileFilePath,
   });
 

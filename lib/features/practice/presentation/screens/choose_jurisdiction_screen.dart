@@ -164,7 +164,8 @@ class _ChooseJurisdictionScreenState
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Select an IP office to practice official exam-level questions.',
+                    // "official exam" is ruled out by Marie's Terms of Use (6.2).
+                    'Select an IP office to practise exam-style questions.',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,

@@ -5,8 +5,12 @@ class ReferralInfo {
   /// Where a shared referral link points when the server has not said.
   ///
   /// ipro.legal is not a domain IPro owns and nothing answers on it, so it
-  /// must never appear in a post. ipro-law.com is the real one.
-  static const String fallbackUrl = 'https://ipro-law.com/app';
+  /// must never appear in a post.
+  ///
+  /// Marie, 3 November 2026, point 8.12: the share link belongs on
+  /// iprospace.com, not ipro-law.com. ipro-law.com is the dashboard; the
+  /// public site a reader lands on is iprospace.com.
+  static const String fallbackUrl = 'https://iprospace.com/app';
 
   const ReferralInfo({
     this.code = '',
@@ -333,7 +337,7 @@ class SharePreviewModel {
   String get previewDomain =>
       legacyPreviewDomain ??
       Uri.tryParse(referral.url)?.host ??
-      'ipro-law.com';
+      'iprospace.com';
   // Neutral wording, never anything that reads as LinkedIn's own offer
   // (Marie, 1 November 2026, LinkedIn brand guidelines).
   String get bannerTag => legacyBannerTag ?? 'SHARE & SAVE';

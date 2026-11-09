@@ -5,6 +5,7 @@ import '../screens/server_error_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
+import '../../features/auth/presentation/screens/choose_profile_screen.dart';
 import '../../features/auth/presentation/screens/create_account_screen.dart';
 import '../../features/auth/presentation/screens/confirm_subscription_screen.dart';
 import '../../features/auth/presentation/screens/subscription_success_screen.dart';
@@ -26,6 +27,8 @@ import '../../features/practice/presentation/screens/choose_subdiscipline_screen
 import '../../features/practice/presentation/screens/choose_jurisdiction_screen.dart';
 import '../../features/practice/presentation/screens/choose_level_screen.dart';
 import '../../features/practice/presentation/screens/choose_practice_mode_screen.dart';
+import '../../features/practice/presentation/screens/choose_cross_offices_screen.dart';
+import '../../features/practice/presentation/screens/progress_screen.dart';
 import '../../features/practice/presentation/screens/choose_theme_screen.dart';
 import '../../features/practice/presentation/screens/exam_ready_screen.dart';
 import '../../features/practice/presentation/screens/quiz_setup_screen.dart';
@@ -72,6 +75,11 @@ class AppRouter {
         path: '/sign-in',
         name: 'signIn',
         builder: (context, state) => const SignInScreen(),
+      ),
+      GoRoute(
+        path: '/choose-profile',
+        name: 'chooseProfile',
+        builder: (context, state) => const ChooseProfileScreen(),
       ),
       GoRoute(
         path: '/create-account',
@@ -215,6 +223,18 @@ class AppRouter {
         path: '/practice/choose-theme',
         name: 'chooseTheme',
         builder: (context, state) => const ChooseThemeScreen(),
+      ),
+      GoRoute(
+        // Only reached by "Theme across offices", between the theme and
+        // "Ready to begin?".
+        path: '/practice/progress',
+        name: 'progress',
+        builder: (context, state) => const ProgressScreen(),
+      ),
+      GoRoute(
+        path: '/practice/choose-offices',
+        name: 'chooseCrossOffices',
+        builder: (context, state) => const ChooseCrossOfficesScreen(),
       ),
       GoRoute(
         path: '/practice/choose-level',

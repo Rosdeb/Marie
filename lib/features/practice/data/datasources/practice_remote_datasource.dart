@@ -3,6 +3,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/discipline_theme_models.dart';
 import '../models/office_model.dart';
+import '../models/progress_models.dart';
 
 abstract class PracticeRemoteDataSource {
   Future<List<OfficeModel>> getOffices();
@@ -12,6 +13,9 @@ abstract class PracticeRemoteDataSource {
     String subject,
   );
   Future<List<ThemeDetailModel>> getCrossOfficeThemes(String subject);
+
+  /// The progress page: per office and discipline, by level and by theme.
+  Future<List<ProgressGroup>> getProgress();
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
     required String office,
@@ -20,11 +24,26 @@ abstract class PracticeRemoteDataSource {
     String? theme,
     List<String>? offices,
     String? profileType,
+    bool examMode,
   });
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
+    String? subject,
     String? profileType,
   });
+
+  /// Records one answer and, in practice mode, returns the verdict with it.
+  ///
+  /// The question payload never carries the correct option, so "Correct" or
+  /// "Incorrect" and the explanation can only come from the server, at the
+  /// moment Confirm is tapped.
+  Future<Map<String, dynamic>> answerQuestion({
+    required String sessionId,
+    required String questionId,
+    required String? selectedKey,
+    required double timeSpentSeconds,
+  });
+
   Future<Map<String, dynamic>> submitSession({
     required String sessionId,
     required List<Map<String, dynamic>> answers,
@@ -115,6 +134,20 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   }
 
   @override
+  Future<List<ProgressGroup>> getProgress() async {
+    final response = await apiClient.get(
+      ApiConstants.practiceProgress,
+      requiresAuth: true,
+    );
+
+    if (response is Map<String, dynamic> && response['data'] is List) {
+      return (response['data'] as List<dynamic>)
+          .map((g) => ProgressGroup.fromJson(g as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+  @override
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
     required String office,
@@ -123,6 +156,7 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
     String? theme,
     List<String>? offices,
     String? profileType,
+    bool examMode = false,
   }) async {
     final body = <String, dynamic>{
       'mode': mode,
@@ -133,6 +167,8 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
       if (offices != null && offices.isNotEmpty) 'offices': offices,
       if (profileType != null && profileType.isNotEmpty)
         'profileType': profileType,
+      // Practice is the server's default; only say so when it is not.
+      if (examMode) 'examMode': true,
     };
 
     final response = await apiClient.post(
@@ -150,11 +186,14 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   @override
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
+    String? subject,
     String? profileType,
   }) async {
     final body = {
       'mode': 'demo',
       'office': office,
+      // "The user chooses the office, then the discipline" (Marie, point 2.1).
+      if (subject != null && subject.isNotEmpty) 'subject': subject,
       if (profileType != null && profileType.isNotEmpty)
         'profileType': profileType,
     };
@@ -167,6 +206,33 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
 
     if (response is Map<String, dynamic>) {
       return response;
+    }
+    return {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> answerQuestion({
+    required String sessionId,
+    required String questionId,
+    required String? selectedKey,
+    required double timeSpentSeconds,
+  }) async {
+    final response = await apiClient.post(
+      ApiConstants.practiceSessionAnswer(sessionId),
+      body: {
+        'questionId': questionId,
+        // null is a deliberate skip, so it is sent rather than omitted.
+        'selectedKey': selectedKey,
+        // The server rejects 0: a question dismissed in a blink still took
+        // some fraction of a second.
+        'timeSpentSeconds': timeSpentSeconds <= 0 ? 0.1 : timeSpentSeconds,
+      },
+      requiresAuth: true,
+    );
+
+    if (response is Map<String, dynamic>) {
+      final data = response['data'];
+      return data is Map<String, dynamic> ? data : response;
     }
     return {};
   }

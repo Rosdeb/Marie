@@ -53,14 +53,21 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   Future<void> loadThemes(String office, String subject) async {
     state = state.copyWith(isLoadingThemes: true);
     try {
-      final themes = await _practiceRepository.getDisciplineThemes(
-        office,
-        subject,
-      );
+      // "Theme across offices" compares one theme between offices, so its
+      // menu is the themes that exist in more than one of them - not the
+      // themes of the office the reader happens to have open.
+      final themes = state.mode == 'theme_across_offices'
+          ? await _practiceRepository.getCrossOfficeThemes(subject)
+          : await _practiceRepository.getDisciplineThemes(office, subject);
       state = state.copyWith(themes: themes, isLoadingThemes: false);
     } catch (e) {
       state = state.copyWith(isLoadingThemes: false);
     }
+  }
+
+  /// The offices picked for "Theme across offices".
+  void setCrossOffices(List<String> offices) {
+    state = state.copyWith(offices: offices);
   }
 
   void setTopic(String topic) {
@@ -104,14 +111,30 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
       isLoadingDisciplines: state.isLoadingDisciplines,
       isLoadingThemes: state.isLoadingThemes,
     );
+
+    // The two theme modes read from different menus, so the list has to be
+    // fetched again when the reader moves between them.
+    final office = state.jurisdiction;
+    final topic = state.topic;
+    if ((mode == 'by_theme' || mode == 'theme_across_offices') &&
+        office != null &&
+        topic != null) {
+      loadThemes(office, topic);
+    }
   }
 
   void setTheme(ThemeDetailModel theme) {
     state = PracticeSelection(
       topic: state.topic,
       jurisdiction: state.jurisdiction,
-      mode: 'by_theme',
+      // The mode is kept: this screen serves both "By theme" and "Theme
+      // across offices", and hard-coding by_theme here sent every
+      // cross-office session to the server as a single-office one.
+      mode: state.mode == 'theme_across_offices'
+          ? 'theme_across_offices'
+          : 'by_theme',
       theme: theme.theme,
+      offices: state.offices,
       previewQuestions: theme.sessionLength,
       language: state.language,
       disciplines: state.disciplines,

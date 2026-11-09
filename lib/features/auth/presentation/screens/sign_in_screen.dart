@@ -65,12 +65,26 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
+  /// Where a social sign-in lands.
+  ///
+  /// Google and Apple never pass through the sign-up form, so they never ask
+  /// Paralegal or Attorney (point 1.3). An account that has no profile yet
+  /// is sent to choose one; one that already has keeps going to Home, so a
+  /// returning subscriber is not asked again.
+  Future<void> _afterSocialSignIn() async {
+    await ref.read(accountProvider.notifier).fetchProfile();
+    if (!mounted) return;
+
+    final profileType = ref.read(accountProvider).profileType;
+    context.go(profileType.isEmpty ? '/choose-profile' : '/main');
+  }
+
   Future<void> _onGoogleSignIn() async {
     final success = await ref.read(authProvider.notifier).loginWithGoogle();
     if (!mounted) return;
 
     if (success) {
-      context.go('/main');
+      await _afterSocialSignIn();
       return;
     }
 
@@ -85,7 +99,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     if (!mounted) return;
 
     if (success) {
-      context.go('/main');
+      await _afterSocialSignIn();
       return;
     }
 

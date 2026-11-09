@@ -128,7 +128,7 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
                 Text(
                   entitlement.planId == PlanTier.global
                       ? 'You have complete access to all 15 international, regional, and national IP offices. No manual office selection is required.'
-                      : 'You have complete access to all 6 major IP offices (USPTO, EPO, JPO, CNIPA, KIPO, WIPO). No manual office selection is required.',
+                      : 'You have complete access to all 6 major IP offices (USPTO, EPO, JPO, CNIPA, MOIP, WIPO). No manual office selection is required.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 14,
@@ -811,8 +811,10 @@ const List<OfficeEntity> _standardOffices = [
     isAvailable: true,
   ),
   OfficeEntity(
+    // The code stays KIPO - it is the import key and the store entitlement -
+    // while the name follows the 2025 rename (Marie, point 6.3).
     code: 'KIPO',
-    name: 'Korean Intellectual Property Office',
+    name: 'MOIP — Ministry of Intellectual Property',
     territory: 'South Korea',
     type: 'national',
     disciplines: [],

@@ -36,7 +36,10 @@ class QuizNotifier extends Notifier<QuizState> {
 
   Future<bool> startDemoSession({
     String office = 'IPI',
-    String profileType = 'Paralegal',
+    String? subject,
+    // No profile question before the demo (point 2.1), so the demo is the
+    // full one. Defaulting to Paralegal silently hid the Attorney questions.
+    String profileType = 'Attorney',
   }) async {
     _timer?.cancel();
     state = state.copyWith(isLoading: true, clearError: true);
@@ -44,6 +47,7 @@ class QuizNotifier extends Notifier<QuizState> {
     try {
       final response = await _practiceRepository.startDemoSession(
         office: office,
+        subject: subject,
         profileType: profileType,
       );
 
@@ -61,13 +65,17 @@ class QuizNotifier extends Notifier<QuizState> {
       state = QuizState(
         sessionId: sessionId,
         selectedOffice: office,
-        selectedSubdiscipline: questions.isNotEmpty ? questions.first.discipline : 'IP Law Essentials',
+        selectedSubdiscipline: subject ??
+            (questions.isNotEmpty
+                ? questions.first.discipline
+                : 'IP Law Essentials'),
         selectedLevel: questions.isNotEmpty ? questions.first.level : 'All Levels',
         questionCount: questions.length,
         questions: questions,
         currentIndex: 0,
         userAnswers: {},
         timeSpentPerQuestion: {},
+        mode: 'demo',
         isSubmitted: false,
         elapsedSeconds: 0,
         totalSeconds: totalSec,
@@ -91,6 +99,7 @@ class QuizNotifier extends Notifier<QuizState> {
     String? theme,
     List<String>? offices,
     String? profileType,
+    bool examMode = false,
   }) async {
     final entitlement = ref.read(entitlementProvider);
     if (!entitlement.canAccessOffice(office)) {
@@ -112,6 +121,7 @@ class QuizNotifier extends Notifier<QuizState> {
         theme: theme,
         offices: offices,
         profileType: profileType,
+        examMode: examMode,
       );
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
@@ -135,6 +145,11 @@ class QuizNotifier extends Notifier<QuizState> {
         currentIndex: 0,
         userAnswers: {},
         timeSpentPerQuestion: {},
+        // Read back from the server rather than from what we asked for, so a
+        // resumed session cannot come back in the other mode.
+        examMode: data['examMode'] as bool? ?? examMode,
+        mode: mode,
+        selectedTheme: theme ?? '',
         isSubmitted: false,
         elapsedSeconds: 0,
         totalSeconds: totalSec,
@@ -253,17 +268,96 @@ class QuizNotifier extends Notifier<QuizState> {
   }
 
   void selectAnswer(int optionIndex) {
+    // Once confirmed, the choice is fixed: the correction is already on
+    // screen, and letting the user move their answer afterwards would make
+    // the green and red markings lie.
+    if (state.feedback.containsKey(state.currentIndex)) return;
+
     final updatedAnswers = Map<int, int>.from(state.userAnswers);
     updatedAnswers[state.currentIndex] = optionIndex;
     state = state.copyWith(userAnswers: updatedAnswers);
   }
 
-  void nextQuestion() {
-    // Block advancing if user has not selected an answer for current question
-    if (!state.userAnswers.containsKey(state.currentIndex) ||
-        state.userAnswers[state.currentIndex] == null) {
-      return;
+  /// True when the current question has been confirmed and its correction,
+  /// if any, is showing.
+  bool get isCurrentConfirmed => state.feedback.containsKey(state.currentIndex);
+
+  /// Confirms the chosen option.
+  ///
+  /// Section 7: "one choice; the user taps an option, then Confirm (avoids
+  /// accidental taps)". In practice mode the reply carries the verdict, the
+  /// explanation and the legal basis, and they are shown at once; in exam
+  /// mode the answer is only recorded.
+  ///
+  /// [skip] confirms without a choice - "A question can always be skipped."
+  Future<bool> confirmAnswer({bool skip = false}) async {
+    final index = state.currentIndex;
+    if (state.isConfirming) return false;
+    if (state.feedback.containsKey(index)) return true;
+
+    if (index < 0 || index >= state.questions.length) return false;
+    final question = state.questions[index];
+
+    final selectedIdx = skip ? null : state.userAnswers[index];
+    if (!skip && selectedIdx == null) return false;
+
+    final selectedKey =
+        (selectedIdx != null && selectedIdx >= 0 && selectedIdx < question.options.length)
+            ? question.options[selectedIdx].key
+            : null;
+
+    final sessionId = state.sessionId;
+    if (sessionId == null || sessionId.isEmpty) return false;
+
+    state = state.copyWith(isConfirming: true, clearError: true);
+
+    try {
+      final data = await _practiceRepository.answerQuestion(
+        sessionId: sessionId,
+        questionId: question.id,
+        selectedKey: selectedKey,
+        // The server rejects 0; the timer counts whole seconds, so a question
+        // answered inside the first tick reports a fraction rather than none.
+        timeSpentSeconds: (state.timeSpentPerQuestion[index] ?? 0).toDouble(),
+      );
+
+      final updatedFeedback = Map<int, QuestionFeedback>.from(state.feedback);
+
+      // In exam mode the server sends no verdict, by design. An entry is
+      // still recorded so the question counts as confirmed and Confirm
+      // cannot be tapped twice.
+      updatedFeedback[index] = state.examMode
+          ? QuestionFeedback(isCorrect: false, selectedKey: selectedKey)
+          : QuestionFeedback.fromJson(data);
+
+      // A skip leaves nothing selected, so the answer map must forget it too.
+      final updatedAnswers = Map<int, int>.from(state.userAnswers);
+      if (skip) updatedAnswers.remove(index);
+
+      state = state.copyWith(
+        feedback: updatedFeedback,
+        userAnswers: updatedAnswers,
+        isConfirming: false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isConfirming: false,
+        errorMessage: 'Your answer could not be recorded. Please try again.',
+      );
+      return false;
     }
+  }
+
+  /// Confirms with no choice made.
+  Future<bool> skipQuestion() => confirmAnswer(skip: true);
+
+  void nextQuestion() {
+    // A question must be confirmed - answered or deliberately skipped -
+    // before the next one. It used to be enough to have tapped an option,
+    // which is how the quiz came to have no Confirm step and no correction.
+    if (!state.feedback.containsKey(state.currentIndex)) return;
+
     if (state.currentIndex < state.questions.length - 1) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
     }
@@ -330,6 +424,36 @@ class QuizNotifier extends Notifier<QuizState> {
     state = state.copyWith(
       isSubmitting: false,
       isSubmitted: true,
+    );
+  }
+
+  /// "New session with the same settings" on the results screen.
+  ///
+  /// Starts the same mode, office, discipline, level and theme again, rather
+  /// than sending the reader back through the menus.
+  Future<bool> restartWithSameSettings() {
+    final level = state.selectedLevel;
+    return startPracticeSession(
+      office: state.selectedOffice,
+      mode: state.mode,
+      subject: state.selectedSubdiscipline,
+      level: (level.isEmpty || level == 'All Levels') ? null : level,
+      theme: state.selectedTheme.isEmpty ? null : state.selectedTheme,
+      examMode: state.examMode,
+    );
+  }
+
+  /// "Retry the wrong ones".
+  ///
+  /// Served by the review_mistakes mode: "questions the user answered wrongly
+  /// before and has not yet answered correctly since" - which, straight after
+  /// a session, is the wrong ones from it. Scoped to the same office so the
+  /// retry stays about what was just practised.
+  Future<bool> retryWrongOnes() {
+    return startPracticeSession(
+      office: state.selectedOffice,
+      mode: 'review_mistakes',
+      examMode: false,
     );
   }
 

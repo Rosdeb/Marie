@@ -14,6 +14,9 @@ abstract class AccountRemoteDataSource {
     String? email,
     String? phoneNumber,
     String? bio,
+    String? company,
+    String? city,
+    String? country,
     String? profileFilePath,
   });
   Future<bool> setProfileType(String profileType);
@@ -49,6 +52,9 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
     String? email,
     String? phoneNumber,
     String? bio,
+    String? company,
+    String? city,
+    String? country,
     String? profileFilePath,
   }) async {
     final fields = <String, String>{};
@@ -59,6 +65,11 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
     if (email != null && email.trim().isNotEmpty) fields['email'] = email.trim();
     if (phoneNumber != null && phoneNumber.trim().isNotEmpty) fields['phoneNumber'] = phoneNumber.trim();
     if (bio != null && bio.trim().isNotEmpty) fields['bio'] = bio.trim();
+    // Point 1.4: company and city are optional and typed; country is chosen
+    // from a list. All three are shown on the dashboard profile (8.6).
+    if (company != null) fields['company'] = company.trim();
+    if (city != null) fields['city'] = city.trim();
+    if (country != null && country.trim().isNotEmpty) fields['country'] = country.trim();
 
     final response = await apiClient.multipartPatch(
       ApiConstants.updateMyProfile,

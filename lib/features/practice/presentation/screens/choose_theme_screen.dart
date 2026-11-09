@@ -66,8 +66,16 @@ class ChooseThemeScreen extends ConsumerWidget {
                 (theme) => _ThemeCard(
                   theme: theme,
                   onTap: () {
+                    final crossOffice =
+                        selection.mode == 'theme_across_offices';
                     ref.read(practiceProvider.notifier).setTheme(theme);
-                    context.push('/practice/exam-ready');
+                    // One theme, then the offices to compare it in - the
+                    // order Marie sets out in section 5.
+                    context.push(
+                      crossOffice
+                          ? '/practice/choose-offices'
+                          : '/practice/exam-ready',
+                    );
                   },
                 ),
               ),

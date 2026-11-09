@@ -75,11 +75,19 @@ class QuestionReportBottomSheet {
     final emailController = TextEditingController();
     bool isSubmitting = false;
 
+    // Generic reasons only.
+    //
+    // Marie, 3 November 2026, point 5.5: "The canned reason 'The legal basis
+    // cites an article repealed in 2023' is too precise." A suggestion that
+    // specific invites reports of a fault nobody found, and it reads as if
+    // IPro already knew of one. These name the kind of problem and leave the
+    // detail to the reader.
     const quickIssues = [
-      'The legal basis cites an article repealed in 2023.',
+      'The legal basis looks wrong or out of date.',
       'Two options say the same thing.',
-      'The marked correct answer is wrong.',
-      'Typo or formatting error in question.',
+      'The marked correct answer looks wrong.',
+      'The explanation does not match the answer.',
+      'Typo or formatting error.',
     ];
 
     await showModalBottomSheet<void>(

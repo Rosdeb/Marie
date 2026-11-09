@@ -6,6 +6,10 @@ class PracticeSelection {
   final String? level;
   final String mode;
   final String? theme;
+
+  /// The offices chosen for "Theme across offices" — two or more. Empty for
+  /// every other mode, which works on one office at a time.
+  final List<String> offices;
   final int? previewQuestions;
   final int? previewMinutes;
   final String language;
@@ -21,6 +25,7 @@ class PracticeSelection {
     this.level,
     this.mode = 'by_level',
     this.theme,
+    this.offices = const [],
     this.previewQuestions,
     this.previewMinutes,
     this.language = 'German',
@@ -37,6 +42,7 @@ class PracticeSelection {
     String? level,
     String? mode,
     String? theme,
+    List<String>? offices,
     int? previewQuestions,
     int? previewMinutes,
     String? language,
@@ -53,6 +59,7 @@ class PracticeSelection {
       level: level ?? this.level,
       mode: mode ?? this.mode,
       theme: theme ?? this.theme,
+      offices: offices ?? this.offices,
       previewQuestions: previewQuestions ?? this.previewQuestions,
       previewMinutes: previewMinutes ?? this.previewMinutes,
       language: language ?? this.language,

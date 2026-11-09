@@ -48,6 +48,13 @@ class ActiveQuizScreen extends ConsumerWidget {
     final isLastQuestion =
         quizState.currentIndex == quizState.questions.length - 1;
 
+    // What the server said when this question was confirmed. Null until then,
+    // and in exam mode it carries no verdict - "no feedback during the
+    // session; everything is shown on the results screen."
+    final feedback = quizState.feedback[quizState.currentIndex];
+    final isConfirmed = feedback != null;
+    final showsCorrection = isConfirmed && !quizState.examMode;
+
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
@@ -292,22 +299,37 @@ class ActiveQuizScreen extends ConsumerWidget {
                           ? option.key
                           : String.fromCharCode(65 + index);
 
+                      // After Confirm, in practice mode: the correct option
+                      // green, the user's wrong choice red, the rest
+                      // untouched. Exactly one option is ever red.
+                      final isTheCorrectOne =
+                          showsCorrection && feedback.correctKey == optionKey;
+                      final isTheWrongChoice = showsCorrection &&
+                          !feedback.isCorrect &&
+                          feedback.selectedKey == optionKey;
+
+                      final Color accent = isTheCorrectOne
+                          ? AppColors.success
+                          : isTheWrongChoice
+                              ? AppColors.error
+                              : AppColors.primary;
+                      final bool highlighted =
+                          isTheCorrectOne || isTheWrongChoice || isSelected;
+
                       return Container(
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primaryLight
+                          color: highlighted
+                              ? accent.withValues(alpha: 0.08)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            width: isSelected ? 0.7 : 0,
+                            color: highlighted ? accent : Colors.transparent,
+                            width: highlighted ? 0.7 : 0,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: isSelected
-                                  ? AppColors.primary.withValues(alpha: 0.08)
+                              color: highlighted
+                                  ? accent.withValues(alpha: 0.08)
                                   : Colors.black.withValues(alpha: 0.04),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
@@ -317,9 +339,13 @@ class ActiveQuizScreen extends ConsumerWidget {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => ref
-                                .read(quizProvider.notifier)
-                                .selectAnswer(index),
+                            // Locked once confirmed: the correction is on
+                            // screen and the answer is already recorded.
+                            onTap: isConfirmed
+                                ? null
+                                : () => ref
+                                    .read(quizProvider.notifier)
+                                    .selectAnswer(index),
                             borderRadius: BorderRadius.circular(14),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
@@ -333,8 +359,8 @@ class ActiveQuizScreen extends ConsumerWidget {
                                     height: 28,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? AppColors.primary
+                                      color: highlighted
+                                          ? accent
                                           : AppColors.background,
                                       shape: BoxShape.circle,
                                     ),
@@ -343,7 +369,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
-                                        color: isSelected
+                                        color: highlighted
                                             ? Colors.white
                                             : AppColors.textSecondary,
                                       ),
@@ -356,13 +382,28 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w400,
-                                        color: isSelected
-                                            ? AppColors.primary
+                                        color: highlighted
+                                            ? accent
                                             : AppColors.textPrimary,
                                         height: 1.35,
                                       ),
                                     ),
                                   ),
+                                  // Named, not only coloured: colour alone
+                                  // does not reach a colour-blind reader.
+                                  if (isTheCorrectOne || isTheWrongChoice) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isTheCorrectOne
+                                          ? 'Correct answer'
+                                          : 'Your answer',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: accent,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -372,6 +413,13 @@ class ActiveQuizScreen extends ConsumerWidget {
                     },
                   ),
                 ),
+
+                // The correction, shown the moment Confirm is tapped in
+                // practice mode: verdict, explanation, then the legal basis.
+                if (showsCorrection) ...[
+                  const SizedBox(height: 16),
+                  _CorrectionPanel(feedback: feedback),
+                ],
 
                 const SizedBox(height: 16),
 
@@ -389,12 +437,40 @@ class ActiveQuizScreen extends ConsumerWidget {
                         ),
                       ),
                     if (quizState.currentIndex > 0) const SizedBox(width: 12),
+
+                    // Before Confirm the only way on is Skip, so a question
+                    // can always be left - "A question can always be skipped."
+                    if (!isConfirmed)
+                      Expanded(
+                        child: CustomButton(
+                          text: 'Skip',
+                          isSecondary: true,
+                          onPressed: quizState.isConfirming
+                              ? null
+                              : () => ref
+                                  .read(quizProvider.notifier)
+                                  .skipQuestion(),
+                        ),
+                      ),
+                    if (!isConfirmed) const SizedBox(width: 12),
+
                     Expanded(
                       child: CustomButton(
-                        text: isLastQuestion ? 'Submit' : 'Next',
-                        isLoading: quizState.isSubmitting,
-                        onPressed: isAnswerSelected
-                            ? () {
+                        // Confirm is its own step: it stops an accidental tap
+                        // on an option from being read as the answer, and it
+                        // is what the correction hangs off.
+                        text: !isConfirmed
+                            ? 'Confirm'
+                            : (isLastQuestion ? 'Submit' : 'Next'),
+                        isLoading:
+                            quizState.isSubmitting || quizState.isConfirming,
+                        onPressed: !isConfirmed
+                            ? (isAnswerSelected
+                                ? () => ref
+                                    .read(quizProvider.notifier)
+                                    .confirmAnswer()
+                                : null)
+                            : () {
                                 if (isLastQuestion) {
                                   ref.read(quizProvider.notifier).submitQuiz();
                                 } else {
@@ -402,17 +478,16 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       .read(quizProvider.notifier)
                                       .nextQuestion();
                                 }
-                              }
-                            : null,
+                              },
                       ),
                     ),
                   ],
                 ),
-                if (!isAnswerSelected) ...[
+                if (!isConfirmed && !isAnswerSelected) ...[
                   const SizedBox(height: 8),
                   const Center(
                     child: Text(
-                      'Please select an answer to proceed',
+                      'Choose an option, then Confirm — or Skip this question',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -485,6 +560,105 @@ class ActiveQuizScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The correction shown in practice mode, right after Confirm.
+///
+/// Section 7: "show Correct or Incorrect ... then show the Explanation and,
+/// below it, 'Legal basis: ...'".
+///
+/// The legal basis is plain text with no link and no empty space around it:
+/// "There is no source URL anywhere in the data, and none is coming. The
+/// sources are legal citations, not web links."
+class _CorrectionPanel extends StatelessWidget {
+  const _CorrectionPanel({required this.feedback});
+
+  final QuestionFeedback feedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final skipped = feedback.wasSkipped;
+    final correct = feedback.isCorrect;
+
+    final Color accent = correct
+        ? AppColors.success
+        : skipped
+            ? AppColors.textSecondary
+            : AppColors.error;
+
+    final String verdict = correct
+        ? 'Correct'
+        : skipped
+            ? 'Unanswered'
+            : 'Incorrect';
+
+    final IconData icon = correct
+        ? Icons.check_circle_rounded
+        : skipped
+            ? Icons.remove_circle_outline_rounded
+            : Icons.cancel_rounded;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.35), width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                verdict,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: accent,
+                ),
+              ),
+            ],
+          ),
+          if (feedback.explanation.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              feedback.explanation,
+              style: const TextStyle(
+                fontSize: 13.5,
+                height: 1.45,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+          // Omitted entirely when there is none, rather than left as a
+          // dangling "Legal basis:" with nothing after it.
+          if (feedback.legalBasis.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  height: 1.4,
+                  color: AppColors.textSecondary,
+                ),
+                children: [
+                  const TextSpan(
+                    text: 'Legal basis: ',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(text: feedback.legalBasis),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

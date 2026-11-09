@@ -9,6 +9,11 @@ class ProfileEntity {
   final String avatarUrl;
   final String profileType; // 'Attorney' | 'Paralegal'
   final String profession;
+  /// Typed and optional (point 1.4); shown on the dashboard profile (8.6).
+  final String company;
+  final String city;
+  /// Chosen from a list.
+  final String country;
   final bool showFirstName;
   final bool showProfession;
   /// Consent to marketing e-mail; off unless the user agreed.
@@ -29,6 +34,9 @@ class ProfileEntity {
     this.avatarUrl = '',
     this.profileType = 'Attorney',
     this.profession = '',
+    this.company = '',
+    this.city = '',
+    this.country = '',
     this.showFirstName = false,
     this.showProfession = false,
     this.marketingEmails = false,

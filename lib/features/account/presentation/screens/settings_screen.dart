@@ -110,7 +110,12 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           content: const Text(
-            'Are you sure you want to delete your account? All your study progress, bookmarks, and subscriptions will be permanently erased. This action cannot be undone.',
+            // Marie's wording, 3 November 2026, point 1.5. The old text claimed
+            // subscriptions were erased too; deleting the IPro account does not
+            // cancel an App Store or Google Play subscription, and saying so
+            // would have left people being charged for something they thought
+            // they had ended.
+            'Are you sure you want to delete your account? Your study progress will be permanently erased. Deleting your account does not cancel your subscription: cancel it in your App Store or Google Play settings.',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,

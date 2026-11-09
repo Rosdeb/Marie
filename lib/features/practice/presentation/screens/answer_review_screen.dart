@@ -55,6 +55,33 @@ class AnswerReviewScreen extends ConsumerWidget {
             final question = displayQuestions[qIndex];
             final userChoice = quizState.userAnswers[qIndex];
 
+            // Which option the reader actually chose - one, or none.
+            //
+            // Marie, point 5.2: "When the answer is wrong, two options are in
+            // red." Two sources were being ORed together: the server's own
+            // `isChosen`, and the index this device happened to tap. The
+            // options are shuffled at display time, so those two point at
+            // different rows as often as not, and both went red.
+            //
+            // The server's answer wins; the local index is only the fallback
+            // for a review of the session still in memory, where nothing has
+            // come back from the server yet.
+            final serverChoice =
+                question.options.indexWhere((o) => o.isChosen);
+            final int? chosenIndex = serverChoice >= 0
+                ? serverChoice
+                : (userChoice != null &&
+                        userChoice >= 0 &&
+                        userChoice < question.options.length
+                    ? userChoice
+                    : null);
+
+            // "Unanswered: no option appears chosen, the correct one has a
+            // green outline, and a clearly visible Unanswered label." An
+            // unanswered question used to render exactly like a right one -
+            // green fill and a tick.
+            final isUnanswered = chosenIndex == null;
+
             return Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -75,14 +102,44 @@ class AnswerReviewScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          '${qIndex + 1}. ${question.questionText}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            height: 1.4,
-                            color: AppColors.textPrimary,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // "a clearly visible Unanswered label" - on the
+                            // question, not only on its options, so it is
+                            // readable while scrolling past.
+                            if (isUnanswered) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.badgeBg,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: const Text(
+                                  'Unanswered',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                            Text(
+                              '${qIndex + 1}. ${question.questionText}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                height: 1.4,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -146,16 +203,19 @@ class AnswerReviewScreen extends ConsumerWidget {
                     final isCorrect =
                         option.isCorrect ||
                         optIndex == question.correctOptionIndex;
-                    final isUserChoice =
-                        option.isChosen || optIndex == userChoice;
+                    final isUserChoice = optIndex == chosenIndex;
 
                     Color optionBg = AppColors.background;
                     Color borderColor = Colors.transparent;
 
                     if (isCorrect) {
-                      optionBg = AppColors.successLight;
+                      // Outline only when nothing was answered, so the row
+                      // reads as "this was the answer", not "you got it".
+                      optionBg = isUnanswered
+                          ? AppColors.background
+                          : AppColors.successLight;
                       borderColor = AppColors.success;
-                    } else if (isUserChoice && !isCorrect) {
+                    } else if (isUserChoice) {
                       optionBg = AppColors.errorLight;
                       borderColor = AppColors.error;
                     }
@@ -178,21 +238,31 @@ class AnswerReviewScreen extends ConsumerWidget {
                             height: 24,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isCorrect
+                              // Hollow when nothing was answered: a filled
+                              // green disc reads as "you chose this".
+                              color: isCorrect && !isUnanswered
                                   ? AppColors.success
                                   : (isUserChoice
                                         ? AppColors.error
                                         : Colors.grey.shade300),
                               shape: BoxShape.circle,
+                              border: isCorrect && isUnanswered
+                                  ? Border.all(
+                                      color: AppColors.success,
+                                      width: 1.5,
+                                    )
+                                  : null,
                             ),
                             child: Text(
                               option.key.isNotEmpty
                                   ? option.key
                                   : String.fromCharCode(65 + optIndex),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: isCorrect && isUnanswered
+                                    ? AppColors.success
+                                    : Colors.white,
                               ),
                             ),
                           ),
@@ -211,18 +281,43 @@ class AnswerReviewScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          if (isCorrect)
-                            const Icon(
-                              Icons.check_circle,
-                              size: 18,
-                              color: AppColors.success,
+                          // Named as well as coloured: "Your answer" in red,
+                          // "Correct answer" in green. A tick is only shown
+                          // when the reader actually chose the right one.
+                          if (isCorrect) ...[
+                            const Text(
+                              'Correct answer',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.success,
+                              ),
                             ),
-                          if (isUserChoice && !isCorrect)
+                            if (!isUnanswered) ...[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.check_circle,
+                                size: 18,
+                                color: AppColors.success,
+                              ),
+                            ],
+                          ],
+                          if (isUserChoice && !isCorrect) ...[
+                            const Text(
+                              'Your answer',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.error,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
                             const Icon(
                               Icons.cancel,
                               size: 18,
                               color: AppColors.error,
                             ),
+                          ],
                         ],
                       ),
                     );

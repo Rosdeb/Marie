@@ -1,5 +1,17 @@
 class ApiConstants {
-  static const String baseUrl = 'https://sabbir2004.ssh.bd/api/v1';
+  /// Where the app talks to the server.
+  ///
+  /// Overridable at build time so one codebase serves the tunnel we develop
+  /// against and the production host, without an edit here:
+  ///
+  ///   flutter build web --dart-define=API_BASE_URL=https://api.example.com/api/v1
+  ///
+  /// Left out, it stays the development tunnel - which is what every build
+  /// used before this was configurable, so nothing changes by default.
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://sabbir2004.ssh.bd/api/v1',
+  );
 
   // Auth endpoints
   static const String login = '/auth/login';
@@ -58,7 +70,13 @@ class ApiConstants {
       '/practice/offices/$office/disciplines/$subject/themes';
   static String practiceCrossOfficeThemes(String subject) =>
       '/practice/themes/cross-office?subject=$subject';
+  /// The progress page: per office and discipline, by level and by theme.
+  static const String practiceProgress = '/practice/progress';
   static const String practiceSession = '/practice/session';
+  /// One answer at a time. In practice mode the reply carries the verdict,
+  /// the explanation and the legal basis, which the question payload never
+  /// does - the app is not told which option is correct in advance.
+  static String practiceSessionAnswer(String sessionId) => '/practice/session/$sessionId/answer';
   static String practiceSessionSubmit(String sessionId) => '/practice/session/$sessionId/submit';
   static String practiceSessionReview(String sessionId) => '/practice/session/$sessionId/review';
   static String practiceSessionResume(String sessionId) => '/practice/session/$sessionId';
@@ -75,6 +93,10 @@ class ApiConstants {
   static const String validatePromoCode = '/referral/validate-code';
   static const String redeemPromoCode = '/referral/redeem';
   static const String contentVideos = '/content/videos?placement=referral_guide';
+  // Any of the four placements of section 1.2: welcome, home,
+  // referral_guide, help_support.
+  static String contentVideosFor(String placement) =>
+      '/content/videos?placement=$placement';
   static const String contentReferralCopy = '/content/referral-copy';
   static const String contentDiscountOffer = '/content/discount-offer';
 

@@ -152,7 +152,7 @@ class PlanUpsellBottomSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Access to official exam practice questions and comprehensive legal rationales requires an active subscription plan.',
+                  'Access to the exam-style questions of this office, with the explanation and legal basis for every answer, requires an active subscription plan.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -345,18 +345,35 @@ class PlanUpsellBottomSheet extends ConsumerWidget {
   Widget _buildUpgradeCard(BuildContext context, PlanTier tier) {
     String desc = '';
     String price = '';
+    // Two corrections here, both from Marie's note of 8 November 2026.
+    //
+    // The office: MOIP, not KIPO - "MOIP everywhere the user reads it"
+    // (point 6.3). The code stays KIPO wherever it is a key.
+    //
+    // The prices: these three were CHF 29.99, 54.99 and 119.99, which is not
+    // what any of the plans costs. The agreed monthly prices are 39.99,
+    // 59.99 and 139.99, and they are what the store charges, so the sheet
+    // was quoting a price the buyer would not be asked for. Point 6.2 -
+    // "please remove them all; only true statements may remain" - covers a
+    // wrong price as much as a wrong claim.
+    //
+    // These remain hard-coded, like the rest of this sheet. They should be
+    // read from the plans endpoint, which is the only place a price change
+    // can be made once; that is noted rather than done here because this
+    // sheet is laid out around fixed strings and the change is not a
+    // one-liner.
     switch (tier) {
       case PlanTier.track:
         desc = 'Includes WIPO + 1 National + 1 Regional office';
-        price = 'CHF 29.99/mo';
+        price = 'CHF 39.99/mo';
         break;
       case PlanTier.majors:
-        desc = 'Fixed set: USPTO, EPO, JPO, CNIPA, KIPO, WIPO';
-        price = 'CHF 54.99/mo';
+        desc = 'Fixed set: USPTO, EPO, JPO, CNIPA, MOIP & WIPO';
+        price = 'CHF 59.99/mo';
         break;
       case PlanTier.global:
         desc = 'All 15 IP offices worldwide with full access';
-        price = 'CHF 119.99/mo';
+        price = 'CHF 139.99/mo';
         break;
       default:
         break;

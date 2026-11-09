@@ -3,6 +3,7 @@ import '../../domain/entities/office_entity.dart';
 import '../../domain/repositories/practice_repository.dart';
 import '../datasources/practice_remote_datasource.dart';
 import '../models/discipline_theme_models.dart';
+import '../models/progress_models.dart';
 
 class PracticeRepositoryImpl implements PracticeRepository {
   final PracticeRemoteDataSource remoteDataSource;
@@ -33,6 +34,11 @@ class PracticeRepositoryImpl implements PracticeRepository {
   }
 
   @override
+  Future<List<ProgressGroup>> getProgress() async {
+    return await remoteDataSource.getProgress();
+  }
+
+  @override
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
     required String office,
@@ -41,6 +47,7 @@ class PracticeRepositoryImpl implements PracticeRepository {
     String? theme,
     List<String>? offices,
     String? profileType,
+    bool examMode = false,
   }) async {
     return await remoteDataSource.startPracticeSession(
       mode: mode,
@@ -50,17 +57,35 @@ class PracticeRepositoryImpl implements PracticeRepository {
       theme: theme,
       offices: offices,
       profileType: profileType,
+      examMode: examMode,
     );
   }
 
   @override
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
+    String? subject,
     String? profileType,
   }) async {
     return await remoteDataSource.startDemoSession(
       office: office,
+      subject: subject,
       profileType: profileType,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> answerQuestion({
+    required String sessionId,
+    required String questionId,
+    required String? selectedKey,
+    required double timeSpentSeconds,
+  }) async {
+    return await remoteDataSource.answerQuestion(
+      sessionId: sessionId,
+      questionId: questionId,
+      selectedKey: selectedKey,
+      timeSpentSeconds: timeSpentSeconds,
     );
   }
 

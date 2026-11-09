@@ -8,6 +8,21 @@ import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
 
+/// Practice or Exam, chosen on this screen and nowhere else.
+///
+/// Section 7 makes practice the default: "Practice mode (default)". It is a
+/// provider rather than widget state so it survives a rebuild of this screen
+/// and is read once, at the moment the session is started.
+class _ExamModeNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+final _examModeProvider =
+    NotifierProvider<_ExamModeNotifier, bool>(_ExamModeNotifier.new);
+
 class ExamReadyScreen extends ConsumerWidget {
   const ExamReadyScreen({super.key});
 
@@ -155,6 +170,36 @@ class ExamReadyScreen extends ConsumerWidget {
                           ? 'Confirmed when session starts'
                           : '$minutes Minutes',
                     ),
+
+                    // "Where a pool has fewer than 20 questions for the
+                    // user's profile, run a shorter session with all of them
+                    // and say so" - and say so before the start, which is
+                    // here, not once the first question is already on screen.
+                    if (questions != null && questions < 20) ...[
+                      const Divider(height: 24, color: AppColors.border),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'This theme has $questions questions: '
+                              'this session has $questions.',
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                height: 1.4,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -249,11 +294,20 @@ class ExamReadyScreen extends ConsumerWidget {
               //     ),
               //   ),
               // ),
+              const SizedBox(height: 24),
+
+              // Practice or Exam, before the session starts.
+              _ModeChooser(
+                examMode: ref.watch(_examModeProvider),
+                onChanged: (value) =>
+                    ref.read(_examModeProvider.notifier).set(value),
+              ),
+
               const SizedBox(height: 32),
 
               // Action Buttons
               CustomButton(
-                text: quizState.isLoading ? 'Preparing Exam...' : 'Start Exam',
+                text: quizState.isLoading ? 'Preparing…' : 'Start',
                 isLoading: quizState.isLoading,
                 onPressed: quizState.isLoading
                     ? null
@@ -281,9 +335,14 @@ class ExamReadyScreen extends ConsumerWidget {
                               level: selection.mode == 'by_level'
                                   ? selection.level
                                   : null,
-                              theme: selection.mode == 'by_theme'
+                              theme: (selection.mode == 'by_theme' ||
+                                      selection.mode == 'theme_across_offices')
                                   ? selection.theme
                                   : null,
+                              offices: selection.mode == 'theme_across_offices'
+                                  ? selection.offices
+                                  : null,
+                              examMode: ref.read(_examModeProvider),
                             );
 
                         if (context.mounted) {
@@ -384,6 +443,139 @@ class ExamReadyScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Practice mode or Exam mode, side by side, with what each one does.
+///
+/// Marie's point 4.1: the choice belongs here, before the quiz, and the
+/// difference has to be legible - a reader who picks Exam should know the
+/// corrections will not appear until the end.
+class _ModeChooser extends StatelessWidget {
+  const _ModeChooser({required this.examMode, required this.onChanged});
+
+  final bool examMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'How do you want to answer?',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _ModeCard(
+                title: 'Practice',
+                subtitle: 'See the answer and the explanation after each question.',
+                icon: Icons.school_outlined,
+                selected: !examMode,
+                onTap: () => onChanged(false),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ModeCard(
+                title: 'Exam',
+                subtitle: 'No corrections until the end. Time runs out, the session is scored.',
+                icon: Icons.timer_outlined,
+                selected: examMode,
+                onTap: () => onChanged(true),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ModeCard extends StatelessWidget {
+  const _ModeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.primary.withValues(alpha: 0.07) : Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? AppColors.primary : const Color(0xFFE2E8F0),
+              width: selected ? 1.2 : 0.8,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: selected ? AppColors.primary : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (selected)
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  height: 1.35,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

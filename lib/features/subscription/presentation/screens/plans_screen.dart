@@ -119,7 +119,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Switch or upgrade your plan at any time. Changes take effect immediately.',
+                            'Add a plan at any time. Your access is every office of every plan you hold.',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.textSecondary,
@@ -185,7 +185,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'One subscription, flexible access. Changing plan replaces your current one immediately.',
+                                  'Hold as many plans as you like. A new plan is added to the ones you already have, never in place of them.',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSecondary,
@@ -301,19 +301,14 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         (activePlans.isNotEmpty
             ? activePlans.contains(plan.tier)
             : currentTier == plan.tier);
-    final isUpgrade = isSubscribed && plan.tier.index > currentTier.index;
-    final isDowngrade = isSubscribed && plan.tier.index < currentTier.index;
-
-    String ctaText;
-    if (isCurrent) {
-      ctaText = 'Current Plan';
-    } else if (isUpgrade) {
-      ctaText = 'Upgrade to ${plan.title}';
-    } else if (isDowngrade) {
-      ctaText = 'Downgrade to ${plan.title} (At renewal)';
-    } else {
-      ctaText = 'Choose ${plan.title}';
-    }
+    // There is no upgrade and no downgrade.
+    //
+    // Marie, point 6.1: "A user can hold several plans; access is the union
+    // of their offices. Buttons 'Subscribe to ...'; nothing is downgraded or
+    // replaced." Ranking the plans by tier and calling the move up an
+    // upgrade and the move down a downgrade described the opposite of what
+    // the product does - a second plan is added to the first.
+    final ctaText = isCurrent ? 'Current Plan' : 'Subscribe to ${plan.title}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -490,6 +485,45 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
               onPressed: isCurrent
                   ? null
                   : () async {
+                      /*
+                       * A second plan is explained before it is bought.
+                       *
+                       * Marie, 8 November 2026, agreeing to one App Store
+                       * subscription group per plan:
+                       *   "However, users must understand what this means.
+                       *    Before they buy a second plan, and in Help &
+                       *    Support, the app must explain clearly that each
+                       *    plan is a separate subscription on the iPhone and
+                       *    must be cancelled separately."
+                       *
+                       * Separate groups are what let a subscriber hold Focus
+                       * and Majors at once - two subscriptions in one group
+                       * can never both be active on Apple, so a single group
+                       * would make the second purchase replace the first,
+                       * which is precisely what point 6.1 forbids. The cost
+                       * of the arrangement is that the store shows two
+                       * subscriptions and asks for two cancellations, and a
+                       * subscriber should learn that here rather than when
+                       * they come to cancel.
+                       *
+                       * Only shown when a plan is already held: on a first
+                       * purchase there is nothing separate to explain, and a
+                       * sheet about cancelling two subscriptions would be
+                       * noise in front of the one that matters.
+                       */
+                      if (activePlans.isNotEmpty) {
+                        final held = activePlans
+                            .map((t) => t.displayName)
+                            .join(', ');
+                        final goAhead = await _confirmAdditionalPlan(
+                          context,
+                          adding: plan.title,
+                          held: held,
+                          totalAfter: activePlans.length + 1,
+                        );
+                        if (goAhead != true) return;
+                      }
+
                       final success = await ref
                           .read(plansProvider.notifier)
                           .purchasePlan(plan.tier);
@@ -517,6 +551,159 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                     },
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// What holding more than one plan means, shown before the purchase.
+  ///
+  /// Returns true only if the subscriber chooses to continue. The wording
+  /// names the plans they already hold and how many subscriptions they will
+  /// end up with, because "each plan is separate" stays abstract until it is
+  /// "you will have two subscriptions".
+  ///
+  /// It says "App Store or Google Play" rather than naming one. Google does
+  /// allow several products at once without the group arrangement, but the
+  /// subscription still lives in Play and is still cancelled there, so the
+  /// sentence is true on both platforms and needs no second version.
+  Future<bool?> _confirmAdditionalPlan(
+    BuildContext context, {
+    required String adding,
+    required String held,
+    required int totalAfter,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.layers_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Adding $adding to your access',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'You already have $held. $adding is added to it - nothing '
+                  'is replaced, and your access becomes every office of both.',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.badgeBg.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Because plans add up, each one is a separate '
+                        'subscription:',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '-  You will be billed for $totalAfter subscriptions, '
+                        'each on its own renewal date.',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '-  They appear as $totalAfter separate subscriptions '
+                        'in your App Store or Google Play settings, and each '
+                        'must be cancelled separately.',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        '-  Cancelling one leaves the other running, and you '
+                        'keep the offices it covers.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
+                        child: const Text(
+                          'Not now',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Continue',
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -555,11 +742,17 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             'Choose 1 national office and 1 regional office. WIPO is included: three offices in all.';
       }
     } else if (entitlement.planId == PlanTier.majors) {
+      // MOIP, not KIPO. The office was renamed the Ministry of Intellectual
+      // Property on 1 October 2025 (point 6.3), and Marie asked on 8 November
+      // 2026 for MOIP "everywhere the user reads it". The code stays KIPO in
+      // the data and in the store entitlement; only this sentence changes.
       officesDescription =
-          'Fixed access to all 6 major offices: USPTO, EPO, JPO, CNIPA, KIPO, WIPO.';
+          'Fixed access to all 6 major offices: USPTO, EPO, JPO, CNIPA, MOIP & WIPO.';
     } else {
       officesDescription =
-          'Full unlimited access to all 15 worldwide patent offices.';
+          // Not all fifteen are patent offices: the EUIPO registers trade
+          // marks and designs, and the UPC is a court (point 6.1).
+          'Full access to all 15 IP offices.';
     }
 
     final renewalDate = entitlement.periodEnd != null

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
+import '../../../../core/widgets/promo_video_card.dart';
 import '../providers/auth_provider.dart';
 
 class OnboardingScreen extends ConsumerWidget {
@@ -94,6 +95,17 @@ class OnboardingScreen extends ConsumerWidget {
                       color: AppColors.textSecondary,
                       height: 1.4,
                     ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Promotional video - one of the four places of section
+                  // 1.2. Nothing is uploaded yet, so this reads "coming
+                  // soon" until a video is published under the welcome
+                  // placement on the dashboard.
+                  const PromoVideoCard(
+                    placement: 'welcome',
+                    height: 150,
                   ),
 
                   const Spacer(flex: 2),

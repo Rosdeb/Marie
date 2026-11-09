@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../../core/widgets/global_header.dart';
 import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../../core/widgets/promo_video_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 
@@ -175,7 +176,10 @@ class HomeScreen extends ConsumerWidget {
 
                     // Subtitle Text
                     const Text(
-                      'Learn IP law through focused practice and\nexam-style quizzes.',
+                      // Marie, 7 November 2026: the website now says MCQs
+                      // rather than quiz, and the app follows. Internal
+                      // names - code, database, API - keep "quiz".
+                      'Learn IP law through focused practice and\nexam-style MCQs.',
                       style: TextStyle(
                         color: Color(0xFF6E6E6E),
                         fontSize: 13,
@@ -189,6 +193,16 @@ class HomeScreen extends ConsumerWidget {
                       _buildTryFreeDemoCard(context, ref),
                       const SizedBox(height: 12),
                     ],
+
+                    // 3b. Promotional video - one of the four places of
+                    // section 1.2. Nothing is uploaded yet, so this reads
+                    // "coming soon" until a video is published under the
+                    // home placement on the dashboard.
+                    const PromoVideoCard(
+                      placement: 'home',
+                      heading: 'Discover IPro',
+                    ),
+                    const SizedBox(height: 20),
 
                     // 4. Topics Section Header
                     const Text(

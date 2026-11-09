@@ -101,6 +101,47 @@ class Question {
   }
 }
 
+/// What the server says about one confirmed answer, in practice mode.
+///
+/// Section 7: "Right after confirming, show Correct or Incorrect, colour the
+/// correct option green and a wrong choice red, then show the Explanation
+/// and, below it, Legal basis."
+///
+/// It arrives only when the answer is confirmed, never with the question:
+/// sending it earlier would hand the correct option to anyone reading the
+/// traffic, which section 11 forbids.
+class QuestionFeedback {
+  final bool isCorrect;
+
+  /// The key of the correct option, e.g. "C". Null if the question has none
+  /// flagged - a content fault worth showing rather than hiding.
+  final String? correctKey;
+  final String? selectedKey;
+  final String explanation;
+  final String legalBasis;
+
+  const QuestionFeedback({
+    required this.isCorrect,
+    this.correctKey,
+    this.selectedKey,
+    this.explanation = '',
+    this.legalBasis = '',
+  });
+
+  /// True when the user confirmed without choosing: a deliberate skip.
+  bool get wasSkipped => selectedKey == null;
+
+  factory QuestionFeedback.fromJson(Map<String, dynamic> json) {
+    return QuestionFeedback(
+      isCorrect: json['isCorrect'] as bool? ?? false,
+      correctKey: json['correctKey'] as String?,
+      selectedKey: json['selectedKey'] as String?,
+      explanation: json['explanation'] as String? ?? '',
+      legalBasis: json['legalBasis'] as String? ?? '',
+    );
+  }
+}
+
 class QuizState {
   final String? sessionId;
   final String selectedOffice;
@@ -111,6 +152,25 @@ class QuizState {
   final int currentIndex;
   final Map<int, int> userAnswers; // Question index -> Chosen option index
   final Map<int, int> timeSpentPerQuestion; // Question index -> Seconds spent
+
+  /// Exam mode hides every verdict until the results screen; practice mode,
+  /// the default, shows it after each Confirm.
+  final bool examMode;
+
+  /// The practice mode this session was started in, and the theme if it had
+  /// one. Kept so the result screen can offer "New session with the same
+  /// settings" without asking the reader to walk the menus again.
+  final String mode;
+  final String selectedTheme;
+
+  /// Question index -> what the server returned when it was confirmed.
+  /// Empty in exam mode. A question is "confirmed" exactly when it has an
+  /// entry here, which is what stops a second Confirm on the same question.
+  final Map<int, QuestionFeedback> feedback;
+
+  /// True while a Confirm is in flight, so the button cannot be double-tapped.
+  final bool isConfirming;
+
   final bool isLoading;
   final bool isSubmitting;
   final bool isSubmitted;
@@ -132,6 +192,11 @@ class QuizState {
     this.currentIndex = 0,
     this.userAnswers = const {},
     this.timeSpentPerQuestion = const {},
+    this.examMode = false,
+    this.mode = 'by_level',
+    this.selectedTheme = '',
+    this.feedback = const {},
+    this.isConfirming = false,
     this.isLoading = false,
     this.isSubmitting = false,
     this.isSubmitted = false,
@@ -154,6 +219,11 @@ class QuizState {
     int? currentIndex,
     Map<int, int>? userAnswers,
     Map<int, int>? timeSpentPerQuestion,
+    bool? examMode,
+    String? mode,
+    String? selectedTheme,
+    Map<int, QuestionFeedback>? feedback,
+    bool? isConfirming,
     bool? isLoading,
     bool? isSubmitting,
     bool? isSubmitted,
@@ -176,6 +246,11 @@ class QuizState {
       currentIndex: currentIndex ?? this.currentIndex,
       userAnswers: userAnswers ?? this.userAnswers,
       timeSpentPerQuestion: timeSpentPerQuestion ?? this.timeSpentPerQuestion,
+      examMode: examMode ?? this.examMode,
+      mode: mode ?? this.mode,
+      selectedTheme: selectedTheme ?? this.selectedTheme,
+      feedback: feedback ?? this.feedback,
+      isConfirming: isConfirming ?? this.isConfirming,
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isSubmitted: isSubmitted ?? this.isSubmitted,

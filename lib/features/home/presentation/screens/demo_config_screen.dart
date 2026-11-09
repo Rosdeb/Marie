@@ -7,6 +7,24 @@ import '../../../practice/presentation/providers/quiz_provider.dart';
 import '../../../practice/presentation/providers/offices_provider.dart';
 import '../providers/demo_provider.dart';
 
+/// Which discipline the demo runs on.
+///
+/// Marie, point 2.1: "The user chooses the office, then the discipline
+/// (Patents, Trademarks or Designs; WIPO: PCT, Madrid or Hague). The demo
+/// shows 20 questions of that one discipline." The card listed the three
+/// disciplines but the reader could not pick one, and the draw landed on
+/// whichever it liked.
+final _demoDisciplineProvider = NotifierProvider<_DemoDiscipline, String?>(
+  _DemoDiscipline.new,
+);
+
+class _DemoDiscipline extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? value) => state = value;
+}
+
 class DemoConfigScreen extends ConsumerWidget {
   const DemoConfigScreen({super.key});
 
@@ -22,6 +40,9 @@ class DemoConfigScreen extends ConsumerWidget {
     final selectedDemo = ref.watch(selectedDemoProvider);
     final selectedOffice = ref.watch(officesProvider).selectedOffice;
     final questions = selectedDemo?.questions ?? 20;
+
+    final disciplines = selectedOffice?.disciplines ?? const [];
+    final chosenDiscipline = ref.watch(_demoDisciplineProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -185,24 +206,73 @@ class DemoConfigScreen extends ConsumerWidget {
               //   ),
               // ),
 
+              // Office, then discipline, then start.
+              if (disciplines.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Choose a discipline',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: disciplines.map((d) {
+                    final selected = chosenDiscipline == d.name;
+                    return ChoiceChip(
+                      label: Text(d.displayName),
+                      selected: selected,
+                      onSelected: (_) => ref
+                          .read(_demoDisciplineProvider.notifier)
+                          .set(d.name),
+                      labelStyle: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? Colors.white : AppColors.textPrimary,
+                      ),
+                      selectedColor: AppColors.primary,
+                      backgroundColor: Colors.white,
+                      showCheckmark: false,
+                    );
+                  }).toList(),
+                ),
+              ],
+
               const SizedBox(height: 40),
 
               Consumer(
                 builder: (context, ref, child) {
                   final quiz = ref.watch(quizProvider);
+                  // Nothing to choose means nothing to wait for; with
+                  // disciplines on screen, one has to be picked first.
+                  final ready =
+                      disciplines.isEmpty || chosenDiscipline != null;
                   return CustomButton(
                     text: 'Start Demo',
                     isLoading: quiz.isLoading,
-                    onPressed: () async {
-                      final officeCode = selectedOffice?.code ?? 'IPI';
-                      await ref.read(quizProvider.notifier).startDemoSession(
-                            office: officeCode,
-                            profileType: 'Paralegal',
-                          );
-                      if (context.mounted) {
-                        context.pushReplacement('/practice/active-quiz');
-                      }
-                    },
+                    onPressed: !ready
+                        ? null
+                        : () async {
+                            final officeCode = selectedOffice?.code ?? 'IPI';
+                            await ref
+                                .read(quizProvider.notifier)
+                                .startDemoSession(
+                                  office: officeCode,
+                                  subject: chosenDiscipline,
+                                  // No profile is asked before the demo any
+                                  // more (point 2.1), so the demo must not
+                                  // quietly behave as a Paralegal one and
+                                  // hide the Attorney questions.
+                                  profileType: 'Attorney',
+                                );
+                            if (context.mounted) {
+                              context.pushReplacement('/practice/active-quiz');
+                            }
+                          },
                   );
                 },
               ),
