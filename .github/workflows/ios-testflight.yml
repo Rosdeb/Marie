@@ -74,5 +74,7 @@ jobs:
           cd ios
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-          git config --global url."https://${MATCH_GIT_TOKEN}@github.com/".insteadOf "https://github.com/"
+          if [ -n "$MATCH_GIT_TOKEN" ]; then
+            git config --global url."https://${MATCH_GIT_TOKEN}@github.com/".insteadOf "https://github.com/"
+          fi
           bundle exec fastlane beta

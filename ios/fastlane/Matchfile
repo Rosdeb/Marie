@@ -1,4 +1,8 @@
-git_url(ENV["MATCH_GIT_URL"] || "https://github.com/Rosdeb/marie-ios-certificates.git")
+match_url = ENV["MATCH_GIT_URL"] || "https://github.com/Rosdeb/marie-ios-certificates.git"
+match_url = match_url.chomp("/")
+match_url = "#{match_url}.git" unless match_url.end_with?(".git")
+
+git_url(match_url)
 storage_mode("git")
 type("appstore")
 app_identifier(ENV["APP_BUNDLE_ID"] || "com.ipro-law.app")
