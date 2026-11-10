@@ -73,8 +73,10 @@ class OnboardingScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
 
                   // Title Header
+                  // Marie, 1 November 2026, point 3.2: the app's own name
+                  // and motto, not the template's "best way to study".
                   const Text(
-                    'The best way to study\nSign up for free',
+                    'IPro\nTrust your excellence',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 24,

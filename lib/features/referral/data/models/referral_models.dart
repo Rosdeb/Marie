@@ -10,7 +10,8 @@ class ReferralInfo {
   /// Marie, 3 November 2026, point 8.12: the share link belongs on
   /// iprospace.com, not ipro-law.com. ipro-law.com is the dashboard; the
   /// public site a reader lands on is iprospace.com.
-  static const String fallbackUrl = 'https://iprospace.com/app';
+  /// The path she gave on 1 November is /ipro/app, not /app.
+  static const String fallbackUrl = 'https://iprospace.com/ipro/app';
 
   const ReferralInfo({
     this.code = '',

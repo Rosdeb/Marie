@@ -144,7 +144,9 @@ class RevenueCatPlanGroup {
         title: focusApi?.name.isNotEmpty == true ? focusApi!.name : 'Focus',
         description: focusApi?.subtitle.isNotEmpty == true
             ? focusApi!.subtitle
-            : 'Practice 1 office of your choice with unlimited questions and mock exams.',
+            // "unlimited questions" is a count nobody can stand behind and
+            // "mock exams" is ruled out by her Terms of Use - point 9.
+            : 'Practice one office of your choice, with every discipline and all four levels.',
         features: const [
           'Choose any 1 office (e.g. USPTO, EPO, IPI)',
           'Change office once per billing period',

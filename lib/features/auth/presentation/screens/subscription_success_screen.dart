@@ -192,8 +192,12 @@ class SubscriptionSuccessScreen extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          _buildPerkRow('Unlimited mock exams & timed mode'),
-                          _buildPerkRow('In-depth answer rationales & citations'),
+                          // Marie, 1 November 2026, point 9. Her Terms of Use
+                          // state that no official examination question is
+                          // reproduced, so "mock exams" cannot be claimed.
+                          // These two lines now say what the app does have.
+                          _buildPerkRow('Timed practice in all four levels'),
+                          _buildPerkRow('Explanation and legal basis for every answer'),
                           _buildPerkRow('Real-time score & weak area tracking'),
                         ],
                       ),

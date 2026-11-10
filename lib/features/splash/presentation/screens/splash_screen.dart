@@ -101,7 +101,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Study App',
+                  'IPro',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
@@ -111,7 +111,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'The best way to study & practice',
+                  // Marie, 1 November 2026, point 3.1. "Trust your
+                  // excellence" is the only motto IPro uses; "the best way
+                  // to study & practice" was the template's.
+                  'Trust your excellence',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,

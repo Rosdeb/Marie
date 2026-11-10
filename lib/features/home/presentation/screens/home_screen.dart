@@ -14,7 +14,6 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAuth = ref.watch(authProvider).isAuthenticated;
     final practice = ref.watch(practiceProvider);
 
     return Scaffold(
@@ -189,10 +188,13 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
 
                     // 3. Featured Try Free Demo Card (Moves to Demo Offices Catalogue)
-                    if (!isAuth) ...[
-                      _buildTryFreeDemoCard(context, ref),
-                      const SizedBox(height: 12),
-                    ],
+                    //
+                    // Marie, 1 November 2026, point 2.2: this card used to be
+                    // shown only to a signed-out visitor, which left a
+                    // signed-in user with no way into any demo at all. The
+                    // demos are free for everyone, so the card is always here.
+                    _buildTryFreeDemoCard(context, ref),
+                    const SizedBox(height: 12),
 
                     // 3b. Promotional video - one of the four places of
                     // section 1.2. Nothing is uploaded yet, so this reads

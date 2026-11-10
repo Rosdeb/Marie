@@ -133,7 +133,11 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Share your referral code with friends and fellow practitioners. When they sign up, both of you get 10% discount on subscription plans!',
+                  // Marie, 1 November 2026, point 12.2. What was agreed is
+                  // narrower than what this promised: the discount goes to
+                  // the person who shares, on their first paid period, once
+                  // per account. Nothing is promised to the person invited.
+                  'Share IPro on LinkedIn and get 10% off your first paid period. One discount per account.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,

@@ -461,7 +461,9 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                   child: _buildPriceBox(
                     label: 'Annual',
                     price: plan.annualPriceString,
-                    subtitle: 'Save up to 20%',
+                    // Twelve months for the price of ten is 16.7%, so "up
+                    // to 20%" overstated it - Marie, 1 November, point 10.1.
+                    subtitle: 'Save about 17%',
                     isBestValue: true,
                     isSelected: selectedInterval == PlanBillingInterval.annual,
                     onTap: () {
