@@ -4,6 +4,12 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>IPro Law requires access to your photo library to select a profile picture.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>IPro Law requires access to your camera to take a profile picture.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>IPro Law requires access to save photos to your photo library.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
