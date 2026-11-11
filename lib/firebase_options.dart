@@ -56,13 +56,14 @@ class DefaultFirebaseOptions {
     projectId: 'ipro-d5deb',
     storageBucket: 'ipro-d5deb.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBQ2WNQSjx93u-x0GL7SbYuQl8GxuNCVYQ',
     appId: '1:527162910733:ios:e10d8760011c045c9a8d44',
     messagingSenderId: '527162910733',
     projectId: 'ipro-d5deb',
     storageBucket: 'ipro-d5deb.firebasestorage.app',
+    androidClientId: '527162910733-kglg25bpc380pb1vqmelffhkoip5uoq7.apps.googleusercontent.com',
+    iosClientId: '527162910733-o36b1qahqpen1d7ka7l6u77qs4cebbkb.apps.googleusercontent.com',
     iosBundleId: 'com.ipro.app',
   );
 }
