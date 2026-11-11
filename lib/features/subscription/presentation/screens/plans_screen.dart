@@ -310,6 +310,12 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
     // the product does - a second plan is added to the first.
     final ctaText = isCurrent ? 'Current Plan' : 'Subscribe to ${plan.title}';
 
+    // RevenueCat returned no package for this plan, so there is nothing to
+    // buy: the offering is missing, its products are not approved yet, or the
+    // store agreement is not active. Showing the card with a dead button
+    // would read as a broken app; saying so reads as a plan not yet on sale.
+    final isUnavailable = !plan.isAvailable && !isCurrent;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -482,6 +488,37 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             const SizedBox(height: 16),
 
             // CTA Button
+            if (isUnavailable)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F7F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Color(0xFF6E6E6E),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This plan is not on sale yet. Please try again later.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: Color(0xFF6E6E6E),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
             CustomButton(
               text: ctaText,
               onPressed: isCurrent

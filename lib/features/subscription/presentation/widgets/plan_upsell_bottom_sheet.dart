@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../domain/entities/entitlement_entity.dart';
 import '../providers/entitlement_provider.dart';
+import '../providers/plans_provider.dart';
 
 class PlanUpsellBottomSheet extends ConsumerWidget {
   final String officeCode;
@@ -205,7 +206,7 @@ class PlanUpsellBottomSheet extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   ...upgradeOptions.map(
-                    (tier) => _buildUpgradeCard(context, tier),
+                    (tier) => _buildUpgradeCard(context, ref, tier),
                   ),
                 ],
               ],
@@ -342,41 +343,46 @@ class PlanUpsellBottomSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildUpgradeCard(BuildContext context, PlanTier tier) {
+  Widget _buildUpgradeCard(BuildContext context, WidgetRef ref, PlanTier tier) {
     String desc = '';
-    String price = '';
-    // Two corrections here, both from Marie's note of 8 November 2026.
-    //
+
     // The office: MOIP, not KIPO - "MOIP everywhere the user reads it"
-    // (point 6.3). The code stays KIPO wherever it is a key.
-    //
-    // The prices: these three were CHF 29.99, 54.99 and 119.99, which is not
-    // what any of the plans costs. The agreed monthly prices are 39.99,
-    // 59.99 and 139.99, and they are what the store charges, so the sheet
-    // was quoting a price the buyer would not be asked for. Point 6.2 -
-    // "please remove them all; only true statements may remain" - covers a
-    // wrong price as much as a wrong claim.
-    //
-    // These remain hard-coded, like the rest of this sheet. They should be
-    // read from the plans endpoint, which is the only place a price change
-    // can be made once; that is noted rather than done here because this
-    // sheet is laid out around fixed strings and the change is not a
-    // one-liner.
+    // (Marie, 8 November 2026, point 6.3). The code stays KIPO wherever it is
+    // a key rather than a label.
     switch (tier) {
       case PlanTier.track:
         desc = 'Includes WIPO + 1 National + 1 Regional office';
-        price = 'CHF 39.99/mo';
         break;
       case PlanTier.majors:
         desc = 'Fixed set: USPTO, EPO, JPO, CNIPA, MOIP & WIPO';
-        price = 'CHF 59.99/mo';
         break;
       case PlanTier.global:
         desc = 'All 15 IP offices worldwide with full access';
-        price = 'CHF 139.99/mo';
         break;
       default:
         break;
+    }
+
+    // The price comes from the store, through the same plan groups the paywall
+    // reads - never from a figure written here.
+    //
+    // Three prices used to be hard-coded in this method, and they were wrong
+    // twice: first at 29.99 / 54.99 / 119.99, which matched no plan at all,
+    // and then they would have gone stale again the moment Marie changed a
+    // price. The store is the only place that knows what this person will be
+    // charged, in their own currency.
+    //
+    // While the plans have not loaded, or a plan is not on sale, the price is
+    // simply absent. An upsell card with no price still reads correctly; one
+    // with the wrong price does not, and quoting a price nobody will be asked
+    // for is exactly what point 6.2 rules out.
+    final groups = ref.watch(plansProvider).planGroups;
+    String price = '';
+    for (final g in groups) {
+      if (g.tier == tier && g.isAvailable) {
+        price = g.monthlyPriceString;
+        break;
+      }
     }
 
     return Container(
@@ -410,15 +416,17 @@ class PlanUpsellBottomSheet extends ConsumerWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      price,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                    if (price.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        price,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 2),

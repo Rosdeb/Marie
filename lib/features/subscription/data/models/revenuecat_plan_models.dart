@@ -15,6 +15,13 @@ class RevenueCatPlanGroup {
   final String? fallbackMonthlyPrice;
   final String? fallbackAnnualPrice;
 
+  /// The RevenueCat offering this plan was read from - `focus`, `focus_ref10` -
+  /// or the id that was looked for and not found.
+  ///
+  /// Carried so that a plan which cannot be shown can say *which* offering is
+  /// missing. "Plans unavailable" on its own is not a diagnosis.
+  final String offeringId;
+
   const RevenueCatPlanGroup({
     required this.tier,
     required this.title,
@@ -25,8 +32,24 @@ class RevenueCatPlanGroup {
     this.annualPackage,
     this.fallbackMonthlyPrice,
     this.fallbackAnnualPrice,
+    this.offeringId = '',
   });
 
+  /// Whether anything in this plan can be bought.
+  ///
+  /// False means RevenueCat returned no package for it - a missing offering, a
+  /// product still in *Missing Metadata*, or a store agreement that is not yet
+  /// active. The paywall must say so rather than offer a button that cannot
+  /// work.
+  bool get isAvailable => monthlyPackage != null || annualPackage != null;
+
+  /// The price the store itself quotes, in the buyer's own currency.
+  ///
+  /// Falls back to the price Marie entered on the dashboard, and then to a
+  /// dash. It never falls back to a figure written into the app: the store is
+  /// the only place that knows what this person will actually be charged, and
+  /// a stale number beside a purchase button is both wrong and a reason for
+  /// Apple to reject the build.
   String get monthlyPriceString =>
       monthlyPackage?.storeProduct.priceString ?? fallbackMonthlyPrice ?? '—';
   String get annualPriceString =>
@@ -83,16 +106,36 @@ class RevenueCatPlanGroup {
       return null;
     }
 
+    /// Which offering id each plan was resolved from, for the unavailable state.
+    final resolvedIds = <PlanTier, String>{};
+
     Offering? getOfferingForTier(PlanTier tier) {
-      if (offerings == null) return null;
       final name = tier.name.toLowerCase();
 
-      if (useReferralOffering) {
-        final discounted = offeringNamed('$name$referralOfferingSuffix');
-        if (discounted != null) return discounted;
+      if (offerings == null) {
+        resolvedIds[tier] = name;
+        return null;
       }
 
-      return offeringNamed(name) ?? offerings.current;
+      // A redeemed referral asks for the discounted basket first and falls
+      // back to the list price if it is not set up. That fallback is required,
+      // not defensive: a buyer paying full price is a worse outcome than the
+      // discount, and a far better one than an empty paywall.
+      if (useReferralOffering) {
+        final discountedId = '$name$referralOfferingSuffix';
+        final discounted = offeringNamed(discountedId);
+        if (discounted != null) {
+          resolvedIds[tier] = discountedId;
+          return discounted;
+        }
+      }
+
+      resolvedIds[tier] = name;
+      // Deliberately no `?? offerings.current`. There are eight equal
+      // offerings - one per plan, at each of the two prices - so none of them
+      // is a default, and asking for "current" would hand back some arbitrary
+      // plan's products and sell the buyer the wrong thing. Missing is missing.
+      return offeringNamed(name);
     }
 
     Package? resolvePackage(Offering? offering, PlanBillingInterval interval) {
@@ -153,14 +196,15 @@ class RevenueCatPlanGroup {
           'All 4 difficulty levels included',
           'Full legal rationales & explanations',
         ],
+        offeringId: resolvedIds[PlanTier.focus] ?? 'focus',
         monthlyPackage: resolvePackage(focusOffering, PlanBillingInterval.monthly),
         annualPackage: resolvePackage(focusOffering, PlanBillingInterval.annual),
         fallbackMonthlyPrice: focusApi != null
             ? '${focusApi.currency} ${focusApi.priceMonthly.toStringAsFixed(2)}/mo'
-            : 'CHF 19.99/mo',
+            : null,
         fallbackAnnualPrice: focusApi != null
             ? '${focusApi.currency} ${focusApi.priceYearly.toStringAsFixed(0)}/yr'
-            : 'CHF 199/yr',
+            : null,
       ),
       RevenueCatPlanGroup(
         tier: PlanTier.track,
@@ -176,14 +220,15 @@ class RevenueCatPlanGroup {
           'Choose 1 national office',
           'All 4 levels included',
         ],
+        offeringId: resolvedIds[PlanTier.track] ?? 'track',
         monthlyPackage: resolvePackage(trackOffering, PlanBillingInterval.monthly),
         annualPackage: resolvePackage(trackOffering, PlanBillingInterval.annual),
         fallbackMonthlyPrice: trackApi != null
             ? '${trackApi.currency} ${trackApi.priceMonthly.toStringAsFixed(2)}/mo'
-            : 'CHF 39.99/mo',
+            : null,
         fallbackAnnualPrice: trackApi != null
             ? '${trackApi.currency} ${trackApi.priceYearly.toStringAsFixed(0)}/yr'
-            : 'CHF 399/yr',
+            : null,
       ),
       RevenueCatPlanGroup(
         tier: PlanTier.majors,
@@ -206,14 +251,15 @@ class RevenueCatPlanGroup {
           'Study across every office in the plan',
           'Explanation and legal basis for every answer',
         ],
+        offeringId: resolvedIds[PlanTier.majors] ?? 'majors',
         monthlyPackage: resolvePackage(majorsOffering, PlanBillingInterval.monthly),
         annualPackage: resolvePackage(majorsOffering, PlanBillingInterval.annual),
         fallbackMonthlyPrice: majorsApi != null
             ? '${majorsApi.currency} ${majorsApi.priceMonthly.toStringAsFixed(2)}/mo'
-            : 'CHF 59.99/mo',
+            : null,
         fallbackAnnualPrice: majorsApi != null
             ? '${majorsApi.currency} ${majorsApi.priceYearly.toStringAsFixed(0)}/yr'
-            : 'CHF 599/yr',
+            : null,
       ),
       RevenueCatPlanGroup(
         tier: PlanTier.global,
@@ -229,17 +275,19 @@ class RevenueCatPlanGroup {
           'Exam-style questions in four levels',
           'Explanation and legal basis for every answer',
         ],
+        offeringId: resolvedIds[PlanTier.global] ?? 'global',
         monthlyPackage: resolvePackage(globalOffering, PlanBillingInterval.monthly),
         annualPackage: resolvePackage(globalOffering, PlanBillingInterval.annual),
         fallbackMonthlyPrice: globalApi != null
             ? '${globalApi.currency} ${globalApi.priceMonthly.toStringAsFixed(2)}/mo'
-            : 'CHF 139.99/mo',
+            : null,
         fallbackAnnualPrice: globalApi != null
             ? '${globalApi.currency} ${globalApi.priceYearly.toStringAsFixed(0)}/yr'
-            // CHF 1,399, not 959: the yearly price is about 17% below twelve
-            // monthly payments on all four plans (12 x 139.99 = 1,679.88), and
-            // 959 matched neither that rule nor the server's own plan table.
-            : 'CHF 1399/yr',
+            // No figure here on purpose. A yearly price used to be written
+            // into this file, and it was wrong twice - once at 959 and once
+            // after Marie changed the plan table. The store knows the price
+            // and the dashboard knows her intent; the app should know neither.
+            : null,
       ),
     ];
   }

@@ -103,8 +103,23 @@ class PlansNotifier extends Notifier<PlansState> {
       );
       for (final g in groups) {
         debugPrint(
-          '[Plans] Plan ${g.title}: Monthly=${g.monthlyPriceString} (pkg: ${g.monthlyPackage?.identifier}), Annual=${g.annualPriceString} (pkg: ${g.annualPackage?.identifier})',
+          '[Plans] ${g.title}: offering=${g.offeringId} '
+          'monthly=${g.monthlyPriceString} (pkg ${g.monthlyPackage?.identifier}) '
+          'annual=${g.annualPriceString} (pkg ${g.annualPackage?.identifier})',
         );
+        if (!g.isAvailable) {
+          // Named loudly and with the offering id, because the three causes
+          // look identical from the app: the offering does not exist in
+          // RevenueCat, its products are still in Missing Metadata, or the
+          // store agreement is not active yet. Without the id there is
+          // nothing to check against the RevenueCat dashboard.
+          debugPrint(
+            '[Plans] ${g.title} is NOT purchasable - no package came back for '
+            'offering "${g.offeringId}". Check that the offering exists in '
+            r'RevenueCat, that its $rc_monthly and $rc_annual packages are '
+            'attached, and that the store products are approved.',
+          );
+        }
       }
 
       state = state.copyWith(
