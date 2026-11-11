@@ -8,6 +8,7 @@ import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
 import '../../../../core/widgets/promo_video_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
+import '../../../referral/presentation/providers/referral_offer_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -15,6 +16,13 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final practice = ref.watch(practiceProvider);
+
+    // Marie, 10 November 2026, point 5: the banner goes once the person has
+    // earned the discount, and goes for everyone when she switches the offer
+    // off on the dashboard. While the answer is still loading, the banner
+    // stays - see the note on the provider.
+    final showReferralBanner =
+        ref.watch(referralBannerVisibleProvider).asData?.value ?? true;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -49,6 +57,7 @@ class HomeScreen extends ConsumerWidget {
                      * Offering the share itself is allowed, and the button
                      * below still reads "Share on LinkedIn".
                      */
+                    if (showReferralBanner) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20.0),
@@ -172,6 +181,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
+                    ],
 
                     // Subtitle Text
                     const Text(
