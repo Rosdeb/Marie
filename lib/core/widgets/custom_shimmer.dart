@@ -480,3 +480,298 @@ class OfficeCatalogueShimmer extends StatelessWidget {
   }
 }
 
+/// Pre-built Home Screen Shimmer Loading Skeleton
+class HomeScreenShimmer extends StatelessWidget {
+  const HomeScreenShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomShimmer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 6),
+
+          // Greeting Banner card with ring & goal
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Row(
+              children: [
+                ShimmerCircle(size: 58),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerBox(width: 170, height: 17, borderRadius: 5),
+                      SizedBox(height: 8),
+                      ShimmerBox(width: 110, height: 13, borderRadius: 4),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8),
+                ShimmerBox(width: 14, height: 14, borderRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 2. Today Section
+          const ShimmerBox(width: 70, height: 12, borderRadius: 4),
+          const SizedBox(height: 10),
+
+          // Question of the Day card
+          _buildShimmerLineCard(leadingIconSize: 44, titleWidth: 150, subtitleWidth: 200),
+          const SizedBox(height: 10),
+
+          // Review my mistakes card
+          _buildShimmerLineCard(leadingIconSize: 44, titleWidth: 140, subtitleWidth: 170),
+          const SizedBox(height: 24),
+
+          // 3. This Week Section
+          const ShimmerBox(width: 85, height: 12, borderRadius: 4),
+          const SizedBox(height: 10),
+
+          // This Week card with 3 stats and 7-day bar charts
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              children: [
+                // 3 Stats row
+                const Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          ShimmerBox(width: 44, height: 20, borderRadius: 6),
+                          SizedBox(height: 5),
+                          ShimmerBox(width: 65, height: 11, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          ShimmerBox(width: 44, height: 20, borderRadius: 6),
+                          SizedBox(height: 5),
+                          ShimmerBox(width: 50, height: 11, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          ShimmerBox(width: 44, height: 20, borderRadius: 6),
+                          SizedBox(height: 5),
+                          ShimmerBox(width: 55, height: 11, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 7 Days bars row
+                SizedBox(
+                  height: 80,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(7, (i) {
+                      const barHeights = [24.0, 48.0, 16.0, 56.0, 36.0, 20.0, 42.0];
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              ShimmerBox(width: double.infinity, height: barHeights[i], borderRadius: 6),
+                              const SizedBox(height: 8),
+                              const ShimmerBox(width: 20, height: 11, borderRadius: 3),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 4. My Offices Section
+          const ShimmerBox(width: 90, height: 12, borderRadius: 4),
+          const SizedBox(height: 10),
+
+          _buildShimmerLineCard(leadingIconSize: 40, titleWidth: 80, subtitleWidth: 150),
+          const SizedBox(height: 10),
+          _buildShimmerLineCard(leadingIconSize: 40, titleWidth: 100, subtitleWidth: 160),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildShimmerLineCard({
+    required double leadingIconSize,
+    required double titleWidth,
+    required double subtitleWidth,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          ShimmerBox(
+            width: leadingIconSize,
+            height: leadingIconSize,
+            borderRadius: 12,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(width: titleWidth, height: 15, borderRadius: 5),
+                const SizedBox(height: 6),
+                ShimmerBox(width: subtitleWidth, height: 12, borderRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const ShimmerBox(width: 14, height: 14, borderRadius: 4),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pre-built Free Demo Config Screen Shimmer Loading Skeleton
+class DemoConfigShimmer extends StatelessWidget {
+  const DemoConfigShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomShimmer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Subtitle
+          const ShimmerBox(width: 280, height: 14, borderRadius: 4),
+          const SizedBox(height: 6),
+          const ShimmerBox(width: 200, height: 14, borderRadius: 4),
+          const SizedBox(height: 22),
+
+          // 1. Office label + dropdown field
+          const ShimmerBox(width: 55, height: 13, borderRadius: 4),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ShimmerBox(width: 130, height: 15, borderRadius: 4),
+                ShimmerBox(width: 16, height: 16, borderRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+
+          // 2. Discipline label + 3 rows
+          const ShimmerBox(width: 75, height: 13, borderRadius: 4),
+          const SizedBox(height: 8),
+          ...List.generate(
+            3,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShimmerBox(width: 140, height: 15, borderRadius: 4),
+                        SizedBox(height: 6),
+                        ShimmerBox(width: 100, height: 11, borderRadius: 3),
+                      ],
+                    ),
+                    ShimmerCircle(size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 3. How do you want to answer?
+          const ShimmerBox(width: 175, height: 13, borderRadius: 4),
+          const SizedBox(height: 8),
+          ...List.generate(
+            2,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShimmerBox(width: index == 0 ? 70 : 50, height: 15, borderRadius: 4),
+                    const SizedBox(height: 6),
+                    ShimmerBox(
+                      width: double.infinity,
+                      height: 12,
+                      borderRadius: 3,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 4. Start button placeholder
+          Container(
+            width: double.infinity,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

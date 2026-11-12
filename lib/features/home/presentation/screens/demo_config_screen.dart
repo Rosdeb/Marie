@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../practice/domain/entities/office_entity.dart';
 import '../../../practice/presentation/providers/offices_provider.dart';
@@ -123,7 +124,11 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
       ),
       body: SafeArea(
         child: officesState.isLoading && offices.isEmpty
-            ? const Center(child: CircularProgressIndicator())
+            ? const SingleChildScrollView(
+                physics: NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(20, 4, 20, 28),
+                child: DemoConfigShimmer(),
+              )
             : ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                 children: [

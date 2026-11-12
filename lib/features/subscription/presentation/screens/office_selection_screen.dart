@@ -394,10 +394,14 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
                             );
                             context.pop();
                           } else {
+                            final err =
+                                ref.read(entitlementProvider).errorMessage;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Could not update office. Please try again.',
+                                  err != null && err.isNotEmpty
+                                      ? err
+                                      : 'Could not update office. Please try again.',
                                 ),
                                 backgroundColor: Colors.redAccent,
                               ),

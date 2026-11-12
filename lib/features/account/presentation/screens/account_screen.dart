@@ -568,13 +568,16 @@ class AccountScreen extends ConsumerWidget {
               ),
             ),
           ),
-          Switch.adaptive(
-            value: prefs.dailyReminder,
-            activeThumbColor: Colors.white,
-            activeTrackColor: AppColors.success,
-            onChanged: (on) => ref
-                .read(preferencesProvider.notifier)
-                .save(dailyReminder: on),
+          Transform.scale(
+            scale: 0.71,
+            child: Switch.adaptive(
+              value: prefs.dailyReminder,
+              activeThumbColor: Colors.white,
+              activeTrackColor: AppColors.success,
+              onChanged: (on) => ref
+                  .read(preferencesProvider.notifier)
+                  .save(dailyReminder: on),
+            ),
           ),
         ],
       ),

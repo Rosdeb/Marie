@@ -78,23 +78,27 @@ class ActiveQuizScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             onTap: () => _showQuestionList(context, ref, quizState),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Question ${quizState.currentIndex + 1} / '
-                    '${quizState.questions.length}',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      'Question ${quizState.currentIndex + 1} / '
+                      '${quizState.questions.length}',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 2),
                   const Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    size: 19,
+                    size: 18,
                     color: AppColors.textPrimary,
                   ),
                 ],

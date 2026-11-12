@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/office_label.dart';
+import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/global_header.dart';
 import '../../../../core/widgets/promo_video_card.dart';
+import '../../../account/presentation/providers/preferences_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
@@ -50,12 +53,60 @@ class HomeScreen extends ConsumerWidget {
     final showShareOffer =
         ref.watch(referralBannerVisibleProvider).asData?.value ?? true;
 
+    final hour = DateTime.now().hour;
+    final timeOfDay = hour < 12
+        ? 'morning'
+        : hour < 18
+            ? 'afternoon'
+            : 'evening';
+
+    final user = ref.watch(authProvider).currentUser;
+    String userName = '';
+    if (user != null) {
+      if (user.firstName != null && user.firstName!.isNotEmpty) {
+        userName = user.firstName!;
+      } else if (user.name.isNotEmpty) {
+        userName = user.name.split(' ').first;
+      }
+    }
+    final rawName = (data?.greeting.firstName.isNotEmpty == true)
+        ? data!.greeting.firstName
+        : userName;
+    final greetingTitle = rawName.isNotEmpty
+        ? 'Good $timeOfDay, $rawName'
+        : 'Good $timeOfDay';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            const GlobalHeader(),
+            GlobalHeader(
+              titleWidget: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    greetingTitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  const Text(
+                    'Ready for today?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -69,10 +120,7 @@ class HomeScreen extends ConsumerWidget {
                     // Only while there is nothing at all to show. A refresh
                     // that fails leaves the last Home on screen.
                     if (data == null && home.isLoading)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 80),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
+                      const HomeScreenShimmer(),
 
                     if (data != null) ...[
                       // ---- 1 ----
@@ -198,14 +246,14 @@ class _Line extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
+                      // Text(
+                      //   title,
+                      //   style: const TextStyle(
+                      //     fontSize: 15,
+                      //     fontWeight: FontWeight.w600,
+                      //     color: AppColors.textPrimary,
+                      //   ),
+                      // ),
                       if (subtitle != null && subtitle!.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
@@ -241,124 +289,138 @@ class _Line extends StatelessWidget {
 
 // --------------------------------------------------------------- 1. Greeting
 
-class _Greeting extends StatelessWidget {
+class _Greeting extends ConsumerWidget {
   const _Greeting({required this.greeting});
 
   final HomeGreeting greeting;
 
+  Color _getRingColor(double pct) {
+    if (pct >= 0.75) {
+      return const Color(0xFF10B981); // Green (75% - 100%+)
+    } else if (pct >= 0.50) {
+      return const Color(0xFF3B82F6); // Blue (50% - 74%)
+    } else if (pct >= 0.25) {
+      return const Color(0xFFF59E0B); // Yellow (25% - 49%)
+    } else {
+      return const Color(0xFFEF4444); // Red (< 25%)
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final part = hour < 12
-        ? 'Good morning'
-        : hour < 18
-            ? 'Good afternoon'
-            : 'Good evening';
-    final hello = greeting.firstName.isNotEmpty
-        ? '$part, ${greeting.firstName}'
-        : part;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefsTarget =
+        ref.watch(preferencesProvider).dailyGoalMinutes;
+    final target = greeting.dailyGoalMinutes ?? prefsTarget;
 
-    final target = greeting.dailyGoalMinutes;
-    final progress = greeting.goalProgress;
+    final double? progress = (target != null && target > 0)
+        ? (greeting.minutesToday / target).clamp(0.0, 1.0)
+        : null;
+    final double rawPct = (target != null && target > 0)
+        ? (greeting.minutesToday / target)
+        : 0.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        Text(
-          hello,
-          style: const TextStyle(
-            fontSize: 13.5,
-            color: AppColors.textSecondary,
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 2),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.primaryDeep,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1A3050).withValues(alpha: 0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        const Text(
-          'Ready for today?',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.primaryDeep,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => context.push('/settings'),
             borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            children: [
-              // The ring, which only appears once there is a goal to measure
-              // against. A ring with no target would be decoration.
-              if (progress != null)
-                SizedBox(
-                  width: 58,
-                  height: 58,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 58,
-                        height: 58,
-                        child: CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 5,
-                          backgroundColor: Colors.white.withValues(alpha: 0.18),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppColors.accentWarning,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Dynamic circular progress ring:
+                  // Red (<25%), Yellow (25-49%), Blue (50-74%), Green (>=75%)
+                  SizedBox(
+                    width: 58,
+                    height: 58,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 58,
+                          height: 58,
+                          child: CircularProgressIndicator(
+                            value: progress ?? 0.0,
+                            strokeWidth: 5,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.18),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _getRingColor(rawPct),
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        '${greeting.minutesToday}/$target',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        Text(
+                          target != null
+                              ? '${greeting.minutesToday}/$target'
+                              : 'Set',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              if (progress != null) const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      target != null
-                          ? 'Daily goal: $target min / day'
-                          : 'Set a daily goal in Settings',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          target != null
+                              ? 'Daily goal: $target min / day'
+                              : 'Set a daily goal in Settings',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          // Said only when it is true. "0 days in a row" is not a
+                          // streak, and printing it would read as a reproach.
+                          greeting.streakDays > 0
+                              ? '🔥 ${greeting.streakDays} '
+                                  'day${greeting.streakDays == 1 ? '' : 's'} in a row'
+                              : greeting.learningGoal ??
+                                  'Practise a little every day',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.78),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      // Said only when it is true. "0 days in a row" is not a
-                      // streak, and printing it would read as a reproach.
-                      greeting.streakDays > 0
-                          ? '🔥 ${greeting.streakDays} '
-                              'day${greeting.streakDays == 1 ? '' : 's'} in a row'
-                          : greeting.learningGoal ??
-                              'Practise a little every day',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.78),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -769,51 +831,101 @@ class _WeekBars extends StatelessWidget {
     final today = DateTime.now().toIso8601String().substring(0, 10);
 
     return SizedBox(
-      height: 72,
+      height: 106,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: days.map((d) {
-          // A day with nothing still gets a sliver, so the week reads as seven
-          // days rather than as a gap.
-          final share = most > 0 ? d.questionsAnswered / most : 0.0;
-          final height = 6 + share * 44;
+          final share = most > 0 ? (d.questionsAnswered / most).clamp(0.0, 1.0) : 0.0;
           final isToday = d.day == today;
+
           return Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (d.questionsAnswered > 0)
-                  Text(
-                    '${d.questionsAnswered}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(
+                children: [
+                  // 1. Question count text (or placeholder)
+                  SizedBox(
+                    height: 16,
+                    child: Center(
+                      child: Text(
+                        d.questionsAnswered > 0 ? '${d.questionsAnswered}' : '',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                          color: isToday ? AppColors.primary : AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                const SizedBox(height: 3),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  height: height,
-                  decoration: BoxDecoration(
-                    color: d.questionsAnswered > 0
-                        ? AppColors.primary
-                        : AppColors.border,
-                    borderRadius: BorderRadius.circular(5),
+                  const SizedBox(height: 4),
+
+                  // 2. Bar area: Expanded ensures it flexes and CANNOT overflow!
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: d.questionsAnswered > 0
+                            ? (0.18 + share * 0.82).clamp(0.18, 1.0)
+                            : 0.10,
+                        widthFactor: 1.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: d.questionsAnswered > 0
+                                ? LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: isToday
+                                        ? [AppColors.primary, const Color(0xFF38BDF8)]
+                                        : [
+                                            AppColors.primary,
+                                            AppColors.primary.withValues(alpha: 0.75),
+                                          ],
+                                  )
+                                : null,
+                            color: d.questionsAnswered > 0
+                                ? null
+                                : const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: isToday && d.questionsAnswered > 0
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(alpha: 0.25),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  d.weekday,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
-                    color: isToday
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                  const SizedBox(height: 6),
+
+                  // 3. Weekday label
+                  Container(
+                    padding: isToday
+                        ? const EdgeInsets.symmetric(horizontal: 5, vertical: 2)
+                        : EdgeInsets.zero,
+                    decoration: isToday
+                        ? BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          )
+                        : null,
+                    child: Text(
+                      d.weekday,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
+                        color: isToday
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -847,42 +959,59 @@ class _MyOfficesSection extends ConsumerWidget {
             onTap: () => context.push('/subscription'),
           ),
         ...offices.map(
-          (o) => _Line(
-            title: o.label,
-            subtitle: o.hasContent
-                ? '${o.percentage}% done · '
-                    '${o.questionsAnswered} of ${o.questionsTotal} questions'
-                // Nothing imported for this office yet. Said plainly, because
-                // a 0% bar here would read as the reader's own failure.
-                : 'No questions imported yet',
-            leading: _OfficeChip(code: o.label),
-            trailing: o.hasContent
-                ? SizedBox(
-                    width: 64,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: o.percentage / 100,
-                        minHeight: 6,
-                        backgroundColor: AppColors.border,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.success,
+          (o) {
+            final shortCode = o.code.isNotEmpty ? o.code : o.label;
+            final fullName = officeFullName(shortCode);
+            final displayTitle = fullName.isNotEmpty ? fullName : officeLabel(shortCode);
+
+            return _Line(
+              title: displayTitle,
+              subtitle: o.hasContent
+                  ? '${o.percentage}% completed · ${o.questionsAnswered} of ${o.questionsTotal} questions'
+                  : 'No questions imported yet',
+              leading: _OfficeCircleBadge(code: shortCode),
+              trailing: o.hasContent
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 52,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (o.percentage / 100).clamp(0.0, 1.0),
+                              minHeight: 6,
+                              backgroundColor: AppColors.border,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                o.percentage >= 75
+                                    ? const Color(0xFF10B981)
+                                    : (o.percentage >= 35 ? AppColors.primary : const Color(0xFFF59E0B)),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    )
+                  : const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 13,
+                      color: AppColors.textSecondary,
                     ),
-                  )
-                : null,
-            onTap: o.hasContent
-                ? () {
-                    // "tapping an office opens Practice with that office"
-                    // (Marie, Part 2, Home, point 5).
-                    ref
-                        .read(practiceProvider.notifier)
-                        .setJurisdiction(o.code);
-                    ref.read(bottomNavProvider.notifier).changeIndex(1);
-                  }
-                : null,
-          ),
+              onTap: o.hasContent
+                  ? () {
+                      ref.read(practiceProvider.notifier)
+                          .setJurisdiction(o.code);
+                      ref.read(bottomNavProvider.notifier).changeIndex(1);
+                    }
+                  : null,
+            );
+          },
         ),
         // "+ Add an office" - a plan is what adds one, so it leads to the
         // plans rather than to a list that cannot be acted on.
@@ -922,28 +1051,46 @@ class _MyOfficesSection extends ConsumerWidget {
   }
 }
 
-class _OfficeChip extends StatelessWidget {
-  const _OfficeChip({required this.code});
+class _OfficeCircleBadge extends StatelessWidget {
+  const _OfficeCircleBadge({required this.code});
 
   final String code;
 
   @override
   Widget build(BuildContext context) {
+    final cleanCode = officeLabel(code);
+    final isLong = cleanCode.length > 3;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      constraints: const BoxConstraints(minWidth: 54),
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
-        color: AppColors.badgeBg,
-        borderRadius: BorderRadius.circular(8),
+        shape: BoxShape.circle,
+        color: const Color(0xFFF0F4FF),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Text(
-        code,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.3,
-          color: AppColors.primary,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(3.0),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              cleanCode,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: isLong ? 11.0 : 13.0,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
         ),
       ),
     );

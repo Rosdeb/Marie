@@ -27,11 +27,21 @@ class HomeGreeting {
   });
 
   factory HomeGreeting.fromJson(Map<String, dynamic> json) => HomeGreeting(
-        firstName: json['firstName'] as String? ?? '',
+        firstName: json['firstName'] as String? ??
+            json['name'] as String? ??
+            '',
         learningGoal: json['learningGoal'] as String?,
-        dailyGoalMinutes: (json['dailyGoalMinutes'] as num?)?.toInt(),
-        minutesToday: (json['minutesToday'] as num?)?.toInt() ?? 0,
-        streakDays: (json['streakDays'] as num?)?.toInt() ?? 0,
+        dailyGoalMinutes: (json['dailyGoalMinutes'] as num?)?.toInt() ??
+            (json['dailyGoal'] as num?)?.toInt() ??
+            (json['goalMinutes'] as num?)?.toInt(),
+        minutesToday: (json['minutesToday'] as num?)?.toInt() ??
+            (json['todayMinutes'] as num?)?.toInt() ??
+            (json['minutesPracticedToday'] as num?)?.toInt() ??
+            0,
+        streakDays: (json['streakDays'] as num?)?.toInt() ??
+            (json['streak'] as num?)?.toInt() ??
+            (json['currentStreak'] as num?)?.toInt() ??
+            0,
       );
 
   /// How far through the daily goal, 0..1. Null when no goal is set.

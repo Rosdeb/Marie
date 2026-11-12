@@ -166,9 +166,21 @@ class PushNotificationService {
 
     await _messaging.setAutoInitEnabled(true);
     if (!hasCachedToken) {
-      final token = await _messaging.getToken();
-      if (token != null && token.isNotEmpty) {
-        await _saveToken(token);
+      try {
+        if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
+          final apns = await _messaging.getAPNSToken();
+          if (apns == null) {
+            debugPrint('[Push] APNS token not ready yet');
+            await storage.saveNotificationsEnabled(true);
+            return true;
+          }
+        }
+        final token = await _messaging.getToken();
+        if (token != null && token.isNotEmpty) {
+          await _saveToken(token);
+        }
+      } catch (e) {
+        debugPrint('[Push] setEnabled getToken error: $e');
       }
     }
     await storage.saveNotificationsEnabled(true);
@@ -234,12 +246,27 @@ class PushNotificationService {
   /// Called after sign-in, so the device is attached to the account that has
   /// just taken it over.
   Future<void> registerCurrentDevice() async {
-    final cachedToken = await _localStorage?.getFcmToken();
-    final token = cachedToken != null && cachedToken.trim().isNotEmpty
-        ? cachedToken.trim()
-        : await _messaging.getToken();
-    if (token != null && token.isNotEmpty) {
-      await _saveToken(token, force: true);
+    try {
+      final cachedToken = await _localStorage?.getFcmToken();
+      if (cachedToken != null && cachedToken.trim().isNotEmpty) {
+        await _saveToken(cachedToken.trim(), force: true);
+        return;
+      }
+
+      if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
+        final apnsToken = await _messaging.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint('[Push] APNS token not ready yet; skipping getToken for now');
+          return;
+        }
+      }
+
+      final token = await _messaging.getToken();
+      if (token != null && token.isNotEmpty) {
+        await _saveToken(token, force: true);
+      }
+    } catch (e) {
+      debugPrint('[Push] registerCurrentDevice error (ignored): $e');
     }
   }
 

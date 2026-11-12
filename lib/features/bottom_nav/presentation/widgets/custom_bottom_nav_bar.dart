@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../account/presentation/providers/account_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'nav_item.dart';
@@ -26,6 +28,14 @@ class CustomBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavProvider);
+    final authState = ref.watch(authProvider);
+    final accountState = ref.watch(accountProvider);
+
+    final avatarUrl = accountState.avatarUrl.trim().isNotEmpty
+        ? accountState.avatarUrl.trim()
+        : (authState.currentUser?.profileUrl?.trim().isNotEmpty == true
+            ? authState.currentUser!.profileUrl!.trim()
+            : null);
 
     return Container(
       height: 72,
@@ -78,6 +88,38 @@ class CustomBottomNav extends ConsumerWidget {
             icon: currentIndex == 3
                 ? CupertinoIcons.person_fill
                 : CupertinoIcons.person,
+            customIcon: (avatarUrl != null && avatarUrl.isNotEmpty)
+                ? Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: currentIndex == 3
+                            ? AppColors.primary
+                            : Colors.transparent,
+                        width: 1.8,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: Image.network(
+                        avatarUrl,
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          currentIndex == 3
+                              ? CupertinoIcons.person_fill
+                              : CupertinoIcons.person,
+                          size: 22,
+                          color: currentIndex == 3
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
             label: 'Account',
             index: 3,
             isSelected: currentIndex == 3,

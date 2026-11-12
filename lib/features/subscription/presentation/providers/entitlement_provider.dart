@@ -83,15 +83,14 @@ class EntitlementNotifier extends Notifier<EntitlementEntity> {
     final hasValidTrackChoices =
         isTrack &&
         single == null &&
-        national != null &&
-        national.trim().isNotEmpty &&
-        regional == null;
+        ((national != null && national.trim().isNotEmpty) ||
+            (regional != null && regional.trim().isNotEmpty));
 
     if (!hasValidFocusChoice && !hasValidTrackChoices) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: isTrack
-            ? 'Track requires one national office.'
+            ? 'Track requires selecting your office choices.'
             : 'Office selection is only available for Focus and Track plans.',
       );
       return false;

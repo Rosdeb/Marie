@@ -8,6 +8,7 @@ import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/account_provider.dart';
+import '../providers/preferences_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -174,6 +175,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(accountProvider);
+    final prefs = ref.watch(preferencesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -253,6 +255,87 @@ class SettingsScreen extends ConsumerWidget {
                         if (ok && context.mounted) {
                           FloatingSuccessBar.show(context, message: 'Profile type updated to $val');
                         }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Daily Study Goal
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.timer_outlined, color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daily Study Goal',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Target practice time per day',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  DropdownButton<int?>(
+                    value: prefs.dailyGoalMinutes,
+                    underline: const SizedBox(),
+                    hint: const Text('Not set', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Off')),
+                      DropdownMenuItem(value: 5, child: Text('5 min')),
+                      DropdownMenuItem(value: 10, child: Text('10 min')),
+                      DropdownMenuItem(value: 15, child: Text('15 min')),
+                      DropdownMenuItem(value: 20, child: Text('20 min')),
+                      DropdownMenuItem(value: 30, child: Text('30 min')),
+                      DropdownMenuItem(value: 45, child: Text('45 min')),
+                      DropdownMenuItem(value: 60, child: Text('60 min')),
+                    ],
+                    onChanged: (val) async {
+                      final ok = await ref
+                          .read(preferencesProvider.notifier)
+                          .save(dailyGoalMinutes: val);
+                      if (ok && context.mounted) {
+                        FloatingSuccessBar.show(
+                          context,
+                          message: val != null
+                              ? 'Daily goal set to $val minutes'
+                              : 'Daily goal turned off',
+                        );
                       }
                     },
                   ),
@@ -350,16 +433,16 @@ class SettingsScreen extends ConsumerWidget {
             ..._buildLegalCards(context, ref),
             const SizedBox(height: 24),
 
-            // _buildSectionHeader('Account Actions'),
-            // const SizedBox(height: 8),
+            _buildSectionHeader('Account Actions'),
+            const SizedBox(height: 8),
 
-            // // Log Out
-            // _buildSingleLineCard(
-            //   icon: Icons.logout_rounded,
-            //   title: 'Log Out',
-            //   onTap: () => _showLogoutDialog(context, ref),
-            // ),
-            //const SizedBox(height: 28),
+            // Log Out
+            _buildSingleLineCard(
+              icon: Icons.logout_rounded,
+              title: 'Log Out',
+              onTap: () => _showLogoutDialog(context, ref),
+            ),
+            const SizedBox(height: 24),
 
             _buildSectionHeader('Danger Zone'),
             const SizedBox(height: 10),
