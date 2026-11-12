@@ -290,26 +290,14 @@ class _ChooseJurisdictionScreenState
                           if (entitlement.canAccessOffice(selectedCode)) {
                             context.push('/practice/choose-subdiscipline');
                           } else {
-                            final targetOffice = allOffices.firstWhere(
-                              (o) => o.code == selectedCode,
-                              orElse: () => OfficeEntity(
-                                code: selectedCode,
-                                name: selectedCode,
-                                territory: '',
-                                type: 'national',
-                                disciplines: const [],
-                                sheets: 0,
-                                questions: 0,
-                                levels: const [],
-                                hasAccess: false,
-                                isAvailable: true,
-                              ),
-                            );
+                            final targetOffice = allOffices
+                                .where((o) => o.code == selectedCode)
+                                .firstOrNull;
                             PlanUpsellBottomSheet.show(
                               context,
-                              officeCode: targetOffice.code,
-                              officeName: targetOffice.name,
-                              territory: targetOffice.territory,
+                              officeCode: targetOffice?.code ?? selectedCode,
+                              officeName: targetOffice?.name ?? selectedCode,
+                              territory: targetOffice?.territory ?? '',
                             );
                           }
                         }

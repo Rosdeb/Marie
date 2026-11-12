@@ -268,8 +268,7 @@ class PracticeScreen extends ConsumerWidget {
 
     if (disciplines.isEmpty) {
       return Text(
-        selection.errorMessage ??
-            'No disciplines are available for this office yet.',
+        selection.errorMessage ?? 'No disciplines are available for this office yet.',
         style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
       );
     }
@@ -278,13 +277,14 @@ class PracticeScreen extends ConsumerWidget {
       spacing: 10,
       runSpacing: 10,
       children: disciplines.map((d) {
-        final isSelected =
-            activeDiscipline.toLowerCase() == d.name.toLowerCase();
+        final isSelected = activeDiscipline.toLowerCase() == d.name.toLowerCase();
         final levelCount = d.levels.where((level) => level.isAvailable).length;
-        final sub =
-            '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
+        final sub = '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
+        final isFullWidth = disciplines.length.isOdd && d == disciplines.last;
         return SizedBox(
-          width: (MediaQuery.of(context).size.width - 50) / 2,
+          width: isFullWidth
+              ? double.infinity
+              : (MediaQuery.of(context).size.width - 50) / 2,
           child: _buildDisciplineChip(
             context: context,
             ref: ref,

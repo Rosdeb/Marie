@@ -13,11 +13,6 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase is configured for iOS and Android only - firebase_options.dart
-  // throws for web. The browser build exists so the screens can be reviewed
-  // on a computer alongside each TestFlight build, and push notifications are
-  // no part of that review, so on web the app starts without Firebase rather
-  // than not starting at all. On a device nothing changes.
   if (!kIsWeb) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -25,7 +20,6 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
 
-  // Set status bar & system UI overlay to dark icons (black time, battery, wifi)
   SystemChrome.setSystemUIOverlayStyle(AppTheme.lightSystemOverlayStyle);
 
   runApp(const ProviderScope(child: MyApp()));

@@ -159,6 +159,9 @@ class EntitlementEntity {
       status == SubscriptionStatus.cancelledActive ||
       status == SubscriptionStatus.grace;
 
+  bool get hasAccessToAllOffices =>
+      isActive && (planId == PlanTier.global || includedOffices.length >= 15);
+
   bool canAccessOffice(String officeId) {
     if (!isActive) return false;
     if (planId == PlanTier.global) return true;

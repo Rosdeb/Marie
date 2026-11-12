@@ -9,6 +9,7 @@ import '../../../../core/widgets/promo_video_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../../referral/presentation/providers/referral_offer_provider.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final practice = ref.watch(practiceProvider);
+    final entitlement = ref.watch(entitlementProvider);
 
     // Marie, 10 November 2026, point 5: the banner goes once the person has
     // earned the discount, and goes for everyone when she switches the offer
@@ -266,102 +268,104 @@ class HomeScreen extends ConsumerWidget {
 
                     const SizedBox(height: 20),
 
-                    // 5. Unlock Full Access Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Unlock Full Access',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                    if (!entitlement.hasAccessToAllOffices) ...[
+                      // 5. Unlock Full Access Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Practice across more offices, disciplines and\nlevels.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                              height: 1.35,
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Unlock Full Access',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Practice across more offices, disciplines and\nlevels.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
 
-                          // View Plans Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                            // View Plans Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
                                 ),
-                              ),
-                              onPressed: () => context.push('/subscription'),
-                              child: const Text(
-                                'View Plans',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Restore Purchases Link
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Already purchased? ',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  FloatingSuccessBar.show(
-                                    context,
-                                    message: 'Purchases restored successfully!',
-                                  );
-                                },
+                                onPressed: () => context.push('/subscription'),
                                 child: const Text(
-                                  'Restore Purchases',
+                                  'View Plans',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Restore Purchases Link
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Already purchased? ',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    FloatingSuccessBar.show(
+                                      context,
+                                      message: 'Purchases restored successfully!',
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Restore Purchases',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
+                    ],
                   ],
                 ),
               ),
