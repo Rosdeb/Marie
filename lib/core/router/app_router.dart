@@ -19,8 +19,9 @@ import '../../features/account/presentation/screens/settings_screen.dart';
 import '../../features/account/presentation/screens/change_password_screen.dart';
 import '../../features/account/presentation/screens/support_report_screen.dart';
 import '../../features/home/presentation/screens/demo_config_screen.dart';
-import '../../features/home/presentation/screens/demo_offices_screen.dart';
 import '../../features/home/presentation/screens/notification_screen.dart';
+import '../../features/home/presentation/screens/question_of_the_day_screen.dart';
+import '../../features/account/presentation/screens/my_badges_screen.dart';
 import '../../features/home/presentation/screens/share_preview_screen.dart';
 import '../../features/home/presentation/screens/how_it_works_screen.dart';
 import '../../features/practice/presentation/screens/choose_subdiscipline_screen.dart';
@@ -148,9 +149,21 @@ class AppRouter {
         builder: (context, state) => const NotificationScreen(),
       ),
       GoRoute(
+        path: '/home/question-of-the-day',
+        builder: (context, state) => const QuestionOfTheDayScreen(),
+      ),
+      GoRoute(
+        path: '/account/badges',
+        builder: (context, state) => const MyBadgesScreen(),
+      ),
+      GoRoute(
         path: '/home/demo-offices',
         name: 'demoOffices',
-        builder: (context, state) => const DemoOfficesScreen(),
+        // The demo is one screen now: office, discipline, summary, mode,
+        // Start. The long list of fifteen office cards that used to come
+        // first is what Marie asked to remove (Part 2, Free demo, point 1),
+        // so this older path leads to the same screen rather than dangling.
+        builder: (context, state) => const DemoConfigScreen(),
       ),
       GoRoute(
         path: '/home/demo-config',

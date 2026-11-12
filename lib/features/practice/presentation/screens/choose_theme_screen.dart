@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/discipline_theme_models.dart';
 import '../providers/practice_provider.dart';
+import '../widgets/practice_chips.dart';
 
 class ChooseThemeScreen extends ConsumerWidget {
   const ChooseThemeScreen({super.key});
@@ -48,15 +49,10 @@ class ChooseThemeScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
-              Text(
-                '${selection.topic ?? ''} • ${selection.jurisdiction ?? ''}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 4),
+              // The chips replace the line of plain text that used to sit
+              // here: the same information, but changeable where it stands
+              // (Marie, 11 November, point 11).
+              const PracticeChips(showMode: true),
               const Text(
                 'Theme sessions include questions from all available levels.',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),

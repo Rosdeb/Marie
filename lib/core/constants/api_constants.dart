@@ -32,8 +32,25 @@ class ApiConstants {
   static const String updateMyProfile = '/user/update-my-profile';
   static const String profileType = '/practice/profile-type';
   static const String privacySettings = '/user/privacy-settings';
+
+  /// The daily goal and the two reminders. Kept apart from the privacy
+  /// settings: one is "what should the app do for me", the other is "what may
+  /// be shown about me".
+  static const String preferences = '/user/preferences';
   static String publicProfile(String userId) => '/user/public/$userId';
   static const String deleteAccount = '/user/delete/my-account';
+
+  // Home
+  //
+  // The eight sections of the Home screen in one response, in the order
+  // Marie set out on 11 November 2026. One call rather than eight, so the
+  // screen draws once instead of filling in section by section.
+  static const String home = '/home';
+  static const String myBadges = '/home/badges';
+
+  /// One answer to the question of the day, with the correction back.
+  static const String questionOfTheDayAnswer =
+      '/home/question-of-the-day/answer';
 
   // Notifications
   static const String notifications = '/notification/get-all';
@@ -73,6 +90,10 @@ class ApiConstants {
   /// The progress page: per office and discipline, by level and by theme.
   static const String practiceProgress = '/practice/progress';
   static const String practiceSession = '/practice/session';
+
+  /// One session, with what was already answered and the clock it was on.
+  /// What "Continue" on Home resumes from.
+  static String practiceSessionById(String id) => '/practice/session/$id';
   /// One answer at a time. In practice mode the reply carries the verdict,
   /// the explanation and the legal basis, which the question payload never
   /// does - the app is not told which option is correct in advance.

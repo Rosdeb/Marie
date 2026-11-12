@@ -93,6 +93,98 @@ class ApiClient {
     }
   }
 
+  /// A refresh already in flight, so several requests that fail together
+  /// renew the session once between them instead of once each.
+  Future<bool>? _refreshInFlight;
+
+  Future<bool> _refreshSession() {
+    return _refreshInFlight ??= _performRefresh().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  /// Exchanges the stored refresh token for a new access token.
+  ///
+  /// Returns false, never throws: a failed refresh must surface as the original
+  /// request's own error, not as a second, confusing one.
+  Future<bool> _performRefresh() async {
+    final refresh = await localStorage.getRefreshToken();
+    if (refresh == null || refresh.isEmpty) return false;
+
+    try {
+      // Sent in the body as well as the cookie. A phone has no cookie jar of
+      // its own, so the body is what the server can always rely on.
+      final response = await _client
+          .post(
+            _buildUri(ApiConstants.refreshToken),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Cookie': 'refreshToken=$refresh',
+            },
+            body: jsonEncode({'refreshToken': refresh}),
+          )
+          .timeout(_requestTimeout);
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        debugPrint('[Auth] Session refresh refused (${response.statusCode}).');
+        return false;
+      }
+
+      final decoded = jsonDecode(response.body);
+      String? token;
+      if (decoded is Map<String, dynamic>) {
+        final data = decoded['data'];
+        token = (data is Map<String, dynamic> ? data['token'] : null)
+                ?.toString() ??
+            decoded['token']?.toString();
+      }
+      if (token == null || token.isEmpty) return false;
+
+      await localStorage.saveAccessToken(token);
+      debugPrint('[Auth] Access token renewed.');
+      return true;
+    } catch (e) {
+      debugPrint('[Auth] Session refresh failed: $e');
+      return false;
+    }
+  }
+
+  /// Handles a response, renewing an expired session once and resending.
+  ///
+  /// The server's access token lives one hour. Until this existed the app never
+  /// renewed it, so an hour after logging in every protected call came back 401
+  /// while the app still showed the person as signed in with an active plan.
+  /// On the practice endpoint that 401 reads "This mode needs an account." -
+  /// exactly what Marie photographed on 11 November with a Global plan active
+  /// (blocking points 1 and 2). The quiz was never the problem; the session was.
+  ///
+  /// Only an ordinary expired session is retried. A caller that supplied its
+  /// own token, an unauthenticated call, and the refresh and login endpoints
+  /// themselves are passed straight through, so a genuine "you are not signed
+  /// in" still reads as one and no loop can form.
+  Future<dynamic> _processOrRenew(
+    http.Response response, {
+    required String path,
+    required bool requiresAuth,
+    required String? customToken,
+    required Future<http.Response> Function(Map<String, String> headers) resend,
+  }) async {
+    final looksExpired = response.statusCode == 401 &&
+        requiresAuth &&
+        (customToken == null || customToken.isEmpty) &&
+        !path.contains(ApiConstants.refreshToken) &&
+        !path.contains(ApiConstants.login);
+
+    if (!looksExpired) return _processResponse(response);
+    if (!await _refreshSession()) return _processResponse(response);
+
+    final headers = await _headers(requiresAuth: true);
+    final retried = await resend(headers).timeout(_requestTimeout);
+    _logResponse('RETRY', _buildUri(path), retried);
+    return _processResponse(retried);
+  }
+
   dynamic _processResponse(http.Response response) {
     dynamic decoded;
     try {
@@ -220,7 +312,13 @@ class ApiClient {
           .get(uri, headers: headers)
           .timeout(_requestTimeout);
       _logResponse('GET', uri, response);
-      return _processResponse(response);
+      return await _processOrRenew(
+        response,
+        path: path,
+        requiresAuth: requiresAuth,
+        customToken: customToken,
+        resend: (h) => _client.get(uri, headers: h),
+      );
     } on SocketException {
       _reportConnectionFailure();
       throw NetworkException(
@@ -257,7 +355,13 @@ class ApiClient {
           .post(uri, headers: headers, body: jsonBody)
           .timeout(_requestTimeout);
       _logResponse('POST', uri, response);
-      return _processResponse(response);
+      return await _processOrRenew(
+        response,
+        path: path,
+        requiresAuth: requiresAuth,
+        customToken: customToken,
+        resend: (h) => _client.post(uri, headers: h, body: jsonBody),
+      );
     } on SocketException {
       _reportConnectionFailure();
       throw NetworkException(
@@ -294,7 +398,13 @@ class ApiClient {
           .patch(uri, headers: headers, body: jsonBody)
           .timeout(_requestTimeout);
       _logResponse('PATCH', uri, response);
-      return _processResponse(response);
+      return await _processOrRenew(
+        response,
+        path: path,
+        requiresAuth: requiresAuth,
+        customToken: customToken,
+        resend: (h) => _client.patch(uri, headers: h, body: jsonBody),
+      );
     } on SocketException {
       _reportConnectionFailure();
       throw NetworkException(
@@ -329,7 +439,13 @@ class ApiClient {
           .delete(uri, headers: headers)
           .timeout(_requestTimeout);
       _logResponse('DELETE', uri, response);
-      return _processResponse(response);
+      return await _processOrRenew(
+        response,
+        path: path,
+        requiresAuth: requiresAuth,
+        customToken: customToken,
+        resend: (h) => _client.delete(uri, headers: h),
+      );
     } on SocketException {
       _reportConnectionFailure();
       throw NetworkException(

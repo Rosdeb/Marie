@@ -22,6 +22,12 @@ class ProfileState {
   final String company;
   final String city;
   final String country;
+
+  /// The offices the person works on, by code.
+  ///
+  /// Point 1.4, and Marie's Part 2 Profile section: "the offices I work on
+  /// chosen from a list". Not a purchase - it personalises Home and Practice.
+  final List<String> worksOnOffices;
   final bool showFirstName;
   final bool showProfession;
 
@@ -48,6 +54,7 @@ class ProfileState {
     this.company = '',
     this.city = '',
     this.country = '',
+    this.worksOnOffices = const [],
     this.showFirstName = false,
     this.showProfession = false,
     this.marketingEmails = false,
@@ -73,6 +80,7 @@ class ProfileState {
     String? company,
     String? city,
     String? country,
+    List<String>? worksOnOffices,
     bool? showFirstName,
     bool? showProfession,
     bool? marketingEmails,
@@ -98,6 +106,7 @@ class ProfileState {
       company: company ?? this.company,
       city: city ?? this.city,
       country: country ?? this.country,
+      worksOnOffices: worksOnOffices ?? this.worksOnOffices,
       showFirstName: showFirstName ?? this.showFirstName,
       showProfession: showProfession ?? this.showProfession,
       marketingEmails: marketingEmails ?? this.marketingEmails,
@@ -188,6 +197,10 @@ class AccountNotifier extends Notifier<ProfileState> {
     String? company,
     String? city,
     String? country,
+    /// The offices the person works on - "chosen from a list", point 1.4 and
+    /// Marie's Part 2 Profile section. Not what they have paid for: this
+    /// personalises Home and Practice and buys nothing.
+    List<String>? worksOnOffices,
     String? profileFilePath,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);

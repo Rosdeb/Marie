@@ -9,6 +9,9 @@ import '../../../../core/widgets/floating_success_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../providers/account_provider.dart';
+import '../../../../core/services/legal_links_service.dart';
+import '../../../../core/widgets/floating_error_bar.dart';
+import '../providers/preferences_provider.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -298,19 +301,39 @@ class AccountScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
 
-              // Referral Settings Tile (Single-line)
-              _buildSingleLineTile(
-                icon: Icons.card_giftcard_outlined,
-                title: 'Referral Setting',
-                badge: 'Earn \$5',
-                onTap: () => context.push('/referral'),
-              ),
+              // There is no "Referral Setting - Earn $5" row.
+              //
+              // Marie, 11 November 2026, Part 2, Account, point 3:
+              // "'Referral Setting - Earn $5' is not in my mock-up: please
+              //  remove it."
+              //
+              // The referral itself stays and is reached from "Share & Save",
+              // which is what her mock-up shows. The $5 was never a real
+              // offer either - the only reward agreed is 10% off the first paid
+              // period - so the row was a statement the app could not keep,
+              // which her point 6.2 rules out on its own.
+
+              // ---------------- Preferences ----------------
+              _buildSectionHeading('Preferences'),
+
+              // The daily reminder, switched here rather than only inside
+              // Settings: it is the one preference people change often, and
+              // the mock-up puts it on this screen.
+              _buildReminderTile(ref),
               const SizedBox(height: 10),
 
-              // Manage Subscription Tile (Single-line)
+              _buildSingleLineTile(
+                icon: Icons.settings_outlined,
+                title: 'Settings',
+                onTap: () => context.push('/settings'),
+              ),
+
+              // ---------------- Plan ----------------
+              _buildSectionHeading('Plan'),
+
               _buildSingleLineTile(
                 icon: Icons.add_card_outlined,
-                title: 'Subscription Plan',
+                title: 'My subscriptions',
                 badge: entitlement.isActive
                     ? '${entitlement.planId.displayName} Active'
                     : null,
@@ -318,20 +341,36 @@ class AccountScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
 
-              // Settings Tile (Single-line)
               _buildSingleLineTile(
-                icon: Icons.settings_outlined,
-                title: 'Settings',
-                onTap: () => context.push('/settings'),
+                icon: Icons.workspace_premium_outlined,
+                title: 'My badges',
+                onTap: () => context.push('/account/badges'),
               ),
               const SizedBox(height: 10),
 
-              // Help & Support Tile (Single-line)
+              // "Share & Save", which is where the referral now lives; the
+              // "Referral Setting - Earn $5" row it replaces is gone.
+              _buildSingleLineTile(
+                icon: Icons.ios_share_rounded,
+                title: 'Share & Save',
+                onTap: () => context.push('/referral'),
+              ),
+
+              // ---------------- Help ----------------
+              _buildSectionHeading('Help'),
+
               _buildSingleLineTile(
                 icon: Icons.help_outline,
                 title: 'Help & Support',
                 onTap: () => context.push('/support'),
               ),
+              const SizedBox(height: 10),
+
+              // The three legal documents, which Apple also expects to be
+              // reachable without hunting. They open the pages Marie publishes,
+              // so the app never carries a stale copy of a legal text.
+              ..._buildLegalTiles(context, ref),
+
               const SizedBox(height: 32),
 
               // Log Out Button (Authenticated) or Sign In Button (Guest)
@@ -472,6 +511,129 @@ class AccountScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// The small upper-case heading above each of the three sections.
+  Widget _buildSectionHeading(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 22, bottom: 10),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  /// The daily reminder, as a switch.
+  ///
+  /// It moves at once and goes back on its own if the save failed - a switch
+  /// that waits for the network feels broken, and one that stays moved after a
+  /// failed save is a lie.
+  Widget _buildReminderTile(WidgetRef ref) {
+    final prefs = ref.watch(preferencesProvider);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.notifications_none_rounded,
+            size: 21,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Daily reminder',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            value: prefs.dailyReminder,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.success,
+            onChanged: (on) => ref
+                .read(preferencesProvider.notifier)
+                .save(dailyReminder: on),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Privacy Policy, Terms of Use and Legal Notice.
+  ///
+  /// While the links are loading the rows are shown but not tappable, so the
+  /// list does not jump about; a document whose link is missing says so rather
+  /// than opening nothing.
+  List<Widget> _buildLegalTiles(BuildContext context, WidgetRef ref) {
+    final links = ref.watch(legalLinksProvider);
+
+    final documents = <({IconData icon, String title, String Function(LegalLinks) url})>[
+      (
+        icon: Icons.privacy_tip_outlined,
+        title: 'Privacy Policy',
+        url: (l) => l.privacyPolicyUrl,
+      ),
+      (
+        icon: Icons.description_outlined,
+        title: 'Terms of Use',
+        url: (l) => l.termsOfUseUrl,
+      ),
+      (
+        icon: Icons.gavel_outlined,
+        title: 'Legal Notice',
+        url: (l) => l.legalNoticeUrl,
+      ),
+    ];
+
+    final rows = <Widget>[];
+    for (final doc in documents) {
+      final url = links.maybeWhen(
+        data: (l) => doc.url(l),
+        orElse: () => '',
+      );
+      rows.add(const SizedBox(height: 10));
+      rows.add(
+        _buildSingleLineTile(
+          icon: doc.icon,
+          title: doc.title,
+          onTap: url.isEmpty
+              ? () {}
+              : () async {
+                  final opened = await openLegalDocument(url);
+                  if (!opened && context.mounted) {
+                    FloatingErrorBar.show(
+                      context,
+                      message: 'Could not open ${doc.title}. '
+                          'Please check your connection and try again.',
+                    );
+                  }
+                },
+        ),
+      );
+    }
+    return rows;
   }
 
   Widget _buildSingleLineTile({

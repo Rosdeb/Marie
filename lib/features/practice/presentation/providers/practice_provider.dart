@@ -71,7 +71,9 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   }
 
   void setTopic(String topic) {
-    state = state.copyWith(topic: topic);
+    // Called from a tap on Home or on the discipline screen, never from a
+    // default, so this is where the choice is recorded.
+    state = state.copyWith(topic: topic, topicChosen: true);
     final office = state.jurisdiction ?? 'IPI';
     loadThemes(office, topic);
   }

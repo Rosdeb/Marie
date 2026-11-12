@@ -2,6 +2,15 @@ import 'discipline_theme_models.dart';
 
 class PracticeSelection {
   final String? topic;
+
+  /// Whether `topic` is the reader's own choice rather than the default.
+  ///
+  /// `topic` starts as 'Patents' so the first screens have something to show,
+  /// which means its value alone cannot answer "has the discipline been
+  /// chosen?". Tapping a discipline - on Home, or on the discipline screen -
+  /// sets this. The office list is filtered, and the discipline screen is
+  /// skipped, only when it is true.
+  final bool topicChosen;
   final String? jurisdiction;
   final String? level;
   final String mode;
@@ -21,6 +30,7 @@ class PracticeSelection {
 
   PracticeSelection({
     this.topic,
+    this.topicChosen = false,
     this.jurisdiction,
     this.level,
     this.mode = 'by_level',
@@ -38,6 +48,7 @@ class PracticeSelection {
 
   PracticeSelection copyWith({
     String? topic,
+    bool? topicChosen,
     String? jurisdiction,
     String? level,
     String? mode,
@@ -55,6 +66,7 @@ class PracticeSelection {
   }) {
     return PracticeSelection(
       topic: topic ?? this.topic,
+      topicChosen: topicChosen ?? this.topicChosen,
       jurisdiction: jurisdiction ?? this.jurisdiction,
       level: level ?? this.level,
       mode: mode ?? this.mode,

@@ -9,6 +9,8 @@ import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart
 import '../../domain/entities/office_entity.dart';
 import '../providers/offices_provider.dart';
 import '../providers/practice_provider.dart';
+import '../providers/quiz_provider.dart';
+import '../../../../../core/utils/office_label.dart';
 
 class ChooseJurisdictionScreen extends ConsumerStatefulWidget {
   const ChooseJurisdictionScreen({super.key});
@@ -35,18 +37,41 @@ class _ChooseJurisdictionScreenState
     final selection = ref.read(practiceProvider);
     final entitlement = ref.read(entitlementProvider);
 
+    // An office preselected from the plan is only valid if it also has
+    // questions in the chosen discipline; otherwise the screen would open with
+    // an office that the list does not even show.
+    final discipline = selection.topicChosen
+        ? (selection.topic ?? '').trim().toLowerCase()
+        : '';
+    bool offersDiscipline(String code) {
+      if (discipline.isEmpty) return true;
+      final office = ref
+          .read(officesProvider)
+          .offices
+          .where((o) => o.code == code)
+          .firstOrNull;
+      if (office == null) return false;
+      return office.disciplines.any(
+        (d) =>
+            d.questions > 0 &&
+            (d.name.trim().toLowerCase() == discipline ||
+                d.label.trim().toLowerCase() == discipline),
+      );
+    }
+
     // Preselect user's selected office (Focus/Track) or first included office
     if (selection.jurisdiction == null ||
-        !entitlement.canAccessOffice(selection.jurisdiction!)) {
-      if (entitlement.selectedOffices.isNotEmpty &&
-          entitlement.canAccessOffice(entitlement.selectedOffices.first)) {
-        ref
-            .read(practiceProvider.notifier)
-            .setJurisdiction(entitlement.selectedOffices.first);
-      } else if (entitlement.includedOffices.isNotEmpty) {
-        ref
-            .read(practiceProvider.notifier)
-            .setJurisdiction(entitlement.includedOffices.first);
+        !entitlement.canAccessOffice(selection.jurisdiction!) ||
+        !offersDiscipline(selection.jurisdiction!)) {
+      final fromPlan = entitlement.selectedOffices
+          .where((c) => entitlement.canAccessOffice(c) && offersDiscipline(c))
+          .firstOrNull;
+      final included = entitlement.includedOffices
+          .where(offersDiscipline)
+          .firstOrNull;
+      final pick = fromPlan ?? included;
+      if (pick != null) {
+        ref.read(practiceProvider.notifier).setJurisdiction(pick);
       }
     }
   }
@@ -63,7 +88,34 @@ class _ChooseJurisdictionScreenState
      * available, so an office with no content read as ready to practise
      * until the real answer arrived and quietly replaced it.
      */
-    final allOffices = officesState.offices;
+    final catalogue = officesState.offices;
+
+    /*
+     * The discipline chosen on Home decides which offices can be offered.
+     *
+     * An office is kept only when the imported workbooks hold questions for it
+     * in that discipline, matched on the stored name or on the label the
+     * server writes for a reader - so WIPO, whose Patents sheet reads "PCT",
+     * is matched either way. With no discipline chosen the whole catalogue is
+     * shown, which is what the office-first path wants.
+     *
+     * Before this, "Trademarks" offered the EPO and the UPC, which have no
+     * trademarks at all.
+     */
+    final chosenDiscipline = selection.topicChosen
+        ? (selection.topic ?? '').trim().toLowerCase()
+        : '';
+    bool teaches(OfficeEntity o) {
+      if (chosenDiscipline.isEmpty) return true;
+      return o.disciplines.any(
+        (d) =>
+            d.questions > 0 &&
+            (d.name.trim().toLowerCase() == chosenDiscipline ||
+                d.label.trim().toLowerCase() == chosenDiscipline),
+      );
+    }
+
+    final allOffices = catalogue.where(teaches).toList();
 
     final internationalOffices = allOffices
         .where((o) => o.type.toLowerCase() == 'international')
@@ -288,7 +340,27 @@ class _ChooseJurisdictionScreenState
                       ? () {
                           final selectedCode = selection.jurisdiction!;
                           if (entitlement.canAccessOffice(selectedCode)) {
-                            context.push('/practice/choose-subdiscipline');
+                            // The discipline came from Home and is already
+                            // known, so the screen that asks for it is skipped
+                            // entirely: office, then how to practise. Asking
+                            // twice is what Marie reported on 11 November.
+                            final alreadyChosen = selection.topicChosen &&
+                                (selection.topic ?? '').trim().isNotEmpty;
+                            if (alreadyChosen) {
+                              // The discipline screen is also what tells the
+                              // quiz which subject to ask the server for, so
+                              // skipping it means setting that here. Without
+                              // this the session would start with no subject
+                              // and draw from every discipline of the office.
+                              ref
+                                  .read(quizProvider.notifier)
+                                  .setSubdiscipline(selection.topic!.trim());
+                            }
+                            context.push(
+                              alreadyChosen
+                                  ? '/practice/choose-mode'
+                                  : '/practice/choose-subdiscipline',
+                            );
                           } else {
                             final targetOffice = allOffices
                                 .where((o) => o.code == selectedCode)
@@ -430,7 +502,8 @@ class _ChooseJurisdictionScreenState
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        office.code,
+                        // MOIP, not KIPO: the code is the key, this is a label.
+                        officeLabel(office.code),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
@@ -519,7 +592,7 @@ class _ChooseJurisdictionScreenState
 
                 // Office Code Header & Full Name
                 Text(
-                  office.code,
+                  officeLabel(office.code),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,

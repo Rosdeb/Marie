@@ -9,6 +9,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/floating_success_bar.dart';
 import '../providers/account_provider.dart';
+import '../widgets/offices_field.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -29,6 +30,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   /// Chosen from menus, never typed (point 1.4).
   String? _profession;
   String? _country;
+
+  /// The offices the person works on, by code.
+  List<String> _worksOnOffices = const [];
 
   /// The functions a reader can hold. A fixed list, as section 4.3 requires:
   /// "The profile fields are a fixed list chosen from menus, never free
@@ -89,6 +93,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _cityController = TextEditingController(text: profile.city);
     _profession = profile.profession.isNotEmpty ? profile.profession : null;
     _country = profile.country.isNotEmpty ? profile.country : null;
+    _worksOnOffices = List<String>.from(profile.worksOnOffices);
   }
 
   @override
@@ -113,15 +118,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   void _onSave() async {
-    final name = _nameController.text.trim();
-    String? firstName = _firstNameController.text.trim();
-    String? lastName = _lastNameController.text.trim();
+    final String firstName = _firstNameController.text.trim();
+    final String lastName = _lastNameController.text.trim();
     final email = _emailController.text.trim();
     final company = _companyController.text.trim();
     final city = _cityController.text.trim();
 
-    if (name.isEmpty) {
-      FloatingErrorBar.show(context, message: 'Please enter your full name');
+    if (firstName.isEmpty) {
+      FloatingErrorBar.show(context, message: 'Please enter your first name');
       return;
     }
     if (email.isEmpty || !email.contains('@')) {
@@ -129,13 +133,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return;
     }
 
-    if (firstName.isEmpty && name.contains(' ')) {
-      final parts = name.split(' ');
-      firstName = parts.first;
-      if (lastName.isEmpty && parts.length > 1) {
-        lastName = parts.sublist(1).join(' ');
-      }
-    }
+    // The one name the server stores as a single column, built from the two
+    // fields the reader filled in rather than asked for a third time.
+    final name = [firstName, lastName].where((p) => p.isNotEmpty).join(' ');
 
     final success = await ref.read(accountProvider.notifier).updateProfile(
           name: name,
@@ -151,6 +151,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           company: company,
           city: city,
           country: _country,
+          worksOnOffices: _worksOnOffices,
           profileFilePath: _selectedImagePath,
         );
 
@@ -240,13 +241,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 28),
 
-              CustomTextField(
-                label: 'Full Name',
-                hint: 'Enter your name',
-                controller: _nameController,
-                prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary, size: 20),
-              ),
-              const SizedBox(height: 12),
+              // Asked once. The full name is composed from these two on
+              // save; there is no separate "Full Name" field any more.
               Row(
                 children: [
                   Expanded(
@@ -254,6 +250,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       label: 'First Name',
                       hint: 'First name',
                       controller: _firstNameController,
+                      prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary, size: 20),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -272,8 +269,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               // no telephone number." The function and the country are
               // therefore menus, and the bio and the phone number are gone.
               _PickerField(
-                label: 'Function',
-                hint: 'Choose your function',
+                label: 'Job title',
+                hint: 'Choose your job title',
                 icon: Icons.work_outline,
                 value: _profession,
                 options: _functions,
@@ -310,6 +307,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 value: _country,
                 options: _countries,
                 onChanged: (v) => setState(() => _country = v),
+              ),
+              const SizedBox(height: 12),
+
+              // "the offices I work on chosen from a list" (Marie, Part 2,
+              // Profile, point 3). Several, because most people work on more
+              // than one, and chosen from the catalogue rather than typed.
+              OfficesField(
+                selected: _worksOnOffices,
+                onChanged: (codes) => setState(() => _worksOnOffices = codes),
               ),
               const SizedBox(height: 32),
 

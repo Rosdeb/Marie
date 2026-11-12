@@ -3,30 +3,90 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/global_header.dart';
-import '../../../subscription/domain/entities/entitlement_entity.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
-import '../../data/models/practice_setup_model.dart';
+import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
+import '../../domain/entities/office_entity.dart';
+import '../providers/offices_provider.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
 
-class PracticeScreen extends ConsumerWidget {
+/// Practice.
+///
+/// Rebuilt to Marie's mock-up, as she asked on 11 November (Part 2, Practice):
+///
+///   1  "The office is chosen in a drop-down list at the top of the same
+///      screen - not in a long list of 15 office cards followed by Continue."
+///   2  "The drop-down list shows, for each office, only its own disciplines
+///      (for example the EPO: Patents only)."
+///   3  "The discipline is chosen on the same screen, with its number of
+///      questions - not on a second screen that asks for it again."
+///
+/// So this screen is now the whole choice: one line for the office, and the
+/// office's own disciplines under it, each with the real number of questions
+/// counted from the imported workbooks. Tapping a discipline goes straight to
+/// "How do you want to practise?".
+class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
+}
+
+class _PracticeScreenState extends ConsumerState<PracticeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      final offices = ref.read(officesProvider);
+      if (offices.offices.isEmpty) {
+        await ref.read(officesProvider.notifier).fetchOffices();
+      }
+      if (mounted) _settleOffice();
+    });
+  }
+
+  /// Opens on an office the reader can actually practise.
+  ///
+  /// The default used to be a written-in 'IPI', which was right only by
+  /// accident: it is the one office with content today. An office the plan
+  /// does not include, or one with nothing imported, would show a screen with
+  /// no disciplines and no explanation.
+  void _settleOffice() {
+    final entitlement = ref.read(entitlementProvider);
+    final selection = ref.read(practiceProvider);
+    final offices = ref.read(officesProvider).offices;
+
+    bool usable(String code) {
+      final office = offices.where((o) => o.code == code).firstOrNull;
+      return office != null &&
+          office.questions > 0 &&
+          entitlement.canAccessOffice(code);
+    }
+
+    final current = selection.jurisdiction;
+    if (current != null && usable(current)) return;
+
+    final pick = [
+      ...entitlement.selectedOffices,
+      ...entitlement.includedOffices,
+    ].where(usable).firstOrNull;
+
+    if (pick != null) {
+      ref.read(practiceProvider.notifier).setJurisdiction(pick);
+      ref.read(quizProvider.notifier).setOffice(pick);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selection = ref.watch(practiceProvider);
     final entitlement = ref.watch(entitlementProvider);
+    final officesState = ref.watch(officesProvider);
 
-    // Current selected office (from user's subscription, selection, or default to IPI)
-    final selectedOffice =
-        selection.jurisdiction ??
-        (entitlement.selectedOffices.isNotEmpty
-            ? entitlement.selectedOffices.first
-            : (entitlement.includedOffices.isNotEmpty
-                  ? entitlement.includedOffices.first
-                  : 'IPI'));
-
-    final activeDiscipline = selection.topic ?? 'Patents';
+    final code = selection.jurisdiction ?? '';
+    final office =
+        officesState.offices.where((o) => o.code == code).firstOrNull;
+    final included = code.isEmpty || entitlement.canAccessOffice(code);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -35,209 +95,101 @@ class PracticeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fixed Top Header Section
             const GlobalHeader(title: 'Practice'),
-
-            // Scrollable Content
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20.0, 4.0, 20.0, 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async {
+                  await ref.read(officesProvider.notifier).fetchOffices();
+                  if (mounted) _settleOffice();
+                },
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                   children: [
-                    // Selected Office Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    selectedOffice,
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Selected office',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  if (entitlement.planId == PlanTier.focus ||
-                                      entitlement.planId == PlanTier.track) {
-                                    context.push(
-                                      '/subscription/office-selection',
-                                    );
-                                  } else {
-                                    context.push(
-                                      '/practice/choose-jurisdiction',
-                                    );
-                                  }
-                                },
-                                icon: const Icon(Icons.swap_horiz, size: 16),
-                                label: const Text('Change Office'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.primary,
-                                  side: const BorderSide(
-                                    color: Color(0xFFCBD5E1),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Choose a discipline and a level. Every question of your selected office is included.',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Disciplines Header
                     const Text(
-                      'Disciplines',
+                      'Choose an office, then a discipline.',
                       style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        fontSize: 13.5,
+                        height: 1.4,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 18),
 
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE9F6FF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.menu_book_outlined,
-                            size: 20,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              "Available disciplines and levels come from the selected office.",
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                              style: TextStyle(
-                                height: 1.2,
-                                fontSize: 13,
-                                color: AppColors.primaryDeep,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Dynamic Discipline Chips
-                    _buildDisciplinesGrid(
-                      context,
-                      ref,
-                      selection,
-                      activeDiscipline,
+                    // ---- 1. The office, as one line that opens a list.
+                    const _FieldLabel('Office'),
+                    const SizedBox(height: 7),
+                    _OfficeField(
+                      office: office,
+                      code: code,
+                      included: included,
+                      onTap: () => _pickOffice(context),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Available Content Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                    // ---- 3. The disciplines, on the same screen.
+                    _FieldLabel(_disciplineHeading(code)),
+                    const SizedBox(height: 7),
+
+                    if (officesState.isLoading && selection.disciplines.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 28),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (selection.isLoadingDisciplines)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 28),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (selection.disciplines.isEmpty)
+                      _Empty(
+                        text: code.isEmpty
+                            ? 'Choose an office to see what you can practise.'
+                            // Said as what it is. "No disciplines are
+                            // available" reads as a fault in the app; the
+                            // workbook for this office simply is not imported.
+                            : 'No questions have been imported for '
+                                '${office?.name ?? code} yet.',
+                      )
+                    else
+                      ...selection.disciplines.map(
+                        (d) => _DisciplineRow(
+                          title: d.displayName,
+                          questions: d.questions,
+                          levels: d.levels.length,
+                          locked: !included,
+                          onTap: () {
+                            if (!included) {
+                              PlanUpsellBottomSheet.show(
+                                context,
+                                officeCode: code,
+                                officeName: office?.name ?? code,
+                                territory: office?.territory ?? '',
+                              );
+                              return;
+                            }
+                            // The discipline is chosen here and nowhere else:
+                            // "not on a second screen that asks for it again".
+                            ref.read(practiceProvider.notifier).setTopic(d.name);
+                            ref
+                                .read(quizProvider.notifier)
+                                .setSubdiscipline(d.name);
+                            context.push('/practice/choose-mode');
+                          },
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Available content',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildContentBullet(
-                            // Marie, 3 November 2026, point 6.2. "5,500+" was
-                            // invented, and "official exams", "mock tests" and
-                            // "precedent rationales" are the exact words her
-                            // Terms of Use rule out: IPro reproduces no
-                            // official exam question.
-                            'Exam-style questions in four levels',
-                          ),
-                          const SizedBox(height: 6),
-                          _buildContentBullet(
-                            'Explanation and legal basis for every answer',
-                          ),
-                          const SizedBox(height: 6),
-                          _buildContentBullet(
-                            'Unlimited practice sessions & personalized analytics',
-                          ),
-                        ],
+
+                    if (!included && code.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      _NotInPlan(
+                        officeName: office?.name ?? code,
+                        officeCode: code,
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -248,158 +200,439 @@ class PracticeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDisciplinesGrid(
-    BuildContext context,
-    WidgetRef ref,
-    PracticeSelection selection,
-    String activeDiscipline,
-  ) {
-    if (selection.isLoadingDisciplines) {
-      return Row(
-        children: [
-          Expanded(child: _buildSkeletonChip()),
-          const SizedBox(width: 10),
-          Expanded(child: _buildSkeletonChip()),
-        ],
-      );
-    }
+  /// "Stream" for the UPC, "Discipline" everywhere else.
+  ///
+  /// The UPC's three streams are not disciplines, and the mock-up labels them
+  /// as what they are.
+  String _disciplineHeading(String code) =>
+      code == 'UPC' ? 'Stream' : 'Discipline';
 
-    final disciplines = selection.disciplines;
+  // ----------------------------------------------------------- office picker
 
-    if (disciplines.isEmpty) {
-      return Text(
-        selection.errorMessage ?? 'No disciplines are available for this office yet.',
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-      );
-    }
+  Future<void> _pickOffice(BuildContext context) async {
+    final entitlement = ref.read(entitlementProvider);
+    final offices = ref.read(officesProvider).offices;
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: disciplines.map((d) {
-        final isSelected = activeDiscipline.toLowerCase() == d.name.toLowerCase();
-        final levelCount = d.levels.where((level) => level.isAvailable).length;
-        final sub = '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
-        final isFullWidth = disciplines.length.isOdd && d == disciplines.last;
-        return SizedBox(
-          width: isFullWidth
-              ? double.infinity
-              : (MediaQuery.of(context).size.width - 50) / 2,
-          child: _buildDisciplineChip(
-            context: context,
-            ref: ref,
-            title: d.name,
-            subtitle: sub,
-            isSelected: isSelected,
-          ),
-        );
-      }).toList(),
+    /// The whole catalogue, with the ones in the plan first.
+    ///
+    /// Deliberately not only the plan's offices: this screen is where someone
+    /// finds out what else there is, and a locked office leads to the plans.
+    /// What it never does is offer an office with nothing imported, which
+    /// could only ever open an empty screen.
+    final withContent = offices.where((o) => o.questions > 0).toList()
+      ..sort((a, b) {
+        final mine = entitlement.canAccessOffice(a.code) ? 0 : 1;
+        final theirs = entitlement.canAccessOffice(b.code) ? 0 : 1;
+        if (mine != theirs) return mine - theirs;
+        return a.code.compareTo(b.code);
+      });
+
+    final picked = await showModalBottomSheet<OfficeEntity>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+        ),
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Office',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (withContent.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 22),
+                child: Text(
+                  'No office has imported questions yet.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: withContent.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) {
+                    final o = withContent[i];
+                    final mine = entitlement.canAccessOffice(o.code);
+                    final current = o.code == ref.read(practiceProvider).jurisdiction;
+                    return Material(
+                      color: current ? AppColors.primaryLight : Colors.white,
+                      borderRadius: BorderRadius.circular(13),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(13),
+                        onTap: () => Navigator.of(sheetContext).pop(o),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      o.name.isNotEmpty ? o.name : o.code,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: current
+                                            ? FontWeight.w700
+                                            : FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      // Point 2: each office shows only its
+                                      // own disciplines.
+                                      o.disciplines
+                                          .map((d) => d.displayName)
+                                          .join(' · '),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        height: 1.3,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              if (mine)
+                                const Text(
+                                  'Included',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.success,
+                                  ),
+                                )
+                              else
+                                const Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 17,
+                                  color: AppColors.textSecondary,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (picked == null) return;
+    ref.read(practiceProvider.notifier).setJurisdiction(picked.code);
+    ref.read(quizProvider.notifier).setOffice(picked.code);
+  }
+}
+
+// ------------------------------------------------------------------- pieces
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: AppColors.textSecondary,
+      ),
     );
   }
+}
 
-  Widget _buildSkeletonChip() {
+class _OfficeField extends StatelessWidget {
+  const _OfficeField({
+    required this.office,
+    required this.code,
+    required this.included,
+    required this.onTap,
+  });
+
+  final OfficeEntity? office;
+  final String code;
+  final bool included;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.primary, width: 1.3),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      office?.name.isNotEmpty == true
+                          ? office!.name
+                          : (code.isNotEmpty ? code : 'Choose an office'),
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (code.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        included
+                            ? 'Included in your plan'
+                            : 'Not in your plan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: included
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 22,
+                color: AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DisciplineRow extends StatelessWidget {
+  const _DisciplineRow({
+    required this.title,
+    required this.questions,
+    required this.levels,
+    required this.locked,
+    required this.onTap,
+  });
+
+  final String title;
+  final int questions;
+  final int levels;
+  final bool locked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      height: 76,
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDisciplineChip({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-  }) {
-    return InkWell(
-      onTap: () {
-        ref.read(practiceProvider.notifier).setTopic(title);
-        ref.read(quizProvider.notifier).setSubdiscipline(title);
-        context.push('/practice/choose-mode');
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        width: double.infinity,
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
-            width: isSelected ? 1.6 : 1.0,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: locked
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        // The real number, from the workbooks. Point 3 asks
+                        // for it here, next to the choice.
+                        levels > 0
+                            ? '$questions questions · $levels levels'
+                            : '$questions questions',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (locked)
+                  const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+              ],
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildContentBullet(String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '• ',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+class _Empty extends StatelessWidget {
+  const _Empty({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13.5,
+          height: 1.45,
+          color: AppColors.textSecondary,
         ),
-        Expanded(
-          child: Text(
-            text,
+      ),
+    );
+  }
+}
+
+class _NotInPlan extends StatelessWidget {
+  const _NotInPlan({required this.officeName, required this.officeCode});
+
+  final String officeName;
+  final String officeCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$officeName is not in your plan.',
             style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              height: 1.35,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.border, width: 1.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => context.push('/home/demo-config'),
+                  child: const Text('Try the demo'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => context.push('/subscription'),
+                  child: const Text('See the plans'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

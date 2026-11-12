@@ -17,6 +17,7 @@ abstract class AccountRemoteDataSource {
     String? company,
     String? city,
     String? country,
+    List<String>? worksOnOffices,
     String? profileFilePath,
   });
   Future<bool> setProfileType(String profileType);
@@ -55,6 +56,7 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
     String? company,
     String? city,
     String? country,
+    List<String>? worksOnOffices,
     String? profileFilePath,
   }) async {
     final fields = <String, String>{};
@@ -70,6 +72,13 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
     if (company != null) fields['company'] = company.trim();
     if (city != null) fields['city'] = city.trim();
     if (country != null && country.trim().isNotEmpty) fields['country'] = country.trim();
+
+    // Sent whenever the caller passed a list, including an empty one: an
+    // empty list is how a reader clears the field, and leaving it out would
+    // silently keep the old offices.
+    if (worksOnOffices != null) {
+      fields['worksOnOffices'] = worksOnOffices.join(',');
+    }
 
     final response = await apiClient.multipartPatch(
       ApiConstants.updateMyProfile,

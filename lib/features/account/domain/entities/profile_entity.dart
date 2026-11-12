@@ -14,6 +14,13 @@ class ProfileEntity {
   final String city;
   /// Chosen from a list.
   final String country;
+
+  /// The offices the person works on, by code.
+  ///
+  /// Point 1.4, and Marie's Part 2 Profile section: "the offices I work on
+  /// chosen from a list". Not what they have paid for - this personalises Home
+  /// and Practice and buys nothing.
+  final List<String> worksOnOffices;
   final bool showFirstName;
   final bool showProfession;
   /// Consent to marketing e-mail; off unless the user agreed.
@@ -37,6 +44,7 @@ class ProfileEntity {
     this.company = '',
     this.city = '',
     this.country = '',
+    this.worksOnOffices = const [],
     this.showFirstName = false,
     this.showProfession = false,
     this.marketingEmails = false,

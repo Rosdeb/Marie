@@ -37,6 +37,8 @@ class QuizNotifier extends Notifier<QuizState> {
   Future<bool> startDemoSession({
     String office = 'IPI',
     String? subject,
+    /// Practice or Exam, chosen on the demo screen like any other quiz.
+    bool examMode = false,
     // No profile question before the demo (point 2.1), so the demo is the
     // full one. Defaulting to Paralegal silently hid the Attorney questions.
     String profileType = 'Attorney',
@@ -49,6 +51,7 @@ class QuizNotifier extends Notifier<QuizState> {
         office: office,
         subject: subject,
         profileType: profileType,
+        examMode: examMode,
       );
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
@@ -76,6 +79,10 @@ class QuizNotifier extends Notifier<QuizState> {
         userAnswers: {},
         timeSpentPerQuestion: {},
         mode: 'demo',
+        // Read back from the server rather than from what was asked for, so a
+        // demo cannot run in one mode while the session is recorded in the
+        // other.
+        examMode: data['examMode'] as bool? ?? examMode,
         isSubmitted: false,
         elapsedSeconds: 0,
         totalSeconds: totalSec,
@@ -166,6 +173,117 @@ class QuizNotifier extends Notifier<QuizState> {
       state = state.copyWith(
         isLoading: false,
         errorMessage: err,
+      );
+      return false;
+    }
+  }
+
+  /// Picks a paused quiz up where it was left.
+  ///
+  /// Marie, 11 November, Part 2, Home, point 2: "Continue - my last session or
+  /// learning path, resumed in one tap." One tap means the whole session comes
+  /// back here, not that the reader is dropped at the first question of a new
+  /// one.
+  ///
+  /// Everything is read back from the server rather than remembered: which
+  /// questions, what was already ticked, the mode, and the clock. The session
+  /// may have been left on another device, and the time left is the server's
+  /// to decide.
+  Future<bool> resumeSession(String sessionId) async {
+    _timer?.cancel();
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final response = await _practiceRepository.getSession(
+        sessionId: sessionId,
+      );
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+
+      if ((data['status'] as String?) == 'completed') {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'That session was already finished.',
+        );
+        return false;
+      }
+
+      final rawQuestions = data['questions'] as List<dynamic>? ?? [];
+      final questions = rawQuestions
+          .map((q) => Question.fromJson(q as Map<String, dynamic>))
+          .toList();
+      if (questions.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'That session could not be reopened.',
+        );
+        return false;
+      }
+
+      // What was already answered, by position, so the quiz reopens with the
+      // ticks in place instead of looking untouched.
+      final answers = <int, int>{};
+      final spent = <int, int>{};
+      for (var i = 0; i < rawQuestions.length; i++) {
+        final row = rawQuestions[i] as Map<String, dynamic>;
+        final key = row['selectedKey'] as String?;
+        if (key != null && key.isNotEmpty) {
+          final options = questions[i].options;
+          final at = options.indexWhere((o) => o.key == key);
+          if (at >= 0) answers[i] = at;
+        }
+        final seconds = (row['timeSpentSeconds'] as num?)?.toInt();
+        if (seconds != null) spent[i] = seconds;
+      }
+
+      // The first question not yet answered: where the reader actually stopped.
+      var resumeAt = 0;
+      for (var i = 0; i < questions.length; i++) {
+        if (!answers.containsKey(i)) {
+          resumeAt = i;
+          break;
+        }
+        resumeAt = i;
+      }
+
+      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
+      final totalSec = timeLimitMinutes * 60;
+      final remaining =
+          (data['remainingSeconds'] as num?)?.toInt() ?? totalSec;
+      final elapsed = (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
+
+      state = QuizState(
+        sessionId: data['sessionId'] as String? ?? sessionId,
+        selectedOffice: data['office'] as String? ?? '',
+        selectedSubdiscipline: data['subject'] as String? ??
+            (questions.isNotEmpty ? questions.first.discipline : ''),
+        selectedLevel: data['level'] as String? ??
+            (questions.isNotEmpty ? questions.first.level : ''),
+        questionCount: questions.length,
+        questions: questions,
+        currentIndex: resumeAt,
+        userAnswers: answers,
+        timeSpentPerQuestion: spent,
+        examMode: data['examMode'] as bool? ?? false,
+        mode: data['mode'] as String? ?? 'by_level',
+        selectedTheme: data['theme'] as String? ?? '',
+        isSubmitted: false,
+        // The clock the server has, clamped to the limit: a session left open
+        // overnight comes back with no time rather than with a negative one.
+        elapsedSeconds: elapsed > totalSec ? totalSec : elapsed,
+        totalSeconds: totalSec,
+        remainingSeconds: remaining < 0 ? 0 : remaining,
+      );
+
+      _startTimer();
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e
+            .toString()
+            .replaceFirst('Exception: ', '')
+            .replaceFirst('ServerException: ', '')
+            .replaceFirst('AuthException: ', ''),
       );
       return false;
     }
@@ -351,6 +469,22 @@ class QuizNotifier extends Notifier<QuizState> {
 
   /// Confirms with no choice made.
   Future<bool> skipQuestion() => confirmAnswer(skip: true);
+
+  /// Goes straight to one question of the session.
+  ///
+  /// Marie, 11 November, Part 2, The question, point 2: "'Question 1 / 20'
+  /// opens the list of the questions of the session, to go to any of them."
+  /// The mock-up guide spells out why: "Free navigation between questions, in
+  /// both modes... to go straight to any question (e.g. from 18 back to 2)."
+  ///
+  /// Nothing is lost by moving: answers and the per-question clocks are kept
+  /// by index, and in practice mode a question already confirmed shows its
+  /// correction again and stays locked.
+  void goToQuestion(int index) {
+    if (index < 0 || index >= state.questions.length) return;
+    if (index == state.currentIndex) return;
+    state = state.copyWith(currentIndex: index, clearError: true);
+  }
 
   void nextQuestion() {
     // A question must be confirmed - answered or deliberately skipped -

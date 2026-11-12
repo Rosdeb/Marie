@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../data/models/discipline_theme_models.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
+import '../widgets/practice_chips.dart';
 
 class ChooseLevelScreen extends ConsumerWidget {
   const ChooseLevelScreen({super.key});
@@ -56,6 +57,7 @@ class ChooseLevelScreen extends ConsumerWidget {
                 vertical: 12.0,
               ),
               children: [
+                const PracticeChips(showMode: true),
                 Text(
                   '${selection.topic ?? "Patents"} • ${selection.jurisdiction ?? "IPI"}',
                   style: const TextStyle(

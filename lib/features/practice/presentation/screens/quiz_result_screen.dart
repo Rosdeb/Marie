@@ -35,13 +35,21 @@ class QuizResultScreen extends ConsumerWidget {
 
             _CountsRow(tally: tally),
 
-            // Both breakdowns are omitted rather than shown empty: a demo
-            // or a one-level session has nothing to break down.
-            if (tally.byLevel.length > 1) ...[
+            const SizedBox(height: 12),
+            _TimeTaken(quiz: quizState),
+
+            // Shown whenever there is anything to break down.
+            //
+            // The threshold used to be more than one level or theme, which
+            // meant a session on a single level said nothing about it at all.
+            // Marie's point is that the totals alone are not enough - "not
+            // only the totals" - so one row is still worth drawing; only an
+            // empty breakdown is left out.
+            if (tally.byLevel.isNotEmpty) ...[
               const SizedBox(height: 20),
               _Breakdown(title: 'By level', rows: tally.byLevel),
             ],
-            if (tally.byTheme.length > 1) ...[
+            if (tally.byTheme.isNotEmpty) ...[
               const SizedBox(height: 20),
               _Breakdown(title: 'By theme', rows: tally.byTheme),
             ],
@@ -436,6 +444,66 @@ class _Breakdown extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// How long the session took.
+///
+/// Summed from the per-question clocks rather than from the wall clock,
+/// because "closing the app suspends it": the time that counts is the time
+/// actually spent answering, which is the only figure both the app and the
+/// server agree on.
+class _TimeTaken extends StatelessWidget {
+  const _TimeTaken({required this.quiz});
+
+  final QuizState quiz;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = quiz.timeSpentPerQuestion.values
+        .fold<int>(0, (total, s) => total + s);
+
+    final minutes = seconds ~/ 60;
+    final rest = seconds % 60;
+    final text = minutes > 0
+        ? '$minutes min ${rest.toString().padLeft(2, '0')} s'
+        : '$rest s';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            size: 19,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Time',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

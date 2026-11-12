@@ -73,24 +73,59 @@ class ActiveQuizScreen extends ConsumerWidget {
               context.pop();
             },
           ),
-          title: Text(
-            'Question ${quizState.currentIndex + 1} of ${quizState.questions.length}',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+          // "Question 1 / 20" opens the list of the session's questions.
+          title: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _showQuestionList(context, ref, quizState),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Question ${quizState.currentIndex + 1} / '
+                    '${quizState.questions.length}',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 19,
+                    color: AppColors.textPrimary,
+                  ),
+                ],
+              ),
             ),
           ),
           centerTitle: true,
           actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: _buildTimerBadge(
-                quizState.elapsedSeconds,
-                quizState.remainingSeconds,
-                quizState.totalSeconds,
+            _buildTimerBadge(
+              quizState.elapsedSeconds,
+              quizState.remainingSeconds,
+              quizState.totalSeconds,
+            ),
+            // "with a 'Finish' button next to it" (Part 2, The question,
+            // point 1), available on every question and in both modes. It
+            // says how many are unanswered first, because they count as
+            // wrong - the mock-up guide is explicit about that.
+            TextButton(
+              onPressed: quizState.isSubmitting
+                  ? null
+                  : () => _confirmFinish(context, ref, quizState),
+              child: const Text(
+                'Finish',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
               ),
             ),
+            const SizedBox(width: 4),
           ],
         ),
         body: SafeArea(
@@ -102,6 +137,11 @@ class ActiveQuizScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                 // Linear Progress Indicator
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
@@ -288,16 +328,27 @@ class ActiveQuizScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // Answer Options
-                Expanded(
-                  child: ListView.separated(
+                //
+                // Laid out in place, not in a scroller of its own: the page
+                // scrolls, so all four stay visible when the correction opens.
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                     itemCount: question.options.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final isSelected = selectedOption == index;
                       final option = question.options[index];
+                      // Sent to the server and matched against its answer.
                       final optionKey = option.key.isNotEmpty
                           ? option.key
                           : String.fromCharCode(65 + index);
+
+                      // Shown to the reader. Always the position in the list,
+                      // never the key: shuffling may change the order of the
+                      // options, but the letters must read A, B, C, D from top
+                      // to bottom, here and in the Answer Review.
+                      final optionLetter = String.fromCharCode(65 + index);
 
                       // After Confirm, in practice mode: the correct option
                       // green, the user's wrong choice red, the rest
@@ -365,7 +416,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       shape: BoxShape.circle,
                                     ),
                                     child: Text(
-                                      optionKey,
+                                      optionLetter,
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
@@ -411,7 +462,6 @@ class ActiveQuizScreen extends ConsumerWidget {
                         ),
                       );
                     },
-                  ),
                 ),
 
                 // The correction, shown the moment Confirm is tapped in
@@ -420,6 +470,11 @@ class ActiveQuizScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _CorrectionPanel(feedback: feedback),
                 ],
+
+                      ],
+                    ),
+                  ),
+                ),
 
                 const SizedBox(height: 16),
 
@@ -510,8 +565,12 @@ class ActiveQuizScreen extends ConsumerWidget {
     int remainingSeconds,
     int totalSeconds,
   ) {
-    final minutes = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (elapsedSeconds % 60).toString().padLeft(2, '0');
+    // The time left, not the time spent: "the timer counts down from the time
+    // of the level (demo 20 min; Beginner 20, Intermediate 30, Advanced 40,
+    // Expert 50 min)". Clamped at zero so a late tick cannot print "-00:01".
+    final left = remainingSeconds < 0 ? 0 : remainingSeconds;
+    final minutes = (left ~/ 60).toString().padLeft(2, '0');
+    final seconds = (left % 60).toString().padLeft(2, '0');
     final timeText = '$minutes:$seconds';
 
     final isLowTime = remainingSeconds <= 30;
@@ -567,8 +626,14 @@ class ActiveQuizScreen extends ConsumerWidget {
 
 /// The correction shown in practice mode, right after Confirm.
 ///
-/// Section 7: "show Correct or Incorrect ... then show the Explanation and,
-/// below it, 'Legal basis: ...'".
+/// Deliberately neutral. It carries no verdict and no colour, because the
+/// options above it are already green and red - Marie, 11 November 2026,
+/// point 6, which she states replaces what point 4.2 of her document of
+/// 3 November said about "Correct / Incorrect":
+///
+///   "below them a neutral box titled simply 'Explanation', without 'Correct'
+///    or 'Incorrect' and without a green or red background. The colours of the
+///    options already show whether the answer was right."
 ///
 /// The legal basis is plain text with no link and no empty space around it:
 /// "There is no source URL anywhere in the data, and none is coming. The
@@ -580,59 +645,37 @@ class _CorrectionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skipped = feedback.wasSkipped;
-    final correct = feedback.isCorrect;
-
-    final Color accent = correct
-        ? AppColors.success
-        : skipped
-            ? AppColors.textSecondary
-            : AppColors.error;
-
-    final String verdict = correct
-        ? 'Correct'
-        : skipped
-            ? 'Unanswered'
-            : 'Incorrect';
-
-    final IconData icon = correct
-        ? Icons.check_circle_rounded
-        : skipped
-            ? Icons.remove_circle_outline_rounded
-            : Icons.cancel_rounded;
-
+    // Nothing here reads the verdict. Whether the answer was right is said
+    // once, by the colour of the options, and saying it twice is what Marie
+    // asked to stop.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.06),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.35), width: 0.8),
+        border: Border.all(color: AppColors.border, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: accent),
-              const SizedBox(width: 8),
-              Text(
-                verdict,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: accent,
-                ),
-              ),
-            ],
+          const Text(
+            'Explanation',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           if (feedback.explanation.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            // Normal, readable text in a white box, not small grey text
+            // (Marie, 11 November, Part 2, Answer review, point 1).
             Text(
               feedback.explanation,
               style: const TextStyle(
-                fontSize: 13.5,
-                height: 1.45,
+                fontSize: 15,
+                height: 1.5,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -662,4 +705,191 @@ class _CorrectionPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The list of the session's questions, to go straight to any of them.
+///
+/// Marie, 11 November, Part 2, The question, point 2. The mock-up guide adds
+/// what each row has to say: "with its status (not answered / answered, or
+/// correct / incorrect in practice mode)". In exam mode it never says whether
+/// an answer was right, because exam mode shows no correction until the end -
+/// saying it here would be the one thing that mode exists to avoid.
+void _showQuestionList(BuildContext context, WidgetRef ref, QuizState quiz) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (sheetContext) => Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Questions of this session',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: quiz.questions.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 7),
+              itemBuilder: (_, index) {
+                final answered = quiz.userAnswers.containsKey(index);
+                final feedback = quiz.feedback[index];
+
+                final String status;
+                final Color colour;
+                if (!answered) {
+                  status = 'Not answered';
+                  colour = AppColors.textSecondary;
+                } else if (quiz.examMode || feedback == null) {
+                  status = 'Answered';
+                  colour = AppColors.primary;
+                } else if (feedback.isCorrect) {
+                  status = 'Correct';
+                  colour = AppColors.success;
+                } else {
+                  status = 'Incorrect';
+                  colour = AppColors.error;
+                }
+
+                final current = index == quiz.currentIndex;
+                final theme = quiz.questions[index].theme;
+
+                return Material(
+                  color: current ? AppColors.primaryLight : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      ref.read(quizProvider.notifier).goToQuestion(index);
+                      Navigator.of(sheetContext).pop();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 26,
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: current
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              theme.isNotEmpty
+                                  ? theme
+                                  : quiz.questions[index].questionText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            status,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: colour,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Finishing early, with what it costs said first.
+///
+/// "A user who chooses to finish early may do so: the questions left
+/// unanswered then count as wrong." So the count is shown before the session
+/// is scored, not discovered on the result screen.
+Future<void> _confirmFinish(
+  BuildContext context,
+  WidgetRef ref,
+  QuizState quiz,
+) async {
+  final unanswered = quiz.questions.length - quiz.userAnswers.length;
+
+  final finish = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Finish this session?',
+        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+      ),
+      content: Text(
+        unanswered > 0
+            ? '$unanswered question${unanswered == 1 ? '' : 's'} '
+                '${unanswered == 1 ? 'is' : 'are'} still unanswered. '
+                'Unanswered questions count as wrong.'
+            : 'Every question has been answered. The session will be scored.',
+        style: const TextStyle(fontSize: 14, height: 1.45),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Keep practising'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text(
+            'Finish now',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  if (finish != true) return;
+  await ref.read(quizProvider.notifier).submitQuiz();
 }

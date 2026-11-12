@@ -8,6 +8,7 @@ import '../../../practice/presentation/providers/offices_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../domain/entities/entitlement_entity.dart';
 import '../providers/entitlement_provider.dart';
+import '../../../../../core/utils/office_label.dart';
 
 class OfficeSelectionScreen extends ConsumerStatefulWidget {
   const OfficeSelectionScreen({super.key});
@@ -639,7 +640,7 @@ class _OfficeSelectionScreenState extends ConsumerState<OfficeSelectionScreen> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    office.code,
+                    officeLabel(office.code),
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 12,

@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../providers/offices_provider.dart';
 import '../providers/practice_provider.dart';
+import '../../../../../core/utils/office_label.dart';
 
 /// "Theme across offices": pick two or more offices to compare the theme in.
 ///
@@ -231,7 +232,7 @@ class _OfficeTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      code,
+                      officeLabel(code),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

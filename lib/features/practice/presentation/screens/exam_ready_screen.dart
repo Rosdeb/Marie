@@ -7,6 +7,9 @@ import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
+import '../../../../core/utils/office_label.dart';
+import '../providers/offices_provider.dart';
+import '../widgets/practice_chips.dart';
 
 /// Practice or Exam, chosen on this screen and nowhere else.
 ///
@@ -47,6 +50,40 @@ class ExamReadyScreen extends ConsumerWidget {
     final questions = selection.previewQuestions;
     final minutes = selection.previewMinutes;
 
+    // Written as a reader reads them, never as codes. The office name comes
+    // from the catalogue, which already applies the MOIP rename; the
+    // discipline label is how the server writes it, so WIPO's Patents sheet
+    // reads "PCT" here as it does everywhere else.
+    final officeCode = selection.jurisdiction ?? '';
+    final officeName = ref
+            .watch(officesProvider)
+            .offices
+            .where((o) => o.code == officeCode)
+            .map((o) => o.name.isNotEmpty ? o.name : o.code)
+            .firstOrNull ??
+        (officeCode.isEmpty ? '—' : officeLabel(officeCode));
+
+    final disciplineName = selection.disciplines
+            .where((d) => d.name == selection.topic)
+            .map((d) => d.displayName)
+            .firstOrNull ??
+        (selection.topic ?? '—');
+
+    const modeNames = <String, String>{
+      'by_level': 'By level',
+      'by_theme': 'By theme',
+      'random': 'Random mix',
+      'theme_across_offices': 'Theme across offices',
+      'review_mistakes': 'Review my mistakes',
+      'learning_path': 'Learning path',
+    };
+    // The mode, and what narrows it: the level for "By level", the theme for
+    // "By theme". "Random mix · All levels" says more than either alone.
+    final modeName = [
+      modeNames[selection.mode] ?? selection.mode,
+      if (detail.isNotEmpty && detail != modeNames[selection.mode]) detail,
+    ].join(' · ');
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -61,7 +98,11 @@ class ExamReadyScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Exam Ready',
+          // Marie's own name for this screen, in her mock-up and in Part 2 of
+          // her document of 11 November. "Exam Ready" also read as though the
+          // session were an exam, which it is not unless Exam mode is chosen
+          // below.
+          'Ready?',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
@@ -94,81 +135,47 @@ class ExamReadyScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            selection.topic ?? 'Patents',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            selection.jurisdiction ?? 'IPI',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.accent,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            detail,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ),
-                      ],
+                    // "Office, discipline and mode as buttons that can be
+                    // changed in place" (Marie, 11 November, Part 2, Ready?,
+                    // point 1). The same buttons as on every screen before
+                    // this one, so nothing has to be changed by going back.
+                    const PracticeChips(showMode: true),
+
+                    // "A clear summary: office, discipline, mode, number of
+                    // questions, time limit" (point 2). All five, in that
+                    // order, and each one said plainly.
+                    _buildInfoRow(
+                      icon: Icons.account_balance_outlined,
+                      label: 'Office',
+                      value: officeName,
                     ),
-                    const SizedBox(height: 20),
+                    const Divider(height: 24, color: AppColors.border),
+                    _buildInfoRow(
+                      icon: Icons.category_outlined,
+                      label: 'Discipline',
+                      value: disciplineName,
+                    ),
+                    const Divider(height: 24, color: AppColors.border),
+                    _buildInfoRow(
+                      icon: Icons.tune_rounded,
+                      label: 'Mode',
+                      value: modeName,
+                    ),
+                    const Divider(height: 24, color: AppColors.border),
                     _buildInfoRow(
                       icon: Icons.format_list_numbered_rounded,
                       label: 'Questions',
                       value: questions == null
-                          ? 'Confirmed when session starts'
-                          : '$questions Questions',
+                          ? 'Confirmed when the session starts'
+                          : '$questions questions',
                     ),
                     const Divider(height: 24, color: AppColors.border),
                     _buildInfoRow(
                       icon: Icons.timer_outlined,
-                      label: 'Time Limit',
+                      label: 'Time limit',
                       value: minutes == null
-                          ? 'Confirmed when session starts'
-                          : '$minutes Minutes',
+                          ? 'Confirmed when the session starts'
+                          : '$minutes minutes',
                     ),
 
                     // "Where a pool has fewer than 20 questions for the

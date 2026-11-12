@@ -15,6 +15,7 @@ abstract class AccountRepository {
     String? company,
     String? city,
     String? country,
+    List<String>? worksOnOffices,
     String? profileFilePath,
   });
 

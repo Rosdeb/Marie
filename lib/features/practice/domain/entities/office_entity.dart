@@ -8,10 +8,18 @@ class OfficeDisciplineEntity {
   final String label;
   final int questions;
 
+  /// How many of them the free demo can draw: the DEMO sheet only.
+  ///
+  /// Separate from [questions] because the two are genuinely different
+  /// numbers. IPI holds 800 Patents questions and 7 demo ones, and the demo
+  /// screens used to announce a written-in "20 questions" for every office.
+  final int demoQuestions;
+
   const OfficeDisciplineEntity({
     required this.name,
     this.label = '',
     required this.questions,
+    this.demoQuestions = 0,
   });
 
   /// What to put on screen. Older servers send no label.
@@ -34,6 +42,13 @@ class OfficeEntity {
   final bool hasAccess;
   final bool isAvailable;
 
+  /// Demo questions across all the disciplines of this office.
+  final int demoQuestions;
+
+  /// Whether the free demo can be played here at all. An office can hold
+  /// thousands of questions and still have no DEMO sheet.
+  final bool hasDemo;
+
   const OfficeEntity({
     required this.code,
     required this.name,
@@ -46,5 +61,7 @@ class OfficeEntity {
     required this.levels,
     required this.hasAccess,
     required this.isAvailable,
+    this.demoQuestions = 0,
+    this.hasDemo = false,
   });
 }

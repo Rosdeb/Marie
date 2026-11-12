@@ -5,6 +5,7 @@ class OfficeDisciplineModel extends OfficeDisciplineEntity {
     required super.name,
     super.label,
     required super.questions,
+    super.demoQuestions,
   });
 
   factory OfficeDisciplineModel.fromJson(Map<String, dynamic> json) {
@@ -12,6 +13,9 @@ class OfficeDisciplineModel extends OfficeDisciplineEntity {
       name: json['name'] as String? ?? '',
       label: json['label'] as String? ?? '',
       questions: (json['questions'] as num?)?.toInt() ?? 0,
+      // Absent on an older server, and zero is the honest answer then: a
+      // screen that knows of no demo question announces none.
+      demoQuestions: (json['demoQuestions'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -20,6 +24,7 @@ class OfficeDisciplineModel extends OfficeDisciplineEntity {
       'name': name,
       'label': label,
       'questions': questions,
+      'demoQuestions': demoQuestions,
     };
   }
 }
@@ -37,6 +42,8 @@ class OfficeModel extends OfficeEntity {
     required super.levels,
     required super.hasAccess,
     required super.isAvailable,
+    super.demoQuestions,
+    super.hasDemo,
   });
 
   factory OfficeModel.fromJson(Map<String, dynamic> json) {
@@ -60,6 +67,8 @@ class OfficeModel extends OfficeEntity {
       levels: levels,
       hasAccess: json['hasAccess'] as bool? ?? false,
       isAvailable: json['isAvailable'] as bool? ?? false,
+      demoQuestions: (json['demoQuestions'] as num?)?.toInt() ?? 0,
+      hasDemo: json['hasDemo'] as bool? ?? false,
     );
   }
 

@@ -8,6 +8,9 @@ abstract class PracticeRepository {
   Future<List<ThemeDetailModel>> getDisciplineThemes(String office, String subject);
   Future<List<ThemeDetailModel>> getCrossOfficeThemes(String subject);
   Future<List<ProgressGroup>> getProgress();
+  /// One session as it stands, for resuming a paused quiz from Home.
+  Future<Map<String, dynamic>> getSession({required String sessionId});
+
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
     required String office,
@@ -18,10 +21,12 @@ abstract class PracticeRepository {
     String? profileType,
     bool examMode,
   });
+  /// examMode: the demo offers Practice or Exam like any other quiz.
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
     String? subject,
     String? profileType,
+    bool examMode,
   });
 
   /// Records one answer; in practice mode the reply carries the verdict.

@@ -33,6 +33,7 @@ class AccountRepositoryImpl implements AccountRepository {
     String? company,
     String? city,
     String? country,
+    List<String>? worksOnOffices,
     String? profileFilePath,
   }) async {
     final updated = await remoteDataSource.updateMyProfile(
@@ -46,6 +47,7 @@ class AccountRepositoryImpl implements AccountRepository {
       company: company,
       city: city,
       country: country,
+      worksOnOffices: worksOnOffices,
       profileFilePath: profileFilePath,
     );
     await localStorage.saveUserData(updated.toJson());

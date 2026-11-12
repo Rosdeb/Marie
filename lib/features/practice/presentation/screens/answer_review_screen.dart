@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/question_report_bottom_sheet.dart';
 import '../providers/quiz_provider.dart';
+import '../../../../core/utils/office_label.dart';
 
 class AnswerReviewScreen extends ConsumerWidget {
   const AnswerReviewScreen({super.key});
@@ -105,27 +106,42 @@ class AnswerReviewScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // "a clearly visible Unanswered label" - on the
-                            // question, not only on its options, so it is
-                            // readable while scrolling past.
-                            if (isUnanswered) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.badgeBg,
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: const Text(
-                                  'Unanswered',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.3,
-                                    color: AppColors.textSecondary,
-                                  ),
+                            // The status, on every question rather than only
+                            // on the unanswered ones: "Each question shows its
+                            // number, its status (Incorrect, Unanswered)".
+                            // Correct is said too, because a review that only
+                            // labels failures reads as a list of failures.
+                            _StatusChip(
+                              isUnanswered: isUnanswered,
+                              isCorrect: !isUnanswered &&
+                                  userChoice != null &&
+                                  userChoice >= 0 &&
+                                  userChoice < question.options.length &&
+                                  question.options[userChoice].isCorrect,
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Office, discipline, level and theme - what this
+                            // question was, which a reader looking back over
+                            // twenty of them cannot otherwise tell.
+                            if ([
+                              question.office,
+                              question.discipline,
+                              question.level,
+                              question.theme,
+                            ].any((p) => p.isNotEmpty)) ...[
+                              Text(
+                                [
+                                  officeLabel(question.office),
+                                  question.discipline,
+                                  question.level,
+                                  question.theme,
+                                ].where((p) => p.isNotEmpty).join(' · '),
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -324,12 +340,17 @@ class AnswerReviewScreen extends ConsumerWidget {
                   }),
                   if (question.explanation.isNotEmpty) ...[
                     const SizedBox(height: 8),
+                    // White, not the page's grey, and at reading size.
+                    // The explanation is the thing the reader came back for;
+                    // it was set at 12px in secondary grey, which is the
+                    // "small grey text" Marie asked to stop.
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 0.8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,18 +358,18 @@ class AnswerReviewScreen extends ConsumerWidget {
                           const Text(
                             'Explanation',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Text(
                             question.explanation,
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                              height: 1.35,
+                              fontSize: 15,
+                              color: AppColors.textPrimary,
+                              height: 1.5,
                             ),
                           ),
                         ],
@@ -420,6 +441,40 @@ class AnswerReviewScreen extends ConsumerWidget {
               }
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Correct, Incorrect or Unanswered, on every question of the review.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.isUnanswered, required this.isCorrect});
+
+  final bool isUnanswered;
+  final bool isCorrect;
+
+  @override
+  Widget build(BuildContext context) {
+    final (text, colour) = isUnanswered
+        ? ('Unanswered', AppColors.textSecondary)
+        : isCorrect
+            ? ('Correct', AppColors.success)
+            : ('Incorrect', AppColors.error);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: colour.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+          color: colour,
         ),
       ),
     );

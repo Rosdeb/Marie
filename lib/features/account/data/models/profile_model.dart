@@ -15,6 +15,7 @@ class ProfileModel extends ProfileEntity {
     super.company,
     super.city,
     super.country,
+    super.worksOnOffices,
     super.showFirstName,
     super.marketingEmails,
     super.showProfession,
@@ -55,6 +56,12 @@ class ProfileModel extends ProfileEntity {
       company: (target['company'] ?? '').toString(),
       city: (target['city'] ?? '').toString(),
       country: (target['country'] ?? '').toString(),
+      // Absent on an account made before the field existed, and an empty
+      // list is the honest answer then.
+      worksOnOffices: ((target['worksOnOffices'] as List<dynamic>?) ?? [])
+          .map((o) => o.toString())
+          .where((o) => o.isNotEmpty)
+          .toList(),
       showFirstName: visibility['showFirstName'] == true,
       showProfession: visibility['showProfession'] == true,
       // Opt-in: anything other than an explicit true means no consent.

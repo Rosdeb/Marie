@@ -39,6 +39,10 @@ class PracticeRepositoryImpl implements PracticeRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> getSession({required String sessionId}) =>
+      remoteDataSource.getSession(sessionId: sessionId);
+
+  @override
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
     required String office,
@@ -66,11 +70,13 @@ class PracticeRepositoryImpl implements PracticeRepository {
     required String office,
     String? subject,
     String? profileType,
+    bool examMode = false,
   }) async {
     return await remoteDataSource.startDemoSession(
       office: office,
       subject: subject,
       profileType: profileType,
+      examMode: examMode,
     );
   }
 

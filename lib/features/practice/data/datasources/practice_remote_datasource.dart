@@ -30,7 +30,11 @@ abstract class PracticeRemoteDataSource {
     required String office,
     String? subject,
     String? profileType,
+    bool examMode,
   });
+
+  /// One session as it stands, for resuming a paused quiz from Home.
+  Future<Map<String, dynamic>> getSession({required String sessionId});
 
   /// Records one answer and, in practice mode, returns the verdict with it.
   ///
@@ -184,10 +188,21 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> getSession({required String sessionId}) async {
+    final response = await apiClient.get(
+      ApiConstants.practiceSessionById(sessionId),
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    return {};
+  }
+
+  @override
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
     String? subject,
     String? profileType,
+    bool examMode = false,
   }) async {
     final body = {
       'mode': 'demo',
@@ -196,6 +211,10 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
       if (subject != null && subject.isNotEmpty) 'subject': subject,
       if (profileType != null && profileType.isNotEmpty)
         'profileType': profileType,
+    // "Practice or exam mode" in the demo too (mock-up guide, Free demo -
+    // discipline). The demo is the one quiz most people will ever see, so the
+    // choice that defines how a quiz behaves belongs in it.
+      if (examMode) 'examMode': true,
     };
 
     final response = await apiClient.post(
