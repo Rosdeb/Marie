@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/youtube_play_button.dart';
 
 class ReferralVideoPlayer extends StatefulWidget {
   final String? videoUrl;
@@ -241,32 +242,11 @@ class _ReferralVideoPlayerState extends State<ReferralVideoPlayer> {
             // 4. Play Button (When not yet started)
             if (_canPlay && _controller == null && !_isLoading && !_hasError)
               Center(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _initializeAndPlay,
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow_rounded,
-                        color: AppColors.primaryDeep,
-                        size: 36,
-                      ),
-                    ),
-                  ),
+                child: YouTubePlayButton(
+                  width: 68,
+                  height: 48,
+                  iconSize: 32,
+                  onTap: _initializeAndPlay,
                 ),
               ),
 
@@ -421,19 +401,33 @@ class _ReferralVideoPlayerState extends State<ReferralVideoPlayer> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: _togglePlayPause,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.all(8),
+                              width: 58,
+                              height: 42,
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                shape: BoxShape.circle,
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [Colors.redAccent, Colors.red],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.35),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              child: Icon(
-                                _controller!.value.isPlaying
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 36,
+                              child: Center(
+                                child: Icon(
+                                  _controller!.value.isPlaying
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
                               ),
                             ),
                           ),
@@ -467,7 +461,7 @@ class _ReferralVideoPlayerState extends State<ReferralVideoPlayer> {
                                 _controller!,
                                 allowScrubbing: true,
                                 colors: const VideoProgressColors(
-                                  playedColor: AppColors.primary,
+                                  playedColor: Colors.red,
                                   bufferedColor: Colors.white38,
                                   backgroundColor: Colors.white24,
                                 ),
@@ -660,15 +654,40 @@ class _FullscreenVideoPlayerScreenState
                       ),
 
                       // Center Play / Pause
-                      IconButton(
-                        iconSize: 64,
-                        icon: Icon(
-                          widget.controller.value.isPlaying
-                              ? Icons.pause_circle_filled_rounded
-                              : Icons.play_circle_filled_rounded,
-                          color: Colors.white,
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _togglePlayPause,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: 72,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Colors.redAccent, Colors.red],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(
+                                widget.controller.value.isPlaying
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 36,
+                              ),
+                            ),
+                          ),
                         ),
-                        onPressed: _togglePlayPause,
                       ),
 
                       // Bottom Progress
@@ -679,7 +698,7 @@ class _FullscreenVideoPlayerScreenState
                             widget.controller,
                             allowScrubbing: true,
                             colors: const VideoProgressColors(
-                              playedColor: AppColors.primary,
+                              playedColor: Colors.red,
                               bufferedColor: Colors.white38,
                               backgroundColor: Colors.white24,
                             ),

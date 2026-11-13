@@ -282,9 +282,28 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
       requiresAuth: true,
     );
 
-    if (response is Map<String, dynamic> && response['data'] is List) {
-      final list = response['data'] as List<dynamic>;
-      return list.cast<Map<String, dynamic>>();
+    dynamic rawList;
+    if (response is Map<String, dynamic>) {
+      if (response['data'] is List) {
+        rawList = response['data'];
+      } else if (response['data'] is Map &&
+          response['data']['questions'] is List) {
+        rawList = response['data']['questions'];
+      } else if (response['data'] is Map &&
+          response['data']['review'] is List) {
+        rawList = response['data']['review'];
+      } else if (response['questions'] is List) {
+        rawList = response['questions'];
+      }
+    } else if (response is List) {
+      rawList = response;
+    }
+
+    if (rawList is List) {
+      return rawList
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
     }
     return [];
   }

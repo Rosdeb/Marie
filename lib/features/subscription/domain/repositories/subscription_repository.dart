@@ -14,4 +14,5 @@ abstract class SubscriptionRepository {
   });
   Future<EntitlementEntity?> getCachedEntitlement();
   Future<void> cacheEntitlement(EntitlementEntity entitlement);
+  Future<void> clearCachedEntitlement();
 }

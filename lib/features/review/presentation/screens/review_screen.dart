@@ -2,837 +2,661 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/global_header.dart';
-import '../../../practice/presentation/providers/practice_provider.dart';
+import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../../core/widgets/floating_error_bar.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
-import '../../../subscription/presentation/providers/entitlement_provider.dart';
-import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
 import '../../data/models/review_model.dart';
 import '../providers/review_provider.dart';
 
-class ReviewScreen extends ConsumerWidget {
+class ReviewScreen extends ConsumerStatefulWidget {
   const ReviewScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
+}
+
+class _ReviewScreenState extends ConsumerState<ReviewScreen> {
+  String? _loadingSessionId;
+
+  Future<void> _onSessionTap(ReviewSession session) async {
+    final targetId =
+        session.sessionId.isNotEmpty ? session.sessionId : session.id;
+    if (targetId.isEmpty) {
+      FloatingErrorBar.show(
+        context,
+        message: 'This session has no recorded questions to review.',
+      );
+      return;
+    }
+
+    setState(() => _loadingSessionId = targetId);
+    try {
+      final ok = await ref
+          .read(quizProvider.notifier)
+          .loadPastSessionReview(targetId);
+      if (!mounted) return;
+      if (ok) {
+        context.push('/practice/answer-review');
+      } else {
+        final err = ref.read(quizProvider).errorMessage ??
+            'Could not load questions for this session.';
+        FloatingErrorBar.show(context, message: err);
+      }
+    } catch (e) {
+      if (mounted) {
+        FloatingErrorBar.show(
+          context,
+          message: 'Failed to load past session: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingSessionId = null);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color backgroundColor = Color(0xFFF9F9F5);
+    const Color primaryTextColor = Color(0xFF1E242B);
+
     final reviewState = ref.watch(reviewStateProvider);
     final filteredSessions = ref.watch(filteredReviewSessionsProvider);
     final currentFilter = ref.watch(reviewFilterProvider);
-    final practiceSelection = ref.watch(practiceProvider);
-    final entitlement = ref.watch(entitlementProvider);
+    final isAuth = ref.watch(authProvider).isAuthenticated;
 
-    final defaultOffice = practiceSelection.jurisdiction ??
-        (entitlement.includedOffices.isNotEmpty
-            ? entitlement.includedOffices.first
-            : 'IPI');
-
-    // Calculate aggregated stats (from backend meta.summary if available, otherwise session fold)
+    // Aggregate statistics from backend summary if available, else sessions fold
     final summary = reviewState.summary;
-    final totalReviewed = summary?.questionsAnswered ??
-        reviewState.sessions.fold<int>(
-          0,
-          (sum, s) => sum + s.totalQuestions,
-        );
+    final totalAnswered = summary?.questionsAnswered ??
+        reviewState.sessions.fold<int>(0, (sum, s) => sum + s.totalQuestions);
     final totalCorrect = summary?.correctAnswers ??
-        reviewState.sessions.fold<int>(
-          0,
-          (sum, s) => sum + s.correctCount,
-        );
+        reviewState.sessions.fold<int>(0, (sum, s) => sum + s.correctCount);
     final avgAccuracy = summary != null
         ? summary.averageScorePercentage
-        : (totalReviewed > 0
-            ? (totalCorrect / totalReviewed) * 100
-            : (reviewState.sessions.isNotEmpty ? 75.0 : 0.0));
+        : (totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0.0);
 
-    final totalMistakes = summary != null
-        ? summary.wrongAnswers
-        : (reviewState.mistakes.total > 0
-            ? reviewState.mistakes.total
-            : reviewState.sessions.fold<int>(
-                0,
-                (sum, s) => sum + s.flaggedCount,
-              ));
+    final needsFocusCount = reviewState.sessions
+        .where((s) => s.accuracy < 70)
+        .length;
+    final completedCount = reviewState.sessions
+        .where((s) => s.accuracy >= 70)
+        .length;
+
+    String filterSubtitle;
+    switch (currentFilter) {
+      case ReviewFilter.all:
+        filterSubtitle = 'All finished sessions';
+        break;
+      case ReviewFilter.incorrect:
+        filterSubtitle = 'Sessions with questions to improve';
+        break;
+      case ReviewFilter.completed:
+        filterSubtitle = 'High accuracy & completed sessions';
+        break;
+      case ReviewFilter.flagged:
+        filterSubtitle = 'Marked questions & flagged sessions';
+        break;
+    }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: backgroundColor,
       body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const GlobalHeader(title: 'Review'),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(reviewStateProvider.notifier).fetchReviewData(),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20.0, 4.0, 20.0, 20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // The progress page (section 8) hangs off Review: this
-                      // is where a reader already comes to look back at how
-                      // they are doing.
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Material(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          child: InkWell(
-                            onTap: () => context.push('/practice/progress'),
-                            borderRadius: BorderRadius.circular(14),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.insights_rounded,
-                                    size: 20,
-                                    color: AppColors.primary,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'My progress',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    'By level and by theme',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    size: 18,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // 1. Flagged & Mistakes Hero Card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20.0),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppColors.primaryDeep,
-                              AppColors.primaryDeep
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.22),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'PRACTICE MISTAKES',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.bookmark_added_outlined,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Outstanding Mistakes',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '$totalMistakes questions identified for focused review and mastery.',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 42,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: AppColors.primary,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  if (!entitlement.canAccessOffice(defaultOffice)) {
-                                    PlanUpsellBottomSheet.show(
-                                      context,
-                                      officeCode: defaultOffice,
-                                      officeName: defaultOffice,
-                                      territory: 'Official IP Office',
-                                    );
-                                    return;
-                                  }
-
-                                  final success = await ref
-                                      .read(quizProvider.notifier)
-                                      .startPracticeSession(
-                                        office: defaultOffice,
-                                        mode: 'review_mistakes',
-                                      );
-
-                                  if (context.mounted) {
-                                    if (success) {
-                                      context.push('/practice/active-quiz');
-                                    } else {
-                                      final err = ref.read(quizProvider).errorMessage ??
-                                          'Failed to start mistake review session';
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(err),
-                                          backgroundColor: AppColors.error,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Practice Mistakes Now',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Icon(Icons.arrow_forward_rounded, size: 16),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 2. Minimal Metadata & Performance Overview
-                      _buildPerformanceDashboard(
-                        summary: summary,
-                        totalReviewed: totalReviewed,
-                        totalCorrect: totalCorrect,
-                        totalMistakes: totalMistakes,
-                        avgAccuracy: avgAccuracy,
-                        totalSessions: reviewState.sessions.length,
-                        firstSessionTime: reviewState.sessions.isNotEmpty
-                            ? reviewState.sessions.first.timeTaken
-                            : '',
-                      ),
-                      const SizedBox(height: 20),
-
-                      // 3. Filter Pills
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: Row(
-                          children: [
-                            _buildFilterPill(
-                              ref: ref,
-                              label: 'All Sessions (${reviewState.sessions.length})',
-                              filter: ReviewFilter.all,
-                              isSelected: currentFilter == ReviewFilter.all,
-                            ),
-                            const SizedBox(width: 8),
-                            _buildFilterPill(
-                              ref: ref,
-                              label: 'Needs Focus',
-                              filter: ReviewFilter.incorrect,
-                              isSelected: currentFilter == ReviewFilter.incorrect,
-                            ),
-                            const SizedBox(width: 8),
-                            _buildFilterPill(
-                              ref: ref,
-                              label: 'Completed',
-                              filter: ReviewFilter.completed,
-                              isSelected: currentFilter == ReviewFilter.completed,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // 4. Session List Header
-                      const Text(
-                        'Past Exam Sessions',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 5. Session Cards List
-                      if (reviewState.isLoading && reviewState.sessions.isEmpty)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      else if (filteredSessions.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(28.0),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'No sessions match the selected filter.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        )
-                      else
-                        ...filteredSessions.map(
-                          (session) => _buildSessionCard(context, ref, session),
-                        ),
-
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPerformanceDashboard({
-    required PracticeHistorySummary? summary,
-    required int totalReviewed,
-    required int totalCorrect,
-    required int totalMistakes,
-    required double avgAccuracy,
-    required int totalSessions,
-    required String firstSessionTime,
-  }) {
-    final answered = summary?.questionsAnswered ?? totalReviewed;
-    final correct = summary?.correctAnswers ?? totalCorrect;
-    final mistakes = summary?.wrongAnswers ?? totalMistakes;
-    final successPct = summary?.successPercentage ??
-        (answered > 0 ? (correct / answered) * 100 : 0.0);
-    final failPct = summary?.failPercentage ??
-        (answered > 0 ? (mistakes / answered) * 100 : 0.0);
-    final avgScore = summary?.averageScorePercentage ?? avgAccuracy;
-    final sessionsCount = summary?.sessionsSubmitted ?? totalSessions;
-    final timeSpent = summary?.time?.spent.isNotEmpty == true
-        ? summary!.time!.spent
-        : firstSessionTime;
-    final pace = summary?.time?.averageSecondsPerQuestion;
-    final usagePct = summary?.time?.usagePercentage;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.insights_rounded,
-                    size: 15,
-                    color: AppColors.primary,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Practice Metrics',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: (avgScore >= 70 ? AppColors.success : AppColors.accentWarning)
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'Avg Score ${avgScore.toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: avgScore >= 70 ? AppColors.success : AppColors.accentWarning,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // 3-Column Metric Tiles: Correct, Failed, Answered
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricTile(
-                  label: 'Correct',
-                  value: '$correct',
-                  percentage: '${successPct.toStringAsFixed(0)}%',
-                  color: AppColors.success,
-                  icon: Icons.check_circle_outline_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricTile(
-                  label: 'Failed',
-                  value: '$mistakes',
-                  percentage: '${failPct.toStringAsFixed(0)}%',
-                  color: AppColors.error,
-                  icon: Icons.highlight_off_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricTile(
-                  label: 'Answered',
-                  value: '$answered',
-                  percentage: '$sessionsCount ${sessionsCount == 1 ? "session" : "sessions"}',
-                  color: AppColors.primary,
-                  icon: Icons.fact_check_outlined,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          // Minimal split bar for Success vs Fail
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: SizedBox(
-              height: 4,
-              child: Row(
-                children: [
-                  if (successPct > 0)
-                    Expanded(
-                      flex: (successPct * 10).round().clamp(1, 1000),
-                      child: Container(color: AppColors.success),
-                    ),
-                  if (failPct > 0)
-                    Expanded(
-                      flex: (failPct * 10).round().clamp(1, 1000),
-                      child: Container(color: AppColors.error),
-                    ),
-                  if (successPct == 0 && failPct == 0)
-                    Expanded(
-                      child: Container(color: AppColors.border),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          if (timeSpent.isNotEmpty || pace != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (timeSpent.isNotEmpty)
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.timer_outlined,
-                          size: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Time: $timeSpent',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        if (usagePct != null && usagePct > 0)
-                          Text(
-                            ' (${usagePct.toStringAsFixed(1)}% used)',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  if (pace != null)
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.speed_rounded,
-                          size: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Avg pace: ${pace.toStringAsFixed(1)}s / Q',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricTile({
-    required String label,
-    required String value,
-    required String percentage,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: color),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            percentage,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterPill({
-    required WidgetRef ref,
-    required String label,
-    required ReviewFilter filter,
-    required bool isSelected,
-  }) {
-    return InkWell(
-      onTap: () => ref.read(reviewFilterProvider.notifier).setFilter(filter),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSessionCard(
-    BuildContext context,
-    WidgetRef ref,
-    ReviewSession session,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async {
-            if (session.sessionId.isNotEmpty) {
-              final ok = await ref
-                  .read(quizProvider.notifier)
-                  .loadPastSessionReview(session.sessionId);
-              if (context.mounted && ok) {
-                context.push('/practice/answer-review');
-                return;
-              }
-            }
-            ref.read(quizProvider.notifier).startQuiz();
-            if (context.mounted) {
-              context.push('/practice/answer-review');
+        child: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            if (isAuth) {
+              await ref.read(reviewStateProvider.notifier).fetchReviewData();
             }
           },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Screen Title
+                const Text(
+                  'Review',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: primaryTextColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Top Statistics Row
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Row(
-                        children: [
-                          Text(
-                            session.jurisdiction,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryDeep,
-                            ),
-                          ),
-                          if (session.discipline.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                '• ${session.discipline}',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (session.level.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.badgeBg,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                session.level,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (session.timeTaken.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              '• ${session.timeTaken}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ],
+                      child: _StatCard(
+                        value: '$totalAnswered',
+                        label: 'Answered',
                       ),
                     ),
-                    Text(
-                      session.completedDate,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _StatCard(
+                        value: '$totalCorrect',
+                        label: 'Correct',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _StatCard(
+                        value: '${avgAccuracy.toStringAsFixed(0)}%',
+                        label: 'Average',
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  session.title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                const SizedBox(height: 16),
+
+                // Menu Action Cards
+                _ActionCard(
+                  icon: Icons.bar_chart_rounded,
+                  iconColor: Colors.blue,
+                  title: 'My progress',
+                  subtitle: 'By office, level and theme',
+                  onTap: () {
+                    if (!isAuth) {
+                      AuthGateBottomSheet.show(context, targetFeature: 'Progress tracking');
+                      return;
+                    }
+                    context.push('/practice/progress');
+                  },
+                ),
+                //const SizedBox(height: 10),
+                // _ActionCard(
+                //   icon: Icons.refresh_rounded,
+                //   iconColor: Colors.orange,
+                //   title: 'Mistakes to review',
+                //   subtitle: '$totalMistakes questions to review',
+                //   onTap: () {
+                //     if (!isAuth) {
+                //       AuthGateBottomSheet.show(context, targetFeature: 'Mistake review');
+                //       return;
+                //     }
+                //     // Toggle mistakes / needs focus filter
+                //     if (currentFilter == ReviewFilter.incorrect) {
+                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
+                //     } else {
+                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.incorrect);
+                //     }
+                //   },
+                // ),
+                // const SizedBox(height: 10),
+                // _ActionCard(
+                //   icon: Icons.star_rounded,
+                //   iconColor: Colors.amber,
+                //   title: 'Marked questions',
+                //   subtitle: '$flaggedCount questions you marked',
+                //   onTap: () {
+                //     if (!isAuth) {
+                //       AuthGateBottomSheet.show(context, targetFeature: 'Marked questions');
+                //       return;
+                //     }
+                //     // Toggle flagged filter
+                //     if (currentFilter == ReviewFilter.flagged) {
+                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
+                //     } else {
+                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.flagged);
+                //     }
+                //   },
+                // ),
+                const SizedBox(height: 24),
+
+                // Past Sessions Header
+                const Text(
+                  'Past sessions',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: primaryTextColor,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '${session.formatted.isNotEmpty ? session.formatted : "${session.correctCount}/${session.totalQuestions}"} Correct (${session.accuracy.toStringAsFixed(0)}%)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: session.accuracy >= 70
-                                ? AppColors.success
-                                : AppColors.accentWarning,
-                          ),
+
+                // Filter Tabs (All / Needs focus / Completed)
+                Container(
+                  height: 44,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFEFE9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _FilterTab(
+                          label: 'All (${reviewState.sessions.length})',
+                          isSelected: currentFilter == ReviewFilter.all,
+                          onTap: () => ref
+                              .read(reviewFilterProvider.notifier)
+                              .setFilter(ReviewFilter.all),
                         ),
-                        if (session.incorrectCount > 0) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '• ${session.incorrectCount} mistakes',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.error,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      ),
+                      Expanded(
+                        child: _FilterTab(
+                          label: 'Needs focus ($needsFocusCount)',
+                          isSelected: currentFilter == ReviewFilter.incorrect,
+                          onTap: () => ref
+                              .read(reviewFilterProvider.notifier)
+                              .setFilter(ReviewFilter.incorrect),
+                        ),
+                      ),
+                      Expanded(
+                        child: _FilterTab(
+                          label: 'Completed ($completedCount)',
+                          isSelected: currentFilter == ReviewFilter.completed,
+                          onTap: () => ref
+                              .read(reviewFilterProvider.notifier)
+                              .setFilter(ReviewFilter.completed),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+                  child: Text(
+                    filterSubtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF8A909A),
+                    ),
+                  ),
+                ),
+
+                // Sessions List
+                if (reviewState.isLoading && reviewState.sessions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  )
+                else if (filteredSessions.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
                     ),
-                    const Row(
+                    child: Column(
                       children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 38,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 10),
                         Text(
-                          'Review',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                          isAuth
+                              ? 'No sessions found in this category'
+                              : 'Sign in to record and review your practice sessions',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF7C828D),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 11,
-                          color: AppColors.primary,
-                        ),
                       ],
+                    ),
+                  )
+                else
+                  ...filteredSessions.map(
+                    (session) {
+                      final targetId = session.sessionId.isNotEmpty
+                          ? session.sessionId
+                          : session.id;
+                      final isCardLoading = _loadingSessionId == targetId;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10.0),
+                        child: _SessionCard(
+                          title: _formatSessionTitle(session),
+                          subtitle: _formatSessionSubtitle(session),
+                          score: '${session.correctCount}/${session.totalQuestions}',
+                          scoreColor: session.accuracy >= 60
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFD32F2F),
+                          isLoading: isCardLoading,
+                          onTap: () => _onSessionTap(session),
+                        ),
+                      );
+                    },
+                  ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _formatSessionTitle(ReviewSession session) {
+    final disc = session.discipline.isNotEmpty ? session.discipline : session.topic;
+    final lvl = session.level.isNotEmpty ? session.level : 'Practice';
+    if (disc.isNotEmpty) {
+      return '$disc · $lvl';
+    }
+    return session.title.isNotEmpty ? session.title : 'Practice Session';
+  }
+
+  static String _formatSessionSubtitle(ReviewSession session) {
+    final jurisdiction = session.jurisdiction.isNotEmpty
+        ? session.jurisdiction
+        : (session.office.isNotEmpty ? session.office : 'IP Office');
+    final modeLabel = _formatMode(session.mode);
+    final date = session.completedDate.isNotEmpty ? session.completedDate : 'Recent';
+    return '$jurisdiction · $modeLabel · $date';
+  }
+
+  static String _formatMode(String mode) {
+    switch (mode) {
+      case 'by_level':
+        return 'By level';
+      case 'by_theme':
+        return 'By theme';
+      case 'random':
+        return 'Random mix';
+      case 'demo':
+        return 'Demo';
+      case 'review_mistakes':
+        return 'Mistakes';
+      case 'theme_across_offices':
+        return 'Cross-office';
+      case 'learning_path':
+        return 'Learning path';
+      default:
+        if (mode.isEmpty) return 'Practice';
+        return mode.replaceAll('_', ' ');
+    }
+  }
+}
+
+// Reusable Stat Card Component
+class _StatCard extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _StatCard({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E242B),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF7C828D),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Reusable Action Navigation Card Component
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E242B),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF7C828D),
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: Color(0xFFB0B5BF),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Reusable Filter Tab Item
+class _FilterTab extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterTab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF1E242B) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF5A6069),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 12.5,
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Reusable Session Item Card Component
+class _SessionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String score;
+  final Color scoreColor;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  const _SessionCard({
+    required this.title,
+    required this.subtitle,
+    required this.score,
+    required this.scoreColor,
+    this.isLoading = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E242B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF8A909A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                score,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: scoreColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (isLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Color(0xFFB0B5BF),
+                ),
+            ],
           ),
         ),
       ),

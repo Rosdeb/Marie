@@ -215,6 +215,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       AppAvatar(
                         radius: 50,
                         imageUrl: profile.avatarUrl,
+                        imageBytes: profile.avatarBytes,
                         localFilePath: _selectedImagePath,
                         name: profile.name,
                       ),

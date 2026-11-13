@@ -34,7 +34,7 @@ class NotificationState {
 }
 
 class NotificationNotifier extends Notifier<NotificationState> {
-  late final ApiClient _apiClient;
+  late ApiClient _apiClient;
 
   @override
   NotificationState build() {

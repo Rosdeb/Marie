@@ -130,6 +130,9 @@ class ReferralVideoInfo {
 }
 
 class SharePreviewSection {
+  static const String defaultPostMessage =
+      "I've just downloaded IPro, the new app to practise IP procedure anywhere, anytime. Every answer comes with its explanation and legal basis. Download it and visit iprospace.com.";
+
   final String screenTitle;
   final String shareHint;
   final String postMessageLabel;
@@ -145,8 +148,7 @@ class SharePreviewSection {
     this.screenTitle = 'Share Preview',
     this.shareHint = 'Share the video on LinkedIn to earn 10% off your plan.',
     this.postMessageLabel = 'LinkedIn Post Message',
-    this.postMessage =
-        "I've been using IPro to streamline my IP law practice — it's been a game changer! Use my referral link to sign up and we both get 10% off. Check it out 👇",
+    this.postMessage = defaultPostMessage,
     this.postMessageTemplate = '',
     this.editable = true,
     this.maxLength = 3000,
@@ -166,10 +168,14 @@ class SharePreviewSection {
         (rootJson?['actions'] as Map<String, dynamic>?)?['publishButtonText']
             as String? ??
         'Continue to Share';
-    final postMsg = json?['postMessage'] as String? ??
+    final rawPostMsg = json?['postMessage'] as String? ??
         rootJson?['shareText'] as String? ??
-        rootJson?['postMessage'] as String? ??
-        '';
+        rootJson?['postMessage'] as String?;
+    final postMsg = (rawPostMsg != null &&
+            rawPostMsg.trim().isNotEmpty &&
+            rawPostMsg.contains("I've just downloaded"))
+        ? rawPostMsg
+        : defaultPostMessage;
     final hint = json?['shareHint'] as String? ??
         rootJson?['description'] as String? ??
         'Share the video on LinkedIn to earn 10% off your plan.';

@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "iphone-app-60@3x.png",
+      "filename" : "main_app_icon_1.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "iphone-app-60@3x 1.png",
+      "filename" : "main_app_icon_1 1.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "iphone-app-60@3x 2.png",
+      "filename" : "main_app_icon_1 2.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

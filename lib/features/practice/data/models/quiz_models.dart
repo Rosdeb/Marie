@@ -70,8 +70,8 @@ class Question {
     final rawOptions = json['options'] as List<dynamic>? ?? [];
     final parsedOptions = rawOptions
         .map((opt) {
-          if (opt is Map<String, dynamic>) {
-            return QuestionOption.fromJson(opt);
+          if (opt is Map) {
+            return QuestionOption.fromJson(Map<String, dynamic>.from(opt));
           } else {
             return QuestionOption(key: '', text: opt.toString());
           }

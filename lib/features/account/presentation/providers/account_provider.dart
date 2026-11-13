@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/services/push_notification_service.dart';
 import '../../data/models/profile_model.dart';
@@ -15,6 +18,7 @@ class ProfileState {
   final String phone;
   final String bio;
   final String avatarUrl;
+  final Uint8List? avatarBytes;
   final String profileType;
   final String profession;
   // Point 1.4: the firm and the city, typed and optional; the country
@@ -49,6 +53,7 @@ class ProfileState {
     this.phone = '',
     this.bio = '',
     this.avatarUrl = '',
+    this.avatarBytes,
     this.profileType = 'Attorney',
     this.profession = '',
     this.company = '',
@@ -75,6 +80,8 @@ class ProfileState {
     String? phone,
     String? bio,
     String? avatarUrl,
+    Uint8List? avatarBytes,
+    bool clearAvatarBytes = false,
     String? profileType,
     String? profession,
     String? company,
@@ -101,6 +108,7 @@ class ProfileState {
       phone: phone ?? this.phone,
       bio: bio ?? this.bio,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      avatarBytes: clearAvatarBytes ? null : (avatarBytes ?? this.avatarBytes),
       profileType: profileType ?? this.profileType,
       profession: profession ?? this.profession,
       company: company ?? this.company,
@@ -121,7 +129,7 @@ class ProfileState {
 }
 
 class AccountNotifier extends Notifier<ProfileState> {
-  late final AccountRepository _repository;
+  late AccountRepository _repository;
 
   @override
   ProfileState build() {
@@ -135,7 +143,21 @@ class AccountNotifier extends Notifier<ProfileState> {
       final storage = ref.read(localStorageProvider);
       final localData = await storage.getUserData();
       final notificationsEnabled = await storage.getNotificationsEnabled();
-      state = state.copyWith(notificationsEnabled: notificationsEnabled);
+      final cachedAvatar = await storage.getCachedAvatar();
+
+      Uint8List? avatarBytes;
+      String? cachedUrl;
+      if (cachedAvatar != null) {
+        cachedUrl = cachedAvatar['url'] as String?;
+        avatarBytes = cachedAvatar['bytes'] as Uint8List?;
+      }
+
+      state = state.copyWith(
+        notificationsEnabled: notificationsEnabled,
+        avatarUrl: cachedUrl,
+        avatarBytes: avatarBytes,
+      );
+
       if (localData != null) {
         _syncEntityToState(ProfileModel.fromJson(localData));
       }
@@ -153,6 +175,10 @@ class AccountNotifier extends Notifier<ProfileState> {
   }
 
   void _syncEntityToState(ProfileEntity profile) {
+    final newAvatarUrl = profile.avatarUrl.trim();
+    final urlChanged = newAvatarUrl.isNotEmpty && newAvatarUrl != state.avatarUrl;
+    final needsDownload = newAvatarUrl.isNotEmpty && (urlChanged || state.avatarBytes == null);
+
     state = state.copyWith(
       id: profile.id,
       name: profile.name.isNotEmpty ? profile.name : state.name,
@@ -161,9 +187,8 @@ class AccountNotifier extends Notifier<ProfileState> {
       email: profile.email.isNotEmpty ? profile.email : state.email,
       phone: profile.phone.isNotEmpty ? profile.phone : state.phone,
       bio: profile.bio.isNotEmpty ? profile.bio : state.bio,
-      avatarUrl: profile.avatarUrl.isNotEmpty
-          ? profile.avatarUrl
-          : state.avatarUrl,
+      avatarUrl: newAvatarUrl.isNotEmpty ? newAvatarUrl : state.avatarUrl,
+      // If URL has not changed, existing avatarBytes are preserved
       profileType: profile.profileType,
       profession: profile.profession,
       company: profile.company,
@@ -174,6 +199,27 @@ class AccountNotifier extends Notifier<ProfileState> {
       marketingEmails: profile.marketingEmails,
       clearError: true,
     );
+
+    // Only download if the avatar picture actually changed or isn't cached yet
+    if (needsDownload) {
+      _downloadAndCacheAvatar(newAvatarUrl);
+    }
+  }
+
+  Future<void> _downloadAndCacheAvatar(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        final storage = ref.read(localStorageProvider);
+        await storage.saveCachedAvatar(url: url, bytes: response.bodyBytes);
+        // Only update state if this is still the active avatar URL
+        if (state.avatarUrl == url) {
+          state = state.copyWith(avatarBytes: response.bodyBytes);
+        }
+      }
+    } catch (_) {
+      // Offline or network error; keep existing state
+    }
   }
 
   Future<bool> toggleNotifications(bool value) async {
@@ -183,6 +229,9 @@ class AccountNotifier extends Notifier<ProfileState> {
   }
 
   void clear() {
+    try {
+      ref.read(localStorageProvider).clearCachedAvatar();
+    } catch (_) {}
     state = ProfileState();
   }
 
@@ -218,6 +267,20 @@ class AccountNotifier extends Notifier<ProfileState> {
         country: country,
         profileFilePath: profileFilePath,
       );
+
+      // If a local image file was uploaded, cache its bytes immediately
+      if (profileFilePath != null && profileFilePath.isNotEmpty) {
+        try {
+          final file = File(profileFilePath);
+          if (file.existsSync()) {
+            final bytes = await file.readAsBytes();
+            final storage = ref.read(localStorageProvider);
+            await storage.saveCachedAvatar(url: updated.avatarUrl, bytes: bytes);
+            state = state.copyWith(avatarBytes: bytes);
+          }
+        } catch (_) {}
+      }
+
       _syncEntityToState(updated);
       state = state.copyWith(isLoading: false);
       return true;

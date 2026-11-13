@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 /// The person's own preferences: the daily goal and the two reminders.
 ///
@@ -46,13 +47,20 @@ class Preferences {
 }
 
 class PreferencesNotifier extends Notifier<Preferences> {
-  late final ApiClient _apiClient;
+  late ApiClient _apiClient;
 
   @override
   Preferences build() {
     _apiClient = ref.watch(apiClientProvider);
-    Future.microtask(load);
+    final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
+    if (isAuth) {
+      Future.microtask(load);
+    }
     return const Preferences();
+  }
+
+  void reset() {
+    state = const Preferences();
   }
 
   Future<void> load() async {

@@ -9,9 +9,16 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/services/google_sign_in_service.dart';
 import '../../data/services/apple_sign_in_service.dart';
 import '../../../account/presentation/providers/account_provider.dart';
+import '../../../account/presentation/providers/preferences_provider.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
+import '../../../home/presentation/providers/home_provider.dart';
 import '../../../home/presentation/providers/notification_provider.dart';
+import '../../../practice/presentation/providers/practice_provider.dart';
+import '../../../practice/presentation/providers/quiz_provider.dart';
+import '../../../review/presentation/providers/review_provider.dart';
+import '../../../subscription/data/repositories/subscription_repository_impl.dart';
 import '../../../subscription/data/services/revenuecat_purchase_service.dart';
+import '../../../subscription/presentation/providers/entitlement_provider.dart';
 
 enum AuthMode {
   initial,
@@ -549,9 +556,28 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       ref.read(revenueCatServiceProvider).logOut();
     } catch (_) {}
+    try {
+      await ref.read(subscriptionRepositoryProvider).clearCachedEntitlement();
+      ref.read(entitlementProvider.notifier).clear();
+    } catch (_) {}
     state = AuthState();
     try {
       ref.read(accountProvider.notifier).clear();
+    } catch (_) {}
+    try {
+      ref.read(homeProvider.notifier).clear();
+    } catch (_) {}
+    try {
+      ref.read(reviewStateProvider.notifier).clear();
+    } catch (_) {}
+    try {
+      ref.read(quizProvider.notifier).reset();
+    } catch (_) {}
+    try {
+      ref.read(practiceProvider.notifier).reset();
+    } catch (_) {}
+    try {
+      ref.read(preferencesProvider.notifier).reset();
     } catch (_) {}
     try {
       ref.read(notificationProvider.notifier).clearAll();

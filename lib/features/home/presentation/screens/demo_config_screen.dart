@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
 import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../practice/domain/entities/office_entity.dart';
@@ -209,10 +210,15 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
                     _ModeCard(
                       title: 'Exam',
                       subtitle:
-                          'No corrections until the end. When the time runs '
+                      'No corrections until the end. When the time runs '
                           'out, the session is scored.',
                       selected: _examMode,
-                      onTap: () => setState(() => _examMode = true),
+                      onTap: () {
+                        AuthGateBottomSheet.show(
+                          context,
+                          targetFeature: 'Exam mode',
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 26),
@@ -220,9 +226,6 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
                     CustomButton(
                       text: quiz.isLoading ? 'Preparing…' : 'Start',
                       isLoading: quiz.isLoading,
-                      // A discipline has to be chosen: the demo runs on one,
-                      // and drawing across all of them is the bug Marie
-                      // reported in point 2.1.
                       onPressed: chosen == null || quiz.isLoading
                           ? null
                           : () => _start(chosen),

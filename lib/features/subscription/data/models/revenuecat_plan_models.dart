@@ -194,7 +194,7 @@ class RevenueCatPlanGroup {
           'Choose any 1 office (e.g. USPTO, EPO, IPI)',
           'Change office once per billing period',
           'All 4 difficulty levels included',
-          'Full legal rationales & explanations',
+          'Explanation and legal basis for every answer',
         ],
         offeringId: resolvedIds[PlanTier.focus] ?? 'focus',
         monthlyPackage: resolvePackage(focusOffering, PlanBillingInterval.monthly),

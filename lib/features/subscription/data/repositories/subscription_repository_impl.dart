@@ -97,6 +97,14 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       await prefs.setString(_entitlementCacheKey, jsonEncode(map));
     } catch (_) {}
   }
+
+  @override
+  Future<void> clearCachedEntitlement() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_entitlementCacheKey);
+    } catch (_) {}
+  }
 }
 
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {

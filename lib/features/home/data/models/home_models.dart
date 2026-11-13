@@ -180,7 +180,8 @@ class HomeQuestionOfTheDay {
         theme: json['theme'] as String?,
         questionText: json['questionText'] as String? ?? '',
         options: ((json['options'] as List<dynamic>?) ?? [])
-            .map((o) => HomeQuestionOption.fromJson(o as Map<String, dynamic>))
+            .whereType<Map>()
+            .map((o) => HomeQuestionOption.fromJson(Map<String, dynamic>.from(o)))
             .toList(),
       );
 }
@@ -272,11 +273,12 @@ class HomeThisWeek {
         correctRate: (json['correctRate'] as num?)?.toInt(),
         minutesPractised: (json['minutesPractised'] as num?)?.toInt() ?? 0,
         days: ((json['days'] as List<dynamic>?) ?? [])
-            .map((d) => HomeWeekDay.fromJson(d as Map<String, dynamic>))
+            .whereType<Map>()
+            .map((d) => HomeWeekDay.fromJson(Map<String, dynamic>.from(d)))
             .toList(),
-        weakestTheme: json['weakestTheme'] is Map<String, dynamic>
+        weakestTheme: json['weakestTheme'] is Map
             ? HomeWeakestTheme.fromJson(
-                json['weakestTheme'] as Map<String, dynamic>)
+                Map<String, dynamic>.from(json['weakestTheme'] as Map))
             : null,
       );
 
@@ -357,11 +359,12 @@ class HomeBadges {
 
   factory HomeBadges.fromJson(Map<String, dynamic> json) => HomeBadges(
         total: (json['total'] as num?)?.toInt() ?? 0,
-        latest: json['latest'] is Map<String, dynamic>
-            ? HomeBadge.fromJson(json['latest'] as Map<String, dynamic>)
+        latest: json['latest'] is Map
+            ? HomeBadge.fromJson(
+                Map<String, dynamic>.from(json['latest'] as Map))
             : null,
-        nextText: json['next'] is Map<String, dynamic>
-            ? (json['next'] as Map<String, dynamic>)['text'] as String?
+        nextText: json['next'] is Map
+            ? (json['next'] as Map)['text'] as String?
             : null,
       );
 }
@@ -387,33 +390,55 @@ class HomeData {
     this.badges = const HomeBadges(),
   });
 
+  factory HomeData.fallback({String firstName = ''}) {
+    return HomeData(
+      greeting: HomeGreeting(firstName: firstName),
+      thisWeek: const HomeThisWeek(),
+      offices: const [],
+      badges: const HomeBadges(),
+      mistakes: const HomeMistakes(),
+    );
+  }
+
   factory HomeData.fromJson(Map<String, dynamic> json) {
-    Map<String, dynamic>? sub(String key) =>
-        json[key] is Map<String, dynamic> ? json[key] as Map<String, dynamic> : null;
+    Map<String, dynamic>? sub(String key) {
+      final val = json[key];
+      if (val is Map) {
+        return Map<String, dynamic>.from(val);
+      }
+      return null;
+    }
 
     final cont = sub('continueSection') ?? const {};
     final today = sub('today') ?? const {};
 
+    final pausedMap = cont['pausedSession'];
+    final pathMap = cont['learningPath'];
+    final qotdMap = today['questionOfTheDay'];
+    final mistakesMap = today['mistakes'];
+
+    final rawOffices = (json['myOffices'] as List<dynamic>?) ??
+        (json['offices'] as List<dynamic>?) ??
+        [];
+
     return HomeData(
       greeting: HomeGreeting.fromJson(sub('greeting') ?? const {}),
-      pausedSession: cont['pausedSession'] is Map<String, dynamic>
-          ? HomePausedSession.fromJson(
-              cont['pausedSession'] as Map<String, dynamic>)
+      pausedSession: pausedMap is Map
+          ? HomePausedSession.fromJson(Map<String, dynamic>.from(pausedMap))
           : null,
-      learningPath: cont['learningPath'] is Map<String, dynamic>
-          ? HomeLearningPath.fromJson(
-              cont['learningPath'] as Map<String, dynamic>)
+      learningPath: pathMap is Map
+          ? HomeLearningPath.fromJson(Map<String, dynamic>.from(pathMap))
           : null,
-      questionOfTheDay: today['questionOfTheDay'] is Map<String, dynamic>
-          ? HomeQuestionOfTheDay.fromJson(
-              today['questionOfTheDay'] as Map<String, dynamic>)
+      questionOfTheDay: qotdMap is Map
+          ? HomeQuestionOfTheDay.fromJson(Map<String, dynamic>.from(qotdMap))
           : null,
-      mistakes: today['mistakes'] is Map<String, dynamic>
-          ? HomeMistakes.fromJson(today['mistakes'] as Map<String, dynamic>)
+      mistakes: mistakesMap is Map
+          ? HomeMistakes.fromJson(Map<String, dynamic>.from(mistakesMap))
           : const HomeMistakes(),
       thisWeek: HomeThisWeek.fromJson(sub('thisWeek') ?? const {}),
-      offices: ((json['myOffices'] as List<dynamic>?) ?? [])
-          .map((o) => HomeOffice.fromJson(o as Map<String, dynamic>))
+      offices: rawOffices
+          .whereType<Map>()
+          .map((o) => HomeOffice.fromJson(Map<String, dynamic>.from(o)))
           .toList(),
       badges: HomeBadges.fromJson(sub('badges') ?? const {}),
     );

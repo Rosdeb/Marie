@@ -29,7 +29,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _messageController = TextEditingController();
+    _messageController = TextEditingController(
+      text: SharePreviewSection.defaultPostMessage,
+    );
   }
 
   @override
@@ -48,9 +50,13 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
   }
 
   void _syncInitialText(SharePreviewModel preview) {
-    if (!_hasInitializedText &&
-        preview.sharePreview.postMessage.isNotEmpty) {
-      _messageController.text = preview.sharePreview.postMessage;
+    if (!_hasInitializedText) {
+      final msg = preview.sharePreview.postMessage.trim();
+      if (msg.isNotEmpty && msg.contains("I've just downloaded")) {
+        _messageController.text = msg;
+      } else {
+        _messageController.text = SharePreviewSection.defaultPostMessage;
+      }
       _hasInitializedText = true;
     }
   }
@@ -602,7 +608,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                   : Text(
                                       _messageController.text.isNotEmpty
                                           ? _messageController.text
-                                          : preview.sharePreview.postMessage,
+                                          : SharePreviewSection.defaultPostMessage,
                                       style: const TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textPrimary,

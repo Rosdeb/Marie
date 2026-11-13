@@ -251,7 +251,10 @@ class ReviewSession {
   });
 
   factory ReviewSession.fromJson(Map<String, dynamic> json) {
-    final sId = json['sessionId'] as String? ?? json['id'] as String? ?? '';
+    final sId = json['sessionId'] as String? ??
+        json['id'] as String? ??
+        json['_id'] as String? ??
+        '';
     final office = json['office'] as String? ?? 'IPI';
     final discipline = json['discipline'] as String? ?? '';
     final mode = json['mode'] as String? ?? 'practice';

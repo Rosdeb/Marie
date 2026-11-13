@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../data/models/quiz_models.dart';
+import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
 
 /// The end of a session.
@@ -117,8 +119,23 @@ class QuizResultScreen extends ConsumerWidget {
               text: 'Change settings',
               isSecondary: true,
               onPressed: () {
+                final currentOffice = quizState.selectedOffice;
+                final currentDiscipline = quizState.selectedSubdiscipline;
+
+                if (currentOffice.isNotEmpty) {
+                  ref
+                      .read(practiceProvider.notifier)
+                      .setJurisdiction(currentOffice);
+                }
+                if (currentDiscipline.isNotEmpty) {
+                  ref
+                      .read(practiceProvider.notifier)
+                      .setTopic(currentDiscipline);
+                }
+
                 ref.read(quizProvider.notifier).reset();
-                context.go('/practice/choose-jurisdiction');
+                ref.read(bottomNavProvider.notifier).changeIndex(1);
+                context.go('/main');
               },
             ),
           ],

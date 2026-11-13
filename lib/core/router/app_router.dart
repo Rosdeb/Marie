@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marie_nirva/features/practice/presentation/screens/practice_screen.dart';
 import '../network/server_availability_controller.dart';
 import '../screens/server_error_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
@@ -215,6 +216,13 @@ class AppRouter {
         path: '/support',
         name: 'support',
         builder: (context, state) => const SupportReportScreen(),
+      ),
+      //lib/features/practice/presentation/screens/practice_screen.dart
+
+      GoRoute(
+        path: '/practice',
+        name: 'practice',
+        builder: (context, state) => const PracticeScreen(),
       ),
       // Practice Flow Routes
       GoRoute(

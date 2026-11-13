@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/review_model.dart';
 import '../../data/repositories/review_repository_impl.dart';
 import '../../domain/repositories/review_repository.dart';
@@ -53,13 +54,21 @@ class ReviewState {
 }
 
 class ReviewNotifier extends Notifier<ReviewState> {
-  late final ReviewRepository _repository;
+  late ReviewRepository _repository;
 
   @override
   ReviewState build() {
     _repository = ref.watch(reviewRepositoryProvider);
-    Future.microtask(() => fetchReviewData());
-    return const ReviewState(isLoading: true);
+    final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
+    if (isAuth) {
+      Future.microtask(() => fetchReviewData());
+      return const ReviewState(isLoading: true);
+    }
+    return const ReviewState(isLoading: false);
+  }
+
+  void clear() {
+    state = const ReviewState(isLoading: false);
   }
 
   Future<void> fetchReviewData({
@@ -68,6 +77,12 @@ class ReviewNotifier extends Notifier<ReviewState> {
     int page = 1,
     int limit = 10,
   }) async {
+    final isAuth = ref.read(authProvider).isAuthenticated;
+    if (!isAuth) {
+      state = const ReviewState(isLoading: false);
+      return;
+    }
+
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final historyResult = await _repository.getHistory(
@@ -130,9 +145,11 @@ final filteredReviewSessionsProvider = Provider<List<ReviewSession>>((ref) {
           .toList();
     case ReviewFilter.incorrect:
       return reviewState.sessions
-          .where((s) => s.correctCount < s.totalQuestions)
+          .where((s) => s.accuracy < 70)
           .toList();
     case ReviewFilter.completed:
-      return reviewState.sessions;
+      return reviewState.sessions
+          .where((s) => s.accuracy >= 70)
+          .toList();
   }
 });

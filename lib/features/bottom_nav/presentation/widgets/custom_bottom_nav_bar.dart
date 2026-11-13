@@ -88,7 +88,8 @@ class CustomBottomNav extends ConsumerWidget {
             icon: currentIndex == 3
                 ? CupertinoIcons.person_fill
                 : CupertinoIcons.person,
-            customIcon: (avatarUrl != null && avatarUrl.isNotEmpty)
+            customIcon: (accountState.avatarBytes != null ||
+                    (avatarUrl != null && avatarUrl.isNotEmpty))
                 ? Container(
                     width: 24,
                     height: 24,
@@ -102,21 +103,28 @@ class CustomBottomNav extends ConsumerWidget {
                       ),
                     ),
                     child: ClipOval(
-                      child: Image.network(
-                        avatarUrl,
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          currentIndex == 3
-                              ? CupertinoIcons.person_fill
-                              : CupertinoIcons.person,
-                          size: 22,
-                          color: currentIndex == 3
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                        ),
-                      ),
+                      child: accountState.avatarBytes != null
+                          ? Image.memory(
+                              accountState.avatarBytes!,
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.network(
+                              avatarUrl!,
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Icon(
+                                currentIndex == 3
+                                    ? CupertinoIcons.person_fill
+                                    : CupertinoIcons.person,
+                                size: 22,
+                                color: currentIndex == 3
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
                     ),
                   )
                 : null,

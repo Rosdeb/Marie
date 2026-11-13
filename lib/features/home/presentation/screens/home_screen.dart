@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/office_label.dart';
-import '../../../../core/widgets/custom_shimmer.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../../core/widgets/global_header.dart';
 import '../../../../core/widgets/promo_video_card.dart';
+import '../../../../core/widgets/youtube_play_button.dart';
 import '../../../account/presentation/providers/preferences_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
 import '../../../referral/presentation/providers/referral_offer_provider.dart';
+import '../../../review/presentation/providers/review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../data/models/home_models.dart';
 import '../providers/home_provider.dart';
@@ -60,7 +61,9 @@ class HomeScreen extends ConsumerWidget {
             ? 'afternoon'
             : 'evening';
 
-    final user = ref.watch(authProvider).currentUser;
+    final authState = ref.watch(authProvider);
+    final isAuth = authState.isAuthenticated;
+    final user = authState.currentUser;
     String userName = '';
     if (user != null) {
       if (user.firstName != null && user.firstName!.isNotEmpty) {
@@ -69,10 +72,15 @@ class HomeScreen extends ConsumerWidget {
         userName = user.name.split(' ').first;
       }
     }
-    final rawName = (data?.greeting.firstName.isNotEmpty == true)
-        ? data!.greeting.firstName
+
+    final effectiveData = isAuth
+        ? (data ?? HomeData.fallback(firstName: userName))
+        : null;
+
+    final rawName = (effectiveData?.greeting.firstName.isNotEmpty == true)
+        ? effectiveData!.greeting.firstName
         : userName;
-    final greetingTitle = rawName.isNotEmpty
+    final greetingTitle = (isAuth && rawName.isNotEmpty)
         ? 'Good $timeOfDay, $rawName'
         : 'Good $timeOfDay';
 
@@ -95,9 +103,9 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 1),
-                  const Text(
-                    'Ready for today?',
-                    style: TextStyle(
+                  Text(
+                    isAuth ? 'Ready for today?' : 'Welcome to IPro',
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -107,6 +115,12 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            if (isAuth && home.isLoading)
+              const LinearProgressIndicator(
+                minHeight: 2.5,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -117,43 +131,40 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                   children: [
-                    // Only while there is nothing at all to show. A refresh
-                    // that fails leaves the last Home on screen.
-                    if (data == null && home.isLoading)
-                      const HomeScreenShimmer(),
-
-                    if (data != null) ...[
+                    if (isAuth && effectiveData != null) ...[
                       // ---- 1 ----
-                      _Greeting(greeting: data.greeting),
+                      _Greeting(greeting: effectiveData.greeting),
 
                       // ---- 2 ----
-                      if (data.pausedSession != null || data.learningPath != null)
+                      if (effectiveData.pausedSession != null ||
+                          effectiveData.learningPath != null)
                         _ContinueSection(
-                          paused: data.pausedSession,
-                          path: data.learningPath,
+                          paused: effectiveData.pausedSession,
+                          path: effectiveData.learningPath,
                         ),
 
                       // ---- 3 ----
                       _TodaySection(
-                        question: data.questionOfTheDay,
-                        mistakes: data.mistakes,
+                        question: effectiveData.questionOfTheDay,
+                        mistakes: effectiveData.mistakes,
                       ),
 
                       // ---- 4 ----
-                      _ThisWeekSection(week: data.thisWeek),
+                      _ThisWeekSection(week: effectiveData.thisWeek),
 
                       // ---- 5 ----
-                      _MyOfficesSection(offices: data.offices),
+                      _MyOfficesSection(offices: effectiveData.offices),
 
                       // ---- 6 ----
-                      _BadgesSection(badges: data.badges),
-                    ],
+                      _BadgesSection(badges: effectiveData.badges),
 
-                    // ---- 7 ----
-                    // "The free demo is always visible, also when logged in"
-                    // (mock-up note), so this section does not wait for the
-                    // rest of Home and is never hidden by a plan.
-                    const _DiscoverSection(),
+                      // ---- 7 ----
+                      const _DiscoverSection(showDemo: false),
+                    ] else if (!isAuth) ...[
+                      // ---- Guest Experience ----
+                      const _GuestHeroCard(),
+                      const _DiscoverSection(showDemo: true),
+                    ],
 
                     // ---- 8 ----
                     _PlansAndOffersSection(showShareOffer: showShareOffer),
@@ -246,14 +257,14 @@ class _Line extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Text(
-                      //   title,
-                      //   style: const TextStyle(
-                      //     fontSize: 15,
-                      //     fontWeight: FontWeight.w600,
-                      //     color: AppColors.textPrimary,
-                      //   ),
-                      // ),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                       if (subtitle != null && subtitle!.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
@@ -286,6 +297,131 @@ class _Line extends StatelessWidget {
     );
   }
 }
+
+// ----------------------------------------------------------- Guest Experience
+
+class _GuestHeroCard extends StatelessWidget {
+  const _GuestHeroCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 4),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.primaryDeep,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1A3050).withValues(alpha: 0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Image.asset("assets/image/main_app_icon_1.png")
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Practice IP Law with IPro',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Master patent exams across EPO, USPTO, WIPO, and more jurisdictions.',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.5,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primaryDeep,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => context.push('/sign-in'),
+                      child: const Text(
+                        'Sign In / Register',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          width: 1.2,
+                        ),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => context.push('/home/demo-config'),
+                      child: const Text(
+                        'Try Free Demo',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 // --------------------------------------------------------------- 1. Greeting
 
@@ -566,11 +702,6 @@ class _TodaySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Nothing to say: no question could be drawn and no mistake is waiting.
-    if (question == null && mistakes.total == 0) {
-      return const SizedBox.shrink();
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -646,40 +777,46 @@ class _TodaySection extends ConsumerWidget {
               ),
             ),
           ),
-        if (mistakes.total > 0)
-          _Line(
-            title: 'Mistakes to review',
-            subtitle: '${mistakes.dueToday} due today · '
-                '${mistakes.total} in total',
-            leading: const Icon(
-              Icons.replay_rounded,
-              size: 22,
-              color: AppColors.primary,
-            ),
-            trailing: mistakes.dueToday > 0
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentWarning.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '${mistakes.dueToday}',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.accentWarning,
-                      ),
-                    ),
-                  )
-                : null,
-            // The mistakes live on the Review tab, so Home switches to it
-            // rather than opening a second copy of the same screen.
-            onTap: () => ref.read(bottomNavProvider.notifier).changeIndex(2),
+        _Line(
+          title: 'Mistakes to review',
+          subtitle: mistakes.total > 0
+              ? '${mistakes.dueToday} due today · ${mistakes.total} in total'
+              : '0 due today · 0 in total',
+          leading: const Icon(
+            Icons.replay_rounded,
+            size: 22,
+            color: AppColors.primary,
           ),
+          trailing: mistakes.dueToday > 0
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentWarning.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${mistakes.dueToday}',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accentWarning,
+                    ),
+                  ),
+                )
+              : null,
+          // The mistakes live on the Review tab, so Home switches to it
+          // rather than opening a second copy of the same screen.
+          onTap: () {
+            ref.read(bottomNavProvider.notifier).changeIndex(2);
+            ref.read(reviewStateProvider.notifier).fetchReviewData();
+            if (GoRouterState.of(context).matchedLocation != '/main') {
+              context.go('/main');
+            }
+          },
+        ),
       ],
     );
   }
@@ -1171,7 +1308,9 @@ class _TierDot extends StatelessWidget {
 // ----------------------------------------------------------- 7. Discover IPro
 
 class _DiscoverSection extends StatelessWidget {
-  const _DiscoverSection();
+  const _DiscoverSection({this.showDemo = true});
+
+  final bool showDemo;
 
   @override
   Widget build(BuildContext context) {
@@ -1179,43 +1318,25 @@ class _DiscoverSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _GroupHeading('Discover IPro'),
-        _Line(
-          title: 'Try a free demo',
-          // No number of questions here: it depends on the office, and the
-          // demo screen prints the real one. Promising "20 questions" before
-          // the office is chosen is what Marie photographed on 11 November.
-          subtitle: 'No account required',
-          leading: const Icon(
-            Icons.play_circle_outline_rounded,
-            size: 22,
-            color: AppColors.accentWarning,
+        if (showDemo)
+          _Line(
+            title: 'Try a free demo',
+            subtitle: 'No account required',
+            leading: const Icon(
+              Icons.play_circle_outline_rounded,
+              size: 22,
+              color: AppColors.accentWarning,
+            ),
+            background: const Color(0xFFFBF3E2),
+            onTap: () => context.push('/home/demo-config'),
           ),
-          background: const Color(0xFFFBF3E2),
-          onTap: () => context.push('/home/demo-config'),
-        ),
-        // "the free demo and the 30-second video, as small lines" (Marie,
-        // Part 2, Home, point 7). The line carries a small still; the video
-        // itself "opens full screen from Home" (mock-up guide, Promotional
-        // video), which is what tapping it does.
         _Line(
           title: 'Discover IPro in 30 seconds',
           subtitle: 'Our video: practise anywhere, anytime',
-          leading: Container(
-            width: 56,
+          leading: const YouTubePlayButton(
+            width: 45,
             height: 38,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primaryDeep, AppColors.primary],
-              ),
-            ),
-            child: const Icon(
-              Icons.play_arrow_rounded,
-              size: 20,
-              color: Colors.white,
-            ),
+            iconSize: 20,
           ),
           onTap: () => _openVideoFullScreen(context),
         ),

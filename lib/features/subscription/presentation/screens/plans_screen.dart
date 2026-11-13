@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/custom_shimmer.dart';
+import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../data/models/revenuecat_plan_models.dart';
 import '../../domain/entities/entitlement_entity.dart';
 import '../providers/entitlement_provider.dart';
@@ -31,7 +32,6 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
     final plansState = ref.watch(plansProvider);
     final entitlement = ref.watch(entitlementProvider);
     final plansNotifier = ref.read(plansProvider.notifier);
-
     return Stack(
       children: [
         Scaffold(
@@ -968,7 +968,12 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                       if (needsSelection || entitlement.officeChangeAllowed) {
                         context.push('/subscription/office-selection');
                       } else {
-                        context.push('/practice');
+                        ref.read(bottomNavProvider.notifier).changeIndex(1);
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/main');
+                        }
                       }
                     },
                   )
@@ -981,7 +986,12 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                       color: Colors.white,
                     ),
                     onPressed: () {
-                      context.push('/practice');
+                      ref.read(bottomNavProvider.notifier).changeIndex(1);
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/main');
+                      }
                     },
                   ),
               ],

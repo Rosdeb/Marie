@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class AppAvatar extends StatelessWidget {
   final String? imageUrl;
   final String? localFilePath;
+  final Uint8List? imageBytes;
   final double radius;
   final String? name;
 
@@ -12,6 +14,7 @@ class AppAvatar extends StatelessWidget {
     super.key,
     this.imageUrl,
     this.localFilePath,
+    this.imageBytes,
     this.radius = 28,
     this.name,
   });
@@ -58,6 +61,18 @@ class AppAvatar extends StatelessWidget {
           ),
         );
       }
+    }
+
+    if (imageBytes != null && imageBytes!.isNotEmpty) {
+      return ClipOval(
+        child: Image.memory(
+          imageBytes!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallback,
+        ),
+      );
     }
 
     if (imageUrl == null || imageUrl!.trim().isEmpty) {

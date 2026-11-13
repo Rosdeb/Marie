@@ -83,6 +83,12 @@ class AnswerReviewScreen extends ConsumerWidget {
             // green fill and a tick.
             final isUnanswered = chosenIndex == null;
 
+            final isQuestionCorrect = !isUnanswered &&
+                (chosenIndex >= 0 && chosenIndex < question.options.length
+                    ? (question.options[chosenIndex].isCorrect ||
+                        chosenIndex == question.correctOptionIndex)
+                    : question.isCorrect);
+
             return Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -113,11 +119,7 @@ class AnswerReviewScreen extends ConsumerWidget {
                             // labels failures reads as a list of failures.
                             _StatusChip(
                               isUnanswered: isUnanswered,
-                              isCorrect: !isUnanswered &&
-                                  userChoice != null &&
-                                  userChoice >= 0 &&
-                                  userChoice < question.options.length &&
-                                  question.options[userChoice].isCorrect,
+                              isCorrect: isQuestionCorrect,
                             ),
                             const SizedBox(height: 6),
 

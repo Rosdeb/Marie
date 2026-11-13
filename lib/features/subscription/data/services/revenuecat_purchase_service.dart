@@ -4,14 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatPurchaseService {
-  static const bool isRcTest = bool.fromEnvironment('RC_TEST', defaultValue: true);
+  static const bool isRcTest = bool.fromEnvironment('RC_TEST', defaultValue: false);
   static const String testApiKey = String.fromEnvironment(
     'RC_TEST_API_KEY',
     defaultValue: 'test_FyhEeGsYzCAHcXnHaCOnIlQxNyg',
   );
   static const String appleApiKey = String.fromEnvironment(
     'RC_APPLE_KEY',
-    defaultValue: 'appl_revenuecat_key',
+    defaultValue: 'appl_FLsJtITVrmRnEAObXdhEputcHtL',
   );
   static const String googleApiKey = String.fromEnvironment(
     'RC_GOOGLE_KEY',

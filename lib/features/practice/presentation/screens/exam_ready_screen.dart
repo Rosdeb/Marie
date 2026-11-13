@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
 import '../providers/practice_provider.dart';
@@ -23,8 +25,9 @@ class _ExamModeNotifier extends Notifier<bool> {
   void set(bool value) => state = value;
 }
 
-final _examModeProvider =
-    NotifierProvider<_ExamModeNotifier, bool>(_ExamModeNotifier.new);
+final _examModeProvider = NotifierProvider<_ExamModeNotifier, bool>(
+  _ExamModeNotifier.new,
+);
 
 class ExamReadyScreen extends ConsumerWidget {
   const ExamReadyScreen({super.key});
@@ -55,7 +58,8 @@ class ExamReadyScreen extends ConsumerWidget {
     // discipline label is how the server writes it, so WIPO's Patents sheet
     // reads "PCT" here as it does everywhere else.
     final officeCode = selection.jurisdiction ?? '';
-    final officeName = ref
+    final officeName =
+        ref
             .watch(officesProvider)
             .offices
             .where((o) => o.code == officeCode)
@@ -63,7 +67,8 @@ class ExamReadyScreen extends ConsumerWidget {
             .firstOrNull ??
         (officeCode.isEmpty ? '—' : officeLabel(officeCode));
 
-    final disciplineName = selection.disciplines
+    final disciplineName =
+        selection.disciplines
             .where((d) => d.name == selection.topic)
             .map((d) => d.displayName)
             .firstOrNull ??
@@ -98,10 +103,6 @@ class ExamReadyScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          // Marie's own name for this screen, in her mock-up and in Part 2 of
-          // her document of 11 November. "Exam Ready" also read as though the
-          // session were an exam, which it is not unless Exam mode is chosen
-          // below.
           'Ready?',
           style: TextStyle(
             color: AppColors.textPrimary,
@@ -135,15 +136,8 @@ class ExamReadyScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // "Office, discipline and mode as buttons that can be
-                    // changed in place" (Marie, 11 November, Part 2, Ready?,
-                    // point 1). The same buttons as on every screen before
-                    // this one, so nothing has to be changed by going back.
                     const PracticeChips(showMode: true),
 
-                    // "A clear summary: office, discipline, mode, number of
-                    // questions, time limit" (point 2). All five, in that
-                    // order, and each one said plainly.
                     _buildInfoRow(
                       icon: Icons.account_balance_outlined,
                       label: 'Office',
@@ -178,10 +172,6 @@ class ExamReadyScreen extends ConsumerWidget {
                           : '$minutes minutes',
                     ),
 
-                    // "Where a pool has fewer than 20 questions for the
-                    // user's profile, run a shorter session with all of them
-                    // and say so" - and say so before the start, which is
-                    // here, not once the first question is already on screen.
                     if (questions != null && questions < 20) ...[
                       const Divider(height: 24, color: AppColors.border),
                       Row(
@@ -247,67 +237,22 @@ class ExamReadyScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              // Exam Language Selection
-              // const Text(
-              //   'Exam Language',
-              //   style: TextStyle(
-              //     fontSize: 14,
-              //     fontWeight: FontWeight.w600,
-              //     color: AppColors.textPrimary,
-              //   ),
-              // ),
-              // const SizedBox(height: 8),
-              // Container(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              //   decoration: BoxDecoration(
-              //     color: Colors.white,
-              //     borderRadius: BorderRadius.circular(12),
-              //     border: Border.all(color: AppColors.border),
-              //   ),
-              //   child: DropdownButtonHideUnderline(
-              //     child: DropdownButton<String>(
-              //       value: selection.language,
-              //       isExpanded: true,
-              //       icon: const Icon(
-              //         Icons.keyboard_arrow_down_rounded,
-              //         color: AppColors.textSecondary,
-              //       ),
-              //       style: const TextStyle(
-              //         fontSize: 14,
-              //         fontWeight: FontWeight.w600,
-              //         color: AppColors.textPrimary,
-              //       ),
-              //       items: availableLanguages.map((String lang) {
-              //         return DropdownMenuItem<String>(
-              //           value: lang,
-              //           child: Row(
-              //             children: [
-              //               const Icon(
-              //                 Icons.language_rounded,
-              //                 size: 18,
-              //                 color: AppColors.primary,
-              //               ),
-              //               const SizedBox(width: 10),
-              //               Text(lang),
-              //             ],
-              //           ),
-              //         );
-              //       }).toList(),
-              //       onChanged: (String? newLang) {
-              //         if (newLang != null) {
-              //           ref.read(practiceProvider.notifier).setLanguage(newLang);
-              //         }
-              //       },
-              //     ),
-              //   ),
-              // ),
               const SizedBox(height: 24),
 
               // Practice or Exam, before the session starts.
               _ModeChooser(
                 examMode: ref.watch(_examModeProvider),
-                onChanged: (value) =>
-                    ref.read(_examModeProvider.notifier).set(value),
+                onChanged: (value) {
+                    final isAuth = ref.read(authProvider).isAuthenticated;
+                    if (!isAuth) {
+                      AuthGateBottomSheet.show(
+                        context,
+                        targetFeature: 'Exam mode',
+                      );
+                      return;
+                    }
+                    ref.read(_examModeProvider.notifier).set(value);
+                }
               ),
 
               const SizedBox(height: 32),
@@ -342,7 +287,8 @@ class ExamReadyScreen extends ConsumerWidget {
                               level: selection.mode == 'by_level'
                                   ? selection.level
                                   : null,
-                              theme: (selection.mode == 'by_theme' ||
+                              theme:
+                                  (selection.mode == 'by_theme' ||
                                       selection.mode == 'theme_across_offices')
                                   ? selection.theme
                                   : null,
@@ -484,7 +430,8 @@ class _ModeChooser extends StatelessWidget {
             Expanded(
               child: _ModeCard(
                 title: 'Practice',
-                subtitle: 'See the answer and the explanation after each question.',
+                subtitle:
+                    'See the answer and the explanation after each question.',
                 icon: Icons.school_outlined,
                 selected: !examMode,
                 onTap: () => onChanged(false),
@@ -494,7 +441,8 @@ class _ModeChooser extends StatelessWidget {
             Expanded(
               child: _ModeCard(
                 title: 'Exam',
-                subtitle: 'No corrections until the end. Time runs out, the session is scored.',
+                subtitle:
+                    'No corrections until the end. Time runs out, the session is scored.',
                 icon: Icons.timer_outlined,
                 selected: examMode,
                 onTap: () => onChanged(true),
@@ -525,7 +473,9 @@ class _ModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.primary.withValues(alpha: 0.07) : Colors.white,
+      color: selected
+          ? AppColors.primary.withValues(alpha: 0.07)
+          : Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -547,7 +497,9 @@ class _ModeCard extends StatelessWidget {
                   Icon(
                     icon,
                     size: 18,
-                    color: selected ? AppColors.primary : AppColors.textSecondary,
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(

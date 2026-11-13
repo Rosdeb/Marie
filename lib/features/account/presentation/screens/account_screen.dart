@@ -156,6 +156,7 @@ class AccountScreen extends ConsumerWidget {
                             AppAvatar(
                               radius: 30,
                               imageUrl: profile.avatarUrl,
+                              imageBytes: profile.avatarBytes,
                               name: profile.name,
                             ),
                             const SizedBox(width: 16),

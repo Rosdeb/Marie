@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
@@ -87,12 +88,76 @@ class LocalStorage {
     }
   }
 
+  static const String _avatarCacheUrlKey = 'avatar_cache_url';
+  static const String _avatarCacheBytesKey = 'avatar_cache_bytes';
+
+  Future<void> saveCachedAvatar({
+    required String url,
+    required Uint8List bytes,
+  }) async {
+    final prefs = await _instance;
+    await prefs.setString(_avatarCacheUrlKey, url);
+    await prefs.setString(_avatarCacheBytesKey, base64Encode(bytes));
+  }
+
+  Future<Map<String, dynamic>?> getCachedAvatar() async {
+    final prefs = await _instance;
+    final url = prefs.getString(_avatarCacheUrlKey);
+    final b64 = prefs.getString(_avatarCacheBytesKey);
+    if (url == null || url.isEmpty || b64 == null || b64.isEmpty) {
+      return null;
+    }
+    try {
+      final bytes = base64Decode(b64);
+      return {'url': url, 'bytes': bytes};
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearCachedAvatar() async {
+    final prefs = await _instance;
+    await prefs.remove(_avatarCacheUrlKey);
+    await prefs.remove(_avatarCacheBytesKey);
+  }
+
+  static const String _homeDataKey = 'cached_home_data';
+
+  Future<void> saveHomeData(Map<String, dynamic> data) async {
+    final prefs = await _instance;
+    await prefs.setString(_homeDataKey, jsonEncode(data));
+  }
+
+  Future<Map<String, dynamic>?> getHomeData() async {
+    final prefs = await _instance;
+    final str = prefs.getString(_homeDataKey);
+    if (str == null || str.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(str);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      } else if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearHomeData() async {
+    final prefs = await _instance;
+    await prefs.remove(_homeDataKey);
+  }
+
   Future<void> clearAuth() async {
     final prefs = await _instance;
     await prefs.remove(AppConstants.accessTokenKey);
     await prefs.remove(AppConstants.refreshTokenKey);
     await prefs.remove(AppConstants.userDataKey);
     await prefs.remove(AppConstants.tempTokenKey);
+    await clearCachedAvatar();
+    await clearHomeData();
   }
 }
 
