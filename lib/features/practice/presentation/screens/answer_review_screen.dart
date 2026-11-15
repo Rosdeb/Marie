@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/question_report_bottom_sheet.dart';
+import '../../../review/presentation/providers/marked_questions_provider.dart';
 import '../providers/quiz_provider.dart';
 import '../../../../core/utils/office_label.dart';
 
@@ -89,6 +90,11 @@ class AnswerReviewScreen extends ConsumerWidget {
                         chosenIndex == question.correctOptionIndex)
                     : question.isCorrect);
 
+            final isMarked = ref
+                .watch(markedQuestionsProvider)
+                .items
+                .any((q) => q.id == question.id);
+
             return Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -161,6 +167,53 @@ class AnswerReviewScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      // Star mark button
+                      InkWell(
+                        onTap: () {
+                          ref
+                              .read(markedQuestionsProvider.notifier)
+                              .toggleMark(question);
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isMarked
+                                ? const Color(0xFFFFF8E1)
+                                : AppColors.badgeBg,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isMarked
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                size: 14,
+                                color: isMarked
+                                    ? const Color(0xFFFFB300)
+                                    : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isMarked ? 'Marked' : 'Mark',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isMarked
+                                      ? const Color(0xFFB78103)
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       InkWell(
                         onTap: () {
                           QuestionReportBottomSheet.show(

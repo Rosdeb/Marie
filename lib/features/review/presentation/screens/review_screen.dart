@@ -7,6 +7,8 @@ import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
 import '../../data/models/review_model.dart';
+import '../providers/marked_questions_provider.dart';
+import '../providers/mistakes_review_provider.dart';
 import '../providers/review_provider.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
@@ -77,20 +79,18 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ? summary.averageScorePercentage
         : (totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0.0);
 
-    final totalMistakes = (summary != null && summary.wrongAnswers > 0)
-        ? summary.wrongAnswers
-        : (reviewState.mistakes.total > 0
-            ? reviewState.mistakes.total
+    final localMistakesCount = ref.watch(mistakesReviewProvider).entries.length;
+    final totalMistakes = reviewState.mistakes.total > 0
+        ? reviewState.mistakes.total
+        : (localMistakesCount > 0
+            ? localMistakesCount
             : (summary?.wrongAnswers ??
                 reviewState.sessions.fold<int>(
                   0,
                   (sum, s) => sum + s.incorrectCount,
                 )));
 
-    final flaggedCount = reviewState.sessions.fold<int>(
-      0,
-      (sum, s) => sum + s.flaggedCount,
-    );
+    final markedCount = ref.watch(markedQuestionsProvider).items.length;
 
     final needsFocusCount = reviewState.sessions
         .where((s) => s.accuracy < 70)
@@ -196,12 +196,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       AuthGateBottomSheet.show(context, targetFeature: 'Mistake review');
                       return;
                     }
-                    // Toggle mistakes / needs focus filter
-                    if (currentFilter == ReviewFilter.incorrect) {
-                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
-                    } else {
-                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.incorrect);
-                    }
+                    context.push('/review/mistakes');
                   },
                 ),
                 const SizedBox(height: 10),
@@ -209,18 +204,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   icon: Icons.star_rounded,
                   iconColor: Colors.amber,
                   title: 'Marked questions',
-                  subtitle: '$flaggedCount questions you marked',
+                  subtitle: '$markedCount questions you marked',
                   onTap: () {
                     if (!isAuth) {
                       AuthGateBottomSheet.show(context, targetFeature: 'Marked questions');
                       return;
                     }
-                    // Toggle flagged filter
-                    if (currentFilter == ReviewFilter.flagged) {
-                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
-                    } else {
-                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.flagged);
-                    }
+                    context.push('/review/marked');
                   },
                 ),
                 const SizedBox(height: 24),
@@ -366,13 +356,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
+  static String _cleanInternalCodes(String text) {
+    return text
+        .replaceAll(RegExp(r'\bREVIEW_MISTAKES\b', caseSensitive: false), 'Mistakes review')
+        .replaceAll(RegExp(r'\bRANDOM\b', caseSensitive: false), 'Random mix')
+        .replaceAll(RegExp(r'\bBY_THEME\b', caseSensitive: false), 'By theme')
+        .replaceAll(RegExp(r'\bDEMO\b', caseSensitive: false), 'Demo')
+        .replaceAll(RegExp(r'\bBY_LEVEL\b', caseSensitive: false), 'By level');
+  }
+
   static String _formatSessionTitle(ReviewSession session) {
     final disc = session.discipline.isNotEmpty ? session.discipline : session.topic;
     final lvl = _formatLevelOrMode(session);
     if (disc.isNotEmpty) {
       return '$disc · $lvl';
     }
-    return session.title.isNotEmpty ? session.title : 'Practice Session';
+    if (session.title.isNotEmpty) {
+      return _cleanInternalCodes(session.title);
+    }
+    return 'Practice Session';
   }
 
   static String _formatLevelOrMode(ReviewSession session) {

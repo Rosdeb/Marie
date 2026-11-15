@@ -19,6 +19,13 @@ class QuestionOption {
       isChosen: json['isChosen'] as bool? ?? false,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'text': text,
+        'isCorrect': isCorrect,
+        'isChosen': isChosen,
+      };
 }
 
 class Question {
@@ -97,6 +104,63 @@ class Question {
       timeSpentSeconds: (json['timeSpentSeconds'] as num?)?.toInt(),
       explanation: json['explanation'] as String? ?? '',
       legalBasis: json['legalBasis'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'number': number,
+        'progress': progress,
+        'office': office,
+        'discipline': discipline,
+        'disciplineLabel': disciplineLabel,
+        'level': level,
+        'theme': theme,
+        'questionText': questionText,
+        'options': options.map((o) => o.toJson()).toList(),
+        'correctOptionIndex': correctOptionIndex,
+        'selectedKey': selectedKey,
+        'isCorrect': isCorrect,
+        'timeSpentSeconds': timeSpentSeconds,
+        'explanation': explanation,
+        'legalBasis': legalBasis,
+      };
+
+  Question copyWith({
+    String? id,
+    int? number,
+    String? progress,
+    String? office,
+    String? discipline,
+    String? disciplineLabel,
+    String? level,
+    String? theme,
+    String? questionText,
+    List<QuestionOption>? options,
+    int? correctOptionIndex,
+    String? selectedKey,
+    bool? isCorrect,
+    int? timeSpentSeconds,
+    String? explanation,
+    String? legalBasis,
+  }) {
+    return Question(
+      id: id ?? this.id,
+      number: number ?? this.number,
+      progress: progress ?? this.progress,
+      office: office ?? this.office,
+      discipline: discipline ?? this.discipline,
+      disciplineLabel: disciplineLabel ?? this.disciplineLabel,
+      level: level ?? this.level,
+      theme: theme ?? this.theme,
+      questionText: questionText ?? this.questionText,
+      options: options ?? this.options,
+      correctOptionIndex: correctOptionIndex ?? this.correctOptionIndex,
+      selectedKey: selectedKey ?? this.selectedKey,
+      isCorrect: isCorrect ?? this.isCorrect,
+      timeSpentSeconds: timeSpentSeconds ?? this.timeSpentSeconds,
+      explanation: explanation ?? this.explanation,
+      legalBasis: legalBasis ?? this.legalBasis,
     );
   }
 }

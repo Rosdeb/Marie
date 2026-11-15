@@ -281,8 +281,7 @@ class ReviewSession {
 
     final incorrect = (json['incorrectCount'] as num?)?.toInt() ??
         ((total - score) > 0 ? (total - score) : 0);
-    final flagged = (json['flaggedCount'] as num?)?.toInt() ??
-        ((total - score) > 0 ? (total - score) : 0);
+    final flagged = (json['flaggedCount'] as num?)?.toInt() ?? 0;
 
     String formattedDate = 'Recently';
     if (completedAtRaw.isNotEmpty) {
@@ -300,17 +299,18 @@ class ReviewSession {
     // reproduced (point 6.2) - and uninformative: random, learning path and
     // cross-office sessions all landed on it.
     const modeLabels = {
-      'demo': 'Demo Session',
-      'review_mistakes': 'Mistakes Review',
-      'by_theme': 'Theme Practice',
-      'random': 'Random Practice',
-      'theme_across_offices': 'Theme Across Offices',
-      'learning_path': 'Learning Path',
+      'demo': 'Demo',
+      'review_mistakes': 'Mistakes review',
+      'by_theme': 'By theme',
+      'random': 'Random mix',
+      'theme_across_offices': 'Cross-office',
+      'learning_path': 'Learning path',
     };
 
-    final modeLabel = mode == 'by_level'
-        ? (level.isNotEmpty ? '$level Level' : 'Level Practice')
-        : (modeLabels[mode] ?? 'Practice Session');
+    final normalizedMode = mode.toLowerCase();
+    final modeLabel = normalizedMode == 'by_level'
+        ? (level.isNotEmpty ? '$level Level' : 'By level')
+        : (modeLabels[normalizedMode] ?? 'Practice');
 
     final title = discipline.isNotEmpty
         ? '$discipline - $modeLabel'
@@ -343,7 +343,7 @@ class ReviewSession {
       averageSecondsPerQuestion: avgSecPerQ,
       averageMsPerQuestion: avgMsPerQ,
       timing: timingObj,
-      isFlagged: flagged > 0 || (total - score) > 0,
+      isFlagged: flagged > 0,
     );
   }
 

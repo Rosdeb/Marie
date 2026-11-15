@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../review/presentation/providers/mistakes_review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../data/models/quiz_models.dart';
 import '../../domain/repositories/practice_repository.dart';
@@ -600,6 +601,16 @@ class QuizNotifier extends Notifier<QuizState> {
                   : (orig?.legalBasis ?? ''),
             ),
           );
+        }
+
+        // Update mistakes pool: wrong answers stay or are recorded; correct answers leave
+        final wrongQuestions = reviewQuestions.where((q) => !q.isCorrect).toList();
+        final correctIds = reviewQuestions.where((q) => q.isCorrect).map((q) => q.id).toList();
+        if (wrongQuestions.isNotEmpty) {
+          ref.read(mistakesReviewProvider.notifier).recordMistakes(wrongQuestions);
+        }
+        if (correctIds.isNotEmpty) {
+          ref.read(mistakesReviewProvider.notifier).removeCorrectMistakes(correctIds);
         }
 
         state = state.copyWith(

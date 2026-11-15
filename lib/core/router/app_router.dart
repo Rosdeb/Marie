@@ -40,6 +40,8 @@ import '../../features/practice/presentation/screens/answer_review_screen.dart';
 import '../../features/subscription/presentation/screens/plans_screen.dart';
 import '../../features/subscription/presentation/screens/office_selection_screen.dart';
 import '../../features/subscription/presentation/screens/how_subscriptions_work_screen.dart';
+import '../../features/review/presentation/screens/mistakes_review_screen.dart';
+import '../../features/review/presentation/screens/marked_questions_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -286,6 +288,16 @@ class AppRouter {
         path: '/practice/answer-review',
         name: 'answerReview',
         builder: (context, state) => const AnswerReviewScreen(),
+      ),
+      GoRoute(
+        path: '/review/mistakes',
+        name: 'mistakesReview',
+        builder: (context, state) => const MistakesReviewScreen(),
+      ),
+      GoRoute(
+        path: '/review/marked',
+        name: 'markedQuestions',
+        builder: (context, state) => const MarkedQuestionsScreen(),
       ),
     ],
     errorBuilder: (context, state) =>

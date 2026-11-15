@@ -483,6 +483,7 @@ class SettingsScreen extends ConsumerWidget {
             // app would quietly go on showing the old one.
             ..._buildLegalCards(context, ref),
             const SizedBox(height: 24),
+
             _buildSectionHeader('Account Actions'),
             const SizedBox(height: 8),
 
