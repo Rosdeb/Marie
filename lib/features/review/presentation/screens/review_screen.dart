@@ -22,8 +22,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   String? _loadingSessionId;
 
   Future<void> _onSessionTap(ReviewSession session) async {
-    final targetId =
-        session.sessionId.isNotEmpty ? session.sessionId : session.id;
+    final targetId = session.sessionId.isNotEmpty
+        ? session.sessionId
+        : session.id;
     if (targetId.isEmpty) {
       FloatingErrorBar.show(
         context,
@@ -41,7 +42,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       if (ok) {
         context.push('/practice/answer-review');
       } else {
-        final err = ref.read(quizProvider).errorMessage ??
+        final err =
+            ref.read(quizProvider).errorMessage ??
             'Could not load questions for this session.';
         FloatingErrorBar.show(context, message: err);
       }
@@ -71,26 +73,41 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     // Aggregate statistics from backend summary if available, else sessions fold
     final summary = reviewState.summary;
-    final totalAnswered = summary?.questionsAnswered ??
+    final totalAnswered =
+        summary?.questionsAnswered ??
         reviewState.sessions.fold<int>(0, (sum, s) => sum + s.totalQuestions);
-    final totalCorrect = summary?.correctAnswers ??
+    final totalCorrect =
+        summary?.correctAnswers ??
         reviewState.sessions.fold<int>(0, (sum, s) => sum + s.correctCount);
     final avgAccuracy = summary != null
         ? summary.averageScorePercentage
         : (totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0.0);
 
-    final localMistakesCount = ref.watch(mistakesReviewProvider).entries.length;
-    final totalMistakes = reviewState.mistakes.total > 0
-        ? reviewState.mistakes.total
-        : (localMistakesCount > 0
-            ? localMistakesCount
-            : (summary?.wrongAnswers ??
-                reviewState.sessions.fold<int>(
-                  0,
-                  (sum, s) => sum + s.incorrectCount,
-                )));
+    /**
+     * The two counters, each from its own place.
+     *
+     * Marie, build 11: "Mistakes to review shows 151 questions. Marked
+     * questions shows 151 too - and I never marked 151 questions."
+     *
+     * This is where that happened. There was no marked list on the server, so
+     * the line below "Marked questions" had nothing of its own to count, and
+     * the chain of fallbacks under "Mistakes to review" ended at
+     * `summary.wrongAnswers` - every wrong answer ever given, which is a
+     * different and much larger number than "questions I got wrong and have
+     * not answered correctly since".
+     *
+     * Both now read one number from one endpoint, and the fallbacks are gone:
+     * a count that is not known is shown as nothing rather than guessed at
+     * from a total that means something else.
+     */
+    final mistakesState = ref.watch(mistakesReviewProvider);
+    final markedState = ref.watch(markedQuestionsProvider);
 
-    final markedCount = ref.watch(markedQuestionsProvider).items.length;
+    final totalMistakes = mistakesState.total > 0
+        ? mistakesState.total
+        : reviewState.mistakes.total;
+
+    final markedCount = markedState.total;
 
     final needsFocusCount = reviewState.sessions
         .where((s) => s.accuracy < 70)
@@ -129,7 +146,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -179,7 +199,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   subtitle: 'By office, level and theme',
                   onTap: () {
                     if (!isAuth) {
-                      AuthGateBottomSheet.show(context, targetFeature: 'Progress tracking');
+                      AuthGateBottomSheet.show(
+                        context,
+                        targetFeature: 'Progress tracking',
+                      );
                       return;
                     }
                     context.push('/practice/progress');
@@ -190,10 +213,15 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   icon: Icons.refresh_rounded,
                   iconColor: Colors.orange,
                   title: 'Mistakes to review',
-                  subtitle: '$totalMistakes questions to review',
+                  subtitle: mistakesState.isLoading && totalMistakes == 0
+                      ? 'Counting…'
+                      : '$totalMistakes questions to review',
                   onTap: () {
                     if (!isAuth) {
-                      AuthGateBottomSheet.show(context, targetFeature: 'Mistake review');
+                      AuthGateBottomSheet.show(
+                        context,
+                        targetFeature: 'Mistake review',
+                      );
                       return;
                     }
                     context.push('/review/mistakes');
@@ -204,10 +232,17 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   icon: Icons.star_rounded,
                   iconColor: Colors.amber,
                   title: 'Marked questions',
-                  subtitle: '$markedCount questions you marked',
+                  // "you marked" is now literally true: nothing but the star
+                  // puts a question in this list.
+                  subtitle: markedState.isLoading && markedCount == 0
+                      ? 'Counting…'
+                      : '$markedCount questions you marked',
                   onTap: () {
                     if (!isAuth) {
-                      AuthGateBottomSheet.show(context, targetFeature: 'Marked questions');
+                      AuthGateBottomSheet.show(
+                        context,
+                        targetFeature: 'Marked questions',
+                      );
                       return;
                     }
                     context.push('/review/marked');
@@ -284,13 +319,18 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   )
                 else if (filteredSessions.isEmpty)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 36,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
@@ -325,28 +365,27 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     ),
                   )
                 else
-                  ...filteredSessions.map(
-                    (session) {
-                      final targetId = session.sessionId.isNotEmpty
-                          ? session.sessionId
-                          : session.id;
-                      final isCardLoading = _loadingSessionId == targetId;
+                  ...filteredSessions.map((session) {
+                    final targetId = session.sessionId.isNotEmpty
+                        ? session.sessionId
+                        : session.id;
+                    final isCardLoading = _loadingSessionId == targetId;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10.0),
-                        child: _SessionCard(
-                          title: _formatSessionTitle(session),
-                          subtitle: _formatSessionSubtitle(session),
-                          score: '${session.correctCount}/${session.totalQuestions}',
-                          scoreColor: session.accuracy >= 60
-                              ? const Color(0xFF2E7D32)
-                              : const Color(0xFFD32F2F),
-                          isLoading: isCardLoading,
-                          onTap: () => _onSessionTap(session),
-                        ),
-                      );
-                    },
-                  ),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: _SessionCard(
+                        title: _formatSessionTitle(session),
+                        subtitle: _formatSessionSubtitle(session),
+                        score:
+                            '${session.correctCount}/${session.totalQuestions}',
+                        scoreColor: session.accuracy >= 60
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFD32F2F),
+                        isLoading: isCardLoading,
+                        onTap: () => _onSessionTap(session),
+                      ),
+                    );
+                  }),
                 const SizedBox(height: 20),
               ],
             ),
@@ -358,7 +397,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   static String _cleanInternalCodes(String text) {
     return text
-        .replaceAll(RegExp(r'\bREVIEW_MISTAKES\b', caseSensitive: false), 'Mistakes review')
+        .replaceAll(
+          RegExp(r'\bMARKED\b', caseSensitive: false),
+          'Marked questions',
+        )
+        .replaceAll(
+          RegExp(r'\bREVIEW_MISTAKES\b', caseSensitive: false),
+          'Mistakes review',
+        )
         .replaceAll(RegExp(r'\bRANDOM\b', caseSensitive: false), 'Random mix')
         .replaceAll(RegExp(r'\bBY_THEME\b', caseSensitive: false), 'By theme')
         .replaceAll(RegExp(r'\bDEMO\b', caseSensitive: false), 'Demo')
@@ -366,7 +412,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   static String _formatSessionTitle(ReviewSession session) {
-    final disc = session.discipline.isNotEmpty ? session.discipline : session.topic;
+    final disc = session.discipline.isNotEmpty
+        ? session.discipline
+        : session.topic;
     final lvl = _formatLevelOrMode(session);
     if (disc.isNotEmpty) {
       return '$disc · $lvl';
@@ -386,6 +434,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       'by_level': 'By level',
       'theme_across_offices': 'Cross-office',
       'learning_path': 'Learning path',
+      'marked': 'Marked questions',
     };
 
     final rawLevel = session.level.trim();
@@ -425,8 +474,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final jurisdiction = session.jurisdiction.isNotEmpty
         ? session.jurisdiction
         : (session.office.isNotEmpty ? session.office : 'IP Office');
-    final modeLabel = _formatMode(session.mode);
-    final date = session.completedDate.isNotEmpty ? session.completedDate : 'Recent';
+    // The server's own wording first; _formatMode is the fallback for a
+    // server that does not send one.
+    final modeLabel = session.modeLabel.isNotEmpty
+        ? session.modeLabel
+        : _formatMode(session.mode);
+    final date = session.completedDate.isNotEmpty
+        ? session.completedDate
+        : 'Recent';
     return '$jurisdiction · $modeLabel · $date';
   }
 
@@ -447,9 +502,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         return 'Cross-office';
       case 'learning_path':
         return 'Learning path';
+      case 'marked':
+        return 'Marked questions';
       default:
         if (mode.isEmpty) return 'Practice';
-        return mode.replaceAll('_', ' ');
+        /**
+         * The last resort, and it must not print a key.
+         *
+         * A mode this app has never heard of used to be shown as
+         * "review mistakes" - the underscores removed and nothing else - so a
+         * new mode on the server reached the screen in its stored spelling.
+         * Capitalising each word is still a guess, but it is a guess that
+         * reads as English.
+         */
+        return mode
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((word) => word.isNotEmpty)
+            .map((word) => word[0].toUpperCase() + word.substring(1))
+            .join(' ');
     }
   }
 }

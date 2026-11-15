@@ -31,7 +31,8 @@ class HowItWorksScreen extends ConsumerWidget {
             HowItWorksStep(
               step: 3,
               title: 'Get 10% off in the app',
-              body: 'Unlock your exclusive promo code immediately for checkout.',
+              body:
+                  'Unlock your exclusive promo code immediately for checkout.',
             ),
           ];
 

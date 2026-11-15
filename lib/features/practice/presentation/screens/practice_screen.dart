@@ -31,7 +31,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       final cur = ref.read(practiceProvider).jurisdiction;
       if (cur == null || cur.isEmpty) {
         final entitlement = ref.read(entitlementProvider);
-        final defaultOffice = entitlement.selectedOffices.firstOrNull ??
+        final defaultOffice =
+            entitlement.selectedOffices.firstOrNull ??
             entitlement.includedOffices.firstOrNull ??
             'IPI';
         ref.read(practiceProvider.notifier).setJurisdiction(defaultOffice);
@@ -49,24 +50,25 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     final officesState = ref.watch(officesProvider);
 
     // Current selected office code
-    final selectedOffice = selection.jurisdiction ??
+    final selectedOffice =
+        selection.jurisdiction ??
         (entitlement.selectedOffices.isNotEmpty
             ? entitlement.selectedOffices.first
             : (entitlement.includedOffices.isNotEmpty
-                ? entitlement.includedOffices.first
-                : 'IPI'));
+                  ? entitlement.includedOffices.first
+                  : 'IPI'));
 
     final activeDiscipline = selection.topic ?? 'Patents';
     final officeObj = officesState.offices
         .where((o) => o.code == selectedOffice)
         .firstOrNull;
-    final isIncluded = selectedOffice.isEmpty ||
-        entitlement.canAccessOffice(selectedOffice);
+    final isIncluded =
+        selectedOffice.isEmpty || entitlement.canAccessOffice(selectedOffice);
     final officeDisplayName = officeObj?.name.isNotEmpty == true
         ? officeObj!.name
         : (officeFullName(selectedOffice).isNotEmpty
-            ? officeFullName(selectedOffice)
-            : officeLabel(selectedOffice));
+              ? officeFullName(selectedOffice)
+              : officeLabel(selectedOffice));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -115,8 +117,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                                   shape: BoxShape.circle,
                                   color: const Color(0xFFF1F5FD),
                                   border: Border.all(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.18),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.18,
+                                    ),
                                     width: 1.2,
                                   ),
                                 ),
@@ -327,11 +330,17 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          _buildContentBullet('Exam-style questions in four levels'),
+                          _buildContentBullet(
+                            'Exam-style questions in four levels',
+                          ),
                           const SizedBox(height: 6),
-                          _buildContentBullet('Explanation and legal basis for every answer'),
+                          _buildContentBullet(
+                            'Explanation and legal basis for every answer',
+                          ),
                           const SizedBox(height: 6),
-                          _buildContentBullet('Unlimited practice sessions & personalized analytics'),
+                          _buildContentBullet(
+                            'Unlimited practice sessions & personalized analytics',
+                          ),
                         ],
                       ),
                     ),
@@ -498,8 +507,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                       color: isSelected
                           ? AppColors.primary
                           : (isLocked
-                              ? AppColors.textSecondary
-                              : AppColors.textPrimary),
+                                ? AppColors.textSecondary
+                                : AppColors.textPrimary),
                     ),
                   ),
                 ),
@@ -608,10 +617,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             const SizedBox(height: 4),
             const Text(
               'Shows each office and its available disciplines',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             if (allOffices.isEmpty)
@@ -672,8 +678,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                                     border: Border.all(
                                       color: current
                                           ? AppColors.primary
-                                          : AppColors.primary
-                                              .withValues(alpha: 0.15),
+                                          : AppColors.primary.withValues(
+                                              alpha: 0.15,
+                                            ),
                                       width: 1.2,
                                     ),
                                   ),
@@ -717,11 +724,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                                       Text(
                                         o.disciplines.isNotEmpty
                                             ? o.disciplines
-                                                .map((d) => d.displayName)
-                                                .join(' · ')
+                                                  .map((d) => d.displayName)
+                                                  .join(' · ')
                                             : (o.territory.isNotEmpty
-                                                ? o.territory
-                                                : 'All disciplines'),
+                                                  ? o.territory
+                                                  : 'All disciplines'),
                                         style: const TextStyle(
                                           fontSize: 12,
                                           height: 1.3,

@@ -55,9 +55,7 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
 
     if (response is Map<String, dynamic> &&
         response['data'] is Map<String, dynamic>) {
-      return MistakesSummary.fromJson(
-        response['data'] as Map<String, dynamic>,
-      );
+      return MistakesSummary.fromJson(response['data'] as Map<String, dynamic>);
     }
     return const MistakesSummary();
   }

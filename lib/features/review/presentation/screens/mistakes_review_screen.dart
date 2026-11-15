@@ -12,7 +12,8 @@ class MistakesReviewScreen extends ConsumerStatefulWidget {
   const MistakesReviewScreen({super.key});
 
   @override
-  ConsumerState<MistakesReviewScreen> createState() => _MistakesReviewScreenState();
+  ConsumerState<MistakesReviewScreen> createState() =>
+      _MistakesReviewScreenState();
 }
 
 class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
@@ -30,17 +31,36 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
   }
 
   Future<void> _startReviewSession() async {
-    final mistakesState = ref.read(mistakesReviewProvider);
-    final targetOffice = mistakesState.selectedOffice ?? 'IPI';
+    /**
+     * The four filters as chosen, and no default office.
+     *
+     * This used to send `selectedOffice ?? 'IPI'`, because the office was a
+     * required parameter - so a user who had filtered nothing was given IPI's
+     * mistakes and only IPI's, while the list in front of them showed every
+     * office. The discipline, level and theme were not sent at all.
+     *
+     * The server reads a missing office as every office, and the twenty it
+     * draws are the oldest mistakes of whatever the filters match - the
+     * twenty at the top of this list.
+     */
+    final args = ref.read(mistakesReviewProvider.notifier).sessionArguments();
+    final targetOffice = args['office'];
 
     setState(() => _isStartingSession = true);
     try {
       ref.read(practiceProvider.notifier).setMode('review_mistakes');
-      ref.read(practiceProvider.notifier).setJurisdiction(targetOffice);
+      if (targetOffice != null && targetOffice.isNotEmpty) {
+        ref.read(practiceProvider.notifier).setJurisdiction(targetOffice);
+      }
 
-      final ok = await ref.read(quizProvider.notifier).startPracticeSession(
+      final ok = await ref
+          .read(quizProvider.notifier)
+          .startPracticeSession(
             office: targetOffice,
             mode: 'review_mistakes',
+            subject: args['subject'],
+            level: args['level'],
+            theme: args['theme'],
             examMode: false,
           );
 
@@ -49,7 +69,8 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
       if (ok) {
         context.push('/practice/active-quiz');
       } else {
-        final err = ref.read(quizProvider).errorMessage ??
+        final err =
+            ref.read(quizProvider).errorMessage ??
             'Could not start mistake review session';
         FloatingErrorBar.show(context, message: err);
       }
@@ -72,7 +93,20 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
 
     final mistakesState = ref.watch(mistakesReviewProvider);
     final filtered = mistakesState.filteredEntries;
-    final totalCount = mistakesState.entries.length;
+
+    /**
+     * Both numbers are the server's.
+     *
+     * [total] is every outstanding mistake and does not move when a filter is
+     * chosen, so it stays equal to the figure on Home and on the Review
+     * screen. [matching] is what the filters match, which is the number the
+     * Start review button plays - and it is the whole list behind the filter,
+     * not the length of the page loaded, so "20 of 151" is honest even though
+     * only a page is in memory.
+     */
+    final totalCount = mistakesState.total;
+    final matchingCount = mistakesState.matching;
+    final sessionSize = matchingCount > 20 ? 20 : matchingCount;
 
     return Scaffold(
       backgroundColor: screenBg,
@@ -81,7 +115,11 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: inkDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: inkDark,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -105,7 +143,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${filtered.length} of $totalCount questions',
+                  '$matchingCount of $totalCount questions',
                   style: const TextStyle(
                     fontSize: 13,
                     color: mutedText,
@@ -117,7 +155,9 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
                     mistakesState.selectedLevel != null ||
                     mistakesState.selectedTheme != null)
                   GestureDetector(
-                    onTap: () => ref.read(mistakesReviewProvider.notifier).clearFilters(),
+                    onTap: () => ref
+                        .read(mistakesReviewProvider.notifier)
+                        .clearFilters(),
                     child: const Text(
                       'Clear filters',
                       style: TextStyle(
@@ -133,22 +173,32 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
 
           // List of questions
           Expanded(
-            child: filtered.isEmpty
+            // A spinner while the first page is on its way: an empty list and a
+            // list that has not arrived look the same, and "you have no
+            // mistakes" is the wrong thing to say about the second.
+            child: mistakesState.isLoading && filtered.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
                 ? _buildEmptyState(screenBg, inkDark, mutedText)
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final entry = filtered[index];
-                      final q = entry.question;
-                      final isExpanded = _expandedQuestionIds.contains(q.id);
+                : RefreshIndicator(
+                    onRefresh: () => ref
+                        .read(mistakesReviewProvider.notifier)
+                        .loadMistakes(),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final entry = filtered[index];
+                        final q = entry.question;
+                        final isExpanded = _expandedQuestionIds.contains(q.id);
 
-                      return _MistakeQuestionCard(
-                        question: q,
-                        isExpanded: isExpanded,
-                        onToggleExpand: () => _toggleExpanded(q.id),
-                      );
-                    },
+                        return _MistakeQuestionCard(
+                          question: q,
+                          isExpanded: isExpanded,
+                          onToggleExpand: () => _toggleExpanded(q.id),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],
@@ -168,8 +218,8 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
         child: CustomButton(
           text: _isStartingSession
               ? 'Starting review…'
-              : 'Start review (${filtered.length > 20 ? 20 : filtered.length})',
-          onPressed: filtered.isEmpty || _isStartingSession
+              : 'Start review ($sessionSize)',
+          onPressed: sessionSize == 0 || _isStartingSession
               ? null
               : _startReviewSession,
         ),
@@ -267,11 +317,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             Text(
               'Questions you answer incorrectly during practice quizzes will appear here so you can review and master them.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: muted,
-                height: 1.4,
-              ),
+              style: TextStyle(fontSize: 14, color: muted, height: 1.4),
             ),
           ],
         ),
@@ -304,17 +350,16 @@ class _FilterDropdown extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (context) {
         return [
-          PopupMenuItem<String?>(
-            value: null,
-            child: Text('All $label'),
-          ),
+          PopupMenuItem<String?>(value: null, child: Text('All $label')),
           ...options.map(
             (opt) => PopupMenuItem<String?>(
               value: opt,
               child: Text(
                 opt,
                 style: TextStyle(
-                  fontWeight: opt == value ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: opt == value
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                   color: opt == value ? AppColors.primary : null,
                 ),
               ),
@@ -325,7 +370,9 @@ class _FilterDropdown extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: hasValue ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
+          color: hasValue
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: hasValue ? AppColors.primary : const Color(0xFFE5E2DA),
@@ -370,7 +417,9 @@ class _MistakeQuestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tags = <String>[];
     if (question.office.isNotEmpty) tags.add(question.office);
-    if (question.displayDiscipline.isNotEmpty) tags.add(question.displayDiscipline);
+    if (question.displayDiscipline.isNotEmpty) {
+      tags.add(question.displayDiscipline);
+    }
     if (question.level.isNotEmpty) tags.add(question.level);
     if (question.theme.isNotEmpty) tags.add(question.theme);
 
@@ -401,7 +450,10 @@ class _MistakeQuestionCard extends StatelessWidget {
                   runSpacing: 4,
                   children: tags.map((t) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF2F0E8),
                         borderRadius: BorderRadius.circular(6),
@@ -461,7 +513,10 @@ class _MistakeQuestionCard extends StatelessWidget {
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: optBg,
                         borderRadius: BorderRadius.circular(8),
@@ -481,10 +536,7 @@ class _MistakeQuestionCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               opt.text,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textColor,
-                              ),
+                              style: TextStyle(fontSize: 13, color: textColor),
                             ),
                           ),
                         ],
@@ -532,7 +584,9 @@ class _MistakeQuestionCard extends StatelessWidget {
           // Expand / Collapse Footer Button
           InkWell(
             onTap: onToggleExpand,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(16),
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
               decoration: const BoxDecoration(

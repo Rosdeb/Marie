@@ -119,7 +119,7 @@ class ChoosePracticeModeScreen extends ConsumerWidget {
             title: 'Review my mistakes',
             subtitle: mistakesWaiting > 0
                 ? '$mistakesWaiting question'
-                    '${mistakesWaiting == 1 ? '' : 's'} waiting'
+                      '${mistakesWaiting == 1 ? '' : 's'} waiting'
                 : 'Questions you answered wrongly',
             // Offered only when there is something to review: a mode that can
             // only answer "nothing to do" is worse than no mode at all.
@@ -169,8 +169,9 @@ class _ModeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleColour =
-        dimmed ? AppColors.textSecondary : AppColors.textPrimary;
+    final titleColour = dimmed
+        ? AppColors.textSecondary
+        : AppColors.textPrimary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

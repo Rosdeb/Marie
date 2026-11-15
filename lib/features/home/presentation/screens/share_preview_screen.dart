@@ -15,8 +15,7 @@ class SharePreviewScreen extends ConsumerStatefulWidget {
   const SharePreviewScreen({super.key});
 
   @override
-  ConsumerState<SharePreviewScreen> createState() =>
-      _SharePreviewScreenState();
+  ConsumerState<SharePreviewScreen> createState() => _SharePreviewScreenState();
 }
 
 class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
@@ -92,7 +91,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
         context,
         message: 'Published to LinkedIn! 10% discount claimed.',
       );
-      _showRewardClaimedDialog(result.promoCode ?? status.promoCode ?? preview.promoCode);
+      _showRewardClaimedDialog(
+        result.promoCode ?? status.promoCode ?? preview.promoCode,
+      );
       return;
     }
 
@@ -103,9 +104,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
         final uri = Uri.parse(result.authorizationUrl!);
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        await ref
-            .read(referralProvider.notifier)
-            .launchLinkedInAuthorization();
+        await ref.read(referralProvider.notifier).launchLinkedInAuthorization();
       }
     } else {
       FloatingErrorBar.show(
@@ -154,9 +153,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
               Text(
                 hasCode
                     ? 'Thank you for sharing IPro on LinkedIn! Here is your '
-                        '10% discount code for checkout:'
+                          '10% discount code for checkout:'
                     : 'Thank you for sharing IPro on LinkedIn! Your 10% '
-                        'discount code is being issued.',
+                          'discount code is being issued.',
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
@@ -165,8 +164,10 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
               ),
               const SizedBox(height: 16),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
@@ -182,8 +183,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                             : 'Open Referrals in a moment to find it.',
                         style: TextStyle(
                           fontSize: hasCode ? 16 : 13,
-                          fontWeight:
-                              hasCode ? FontWeight.w800 : FontWeight.w500,
+                          fontWeight: hasCode
+                              ? FontWeight.w800
+                              : FontWeight.w500,
                           letterSpacing: hasCode ? 1.0 : 0,
                           color: hasCode
                               ? AppColors.primaryDeep
@@ -290,8 +292,10 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
         child: refState.isLoading && !_hasInitializedText
             ? const SharePreviewShimmer()
             : Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -313,8 +317,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                   color: AppColors.successLight,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: AppColors.success
-                                        .withValues(alpha: 0.3),
+                                    color: AppColors.success.withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -372,8 +377,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isConnected
-                                        ? AppColors.success
-                                            .withValues(alpha: 0.3)
+                                        ? AppColors.success.withValues(
+                                            alpha: 0.3,
+                                          )
                                         : const Color(0xFFE2E8F0),
                                   ),
                                 ),
@@ -409,8 +415,9 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                             ? null
                                             : () {
                                                 ref
-                                                    .read(referralProvider
-                                                        .notifier)
+                                                    .read(
+                                                      referralProvider.notifier,
+                                                    )
                                                     .launchLinkedInAuthorization();
                                               },
                                         style: TextButton.styleFrom(
@@ -419,8 +426,8 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                             vertical: 4,
                                           ),
                                           minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize
-                                              .shrinkWrap,
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
                                         ),
                                         child: Text(
                                           refState.isConnecting
@@ -591,8 +598,7 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                               child: _isEditing
                                   ? TextField(
                                       controller: _messageController,
-                                      maxLength:
-                                          preview.sharePreview.maxLength,
+                                      maxLength: preview.sharePreview.maxLength,
                                       maxLines: null,
                                       style: const TextStyle(
                                         fontSize: 13,
@@ -608,7 +614,8 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                                   : Text(
                                       _messageController.text.isNotEmpty
                                           ? _messageController.text
-                                          : SharePreviewSection.defaultPostMessage,
+                                          : SharePreviewSection
+                                                .defaultPostMessage,
                                       style: const TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textPrimary,
@@ -655,10 +662,10 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen>
                           refState.isSharing
                               ? 'Publishing...'
                               : refState.isConnecting
-                                  ? 'Connecting...'
-                                  : (isConnected
-                                      ? 'Share on LinkedIn'
-                                      : preview.sharePreview.primaryButtonText),
+                              ? 'Connecting...'
+                              : (isConnected
+                                    ? 'Share on LinkedIn'
+                                    : preview.sharePreview.primaryButtonText),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,

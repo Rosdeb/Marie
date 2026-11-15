@@ -31,5 +31,6 @@ class SelectedDemoNotifier extends Notifier<DemoItem?> {
   }
 }
 
-final selectedDemoProvider =
-    NotifierProvider<SelectedDemoNotifier, DemoItem?>(SelectedDemoNotifier.new);
+final selectedDemoProvider = NotifierProvider<SelectedDemoNotifier, DemoItem?>(
+  SelectedDemoNotifier.new,
+);

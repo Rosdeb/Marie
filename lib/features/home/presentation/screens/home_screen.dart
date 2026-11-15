@@ -58,8 +58,8 @@ class HomeScreen extends ConsumerWidget {
     final timeOfDay = hour < 12
         ? 'morning'
         : hour < 18
-            ? 'afternoon'
-            : 'evening';
+        ? 'afternoon'
+        : 'evening';
 
     final authState = ref.watch(authProvider);
     final isAuth = authState.isAuthenticated;
@@ -249,10 +249,7 @@ class _Line extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                if (leading != null) ...[
-                  leading!,
-                  const SizedBox(width: 12),
-                ],
+                if (leading != null) ...[leading!, const SizedBox(width: 12)],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,10 +276,7 @@ class _Line extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 10),
-                  trailing!,
-                ],
+                if (trailing != null) ...[const SizedBox(width: 10), trailing!],
                 if (onTap != null)
                   const Icon(
                     Icons.chevron_right_rounded,
@@ -335,7 +329,7 @@ class _GuestHeroCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Image.asset("assets/image/main_app_icon_1.png")
+                    child: Image.asset("assets/image/main_app_icon_1.png"),
                   ),
                   const SizedBox(width: 14),
                   const Expanded(
@@ -422,7 +416,6 @@ class _GuestHeroCard extends StatelessWidget {
   }
 }
 
-
 // --------------------------------------------------------------- 1. Greeting
 
 class _Greeting extends ConsumerWidget {
@@ -444,8 +437,7 @@ class _Greeting extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prefsTarget =
-        ref.watch(preferencesProvider).dailyGoalMinutes;
+    final prefsTarget = ref.watch(preferencesProvider).dailyGoalMinutes;
     final target = greeting.dailyGoalMinutes ?? prefsTarget;
 
     final double? progress = (target != null && target > 0)
@@ -493,8 +485,9 @@ class _Greeting extends ConsumerWidget {
                           child: CircularProgressIndicator(
                             value: progress ?? 0.0,
                             strokeWidth: 5,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.18),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.18,
+                            ),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               _getRingColor(rawPct),
                             ),
@@ -534,9 +527,9 @@ class _Greeting extends ConsumerWidget {
                           // streak, and printing it would read as a reproach.
                           greeting.streakDays > 0
                               ? '🔥 ${greeting.streakDays} '
-                                  'day${greeting.streakDays == 1 ? '' : 's'} in a row'
+                                    'day${greeting.streakDays == 1 ? '' : 's'} in a row'
                               : greeting.learningGoal ??
-                                  'Practise a little every day',
+                                    'Practise a little every day',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.78),
                             fontSize: 13,
@@ -594,7 +587,8 @@ class _ContinueSection extends ConsumerWidget {
               } else {
                 FloatingErrorBar.show(
                   context,
-                  message: ref.read(quizProvider).errorMessage ??
+                  message:
+                      ref.read(quizProvider).errorMessage ??
                       'That quiz could not be reopened.',
                 );
               }
@@ -668,8 +662,12 @@ class _ContinueSection extends ConsumerWidget {
                       ref
                           .read(practiceProvider.notifier)
                           .setJurisdiction(path!.office);
-                      ref.read(practiceProvider.notifier).setTopic(path!.subject);
-                      ref.read(practiceProvider.notifier).setMode('learning_path');
+                      ref
+                          .read(practiceProvider.notifier)
+                          .setTopic(path!.subject);
+                      ref
+                          .read(practiceProvider.notifier)
+                          .setMode('learning_path');
                       ref
                           .read(quizProvider.notifier)
                           .setSubdiscipline(path!.subject);
@@ -853,10 +851,7 @@ class _ThisWeekSection extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _Stat(
-                    value: '${week.questionsAnswered}',
-                    label: 'Questions',
-                  ),
+                  _Stat(value: '${week.questionsAnswered}', label: 'Questions'),
                   _Stat(
                     // A dash, not "0%", when nothing has been answered: a
                     // week that has not started has no rate.
@@ -972,7 +967,9 @@ class _WeekBars extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: days.map((d) {
-          final share = most > 0 ? (d.questionsAnswered / most).clamp(0.0, 1.0) : 0.0;
+          final share = most > 0
+              ? (d.questionsAnswered / most).clamp(0.0, 1.0)
+              : 0.0;
           final isToday = d.day == today;
 
           return Expanded(
@@ -988,8 +985,12 @@ class _WeekBars extends StatelessWidget {
                         d.questionsAnswered > 0 ? '${d.questionsAnswered}' : '',
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
-                          color: isToday ? AppColors.primary : AppColors.textSecondary,
+                          fontWeight: isToday
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          color: isToday
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -1012,10 +1013,15 @@ class _WeekBars extends StatelessWidget {
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topCenter,
                                     colors: isToday
-                                        ? [AppColors.primary, const Color(0xFF38BDF8)]
+                                        ? [
+                                            AppColors.primary,
+                                            const Color(0xFF38BDF8),
+                                          ]
                                         : [
                                             AppColors.primary,
-                                            AppColors.primary.withValues(alpha: 0.75),
+                                            AppColors.primary.withValues(
+                                              alpha: 0.75,
+                                            ),
                                           ],
                                   )
                                 : null,
@@ -1026,7 +1032,9 @@ class _WeekBars extends StatelessWidget {
                             boxShadow: isToday && d.questionsAnswered > 0
                                 ? [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.25),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.25,
+                                      ),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -1095,61 +1103,62 @@ class _MyOfficesSection extends ConsumerWidget {
             ),
             onTap: () => context.push('/subscription'),
           ),
-        ...offices.map(
-          (o) {
-            final shortCode = o.code.isNotEmpty ? o.code : o.label;
-            final fullName = officeFullName(shortCode);
-            final displayTitle = fullName.isNotEmpty ? fullName : officeLabel(shortCode);
+        ...offices.map((o) {
+          final shortCode = o.code.isNotEmpty ? o.code : o.label;
+          final fullName = officeFullName(shortCode);
+          final displayTitle = fullName.isNotEmpty
+              ? fullName
+              : officeLabel(shortCode);
 
-            return _Line(
-              title: displayTitle,
-              subtitle: o.hasContent
-                  ? '${o.percentage}% completed · ${o.questionsAnswered} of ${o.questionsTotal} questions'
-                  : 'No questions imported yet',
-              leading: _OfficeCircleBadge(code: shortCode),
-              trailing: o.hasContent
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 52,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: (o.percentage / 100).clamp(0.0, 1.0),
-                              minHeight: 6,
-                              backgroundColor: AppColors.border,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                o.percentage >= 75
-                                    ? const Color(0xFF10B981)
-                                    : (o.percentage >= 35 ? AppColors.primary : const Color(0xFFF59E0B)),
-                              ),
+          return _Line(
+            title: displayTitle,
+            subtitle: o.hasContent
+                ? '${o.percentage}% completed · ${o.questionsAnswered} of ${o.questionsTotal} questions'
+                : 'No questions imported yet',
+            leading: _OfficeCircleBadge(code: shortCode),
+            trailing: o.hasContent
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 52,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (o.percentage / 100).clamp(0.0, 1.0),
+                            minHeight: 6,
+                            backgroundColor: AppColors.border,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              o.percentage >= 75
+                                  ? const Color(0xFF10B981)
+                                  : (o.percentage >= 35
+                                        ? AppColors.primary
+                                        : const Color(0xFFF59E0B)),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ],
-                    )
-                  : const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 13,
-                      color: AppColors.textSecondary,
-                    ),
-              onTap: o.hasContent
-                  ? () {
-                      ref.read(practiceProvider.notifier)
-                          .setJurisdiction(o.code);
-                      ref.read(bottomNavProvider.notifier).changeIndex(1);
-                    }
-                  : null,
-            );
-          },
-        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  )
+                : const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 13,
+                    color: AppColors.textSecondary,
+                  ),
+            onTap: o.hasContent
+                ? () {
+                    ref.read(practiceProvider.notifier).setJurisdiction(o.code);
+                    ref.read(bottomNavProvider.notifier).changeIndex(1);
+                  }
+                : null,
+          );
+        }),
         // "+ Add an office" - a plan is what adds one, so it leads to the
         // plans rather than to a list that cannot be acted on.
         Container(
@@ -1333,11 +1342,7 @@ class _DiscoverSection extends StatelessWidget {
         _Line(
           title: 'Discover IPro in 30 seconds',
           subtitle: 'Our video: practise anywhere, anytime',
-          leading: const YouTubePlayButton(
-            width: 45,
-            height: 38,
-            iconSize: 20,
-          ),
+          leading: const YouTubePlayButton(width: 45, height: 38, iconSize: 20),
           onTap: () => _openVideoFullScreen(context),
         ),
       ],

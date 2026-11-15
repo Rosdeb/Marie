@@ -1,9 +1,4 @@
-enum NotificationType {
-  quizReminder,
-  referralBonus,
-  streakAlert,
-  systemUpdate,
-}
+enum NotificationType { quizReminder, referralBonus, streakAlert, systemUpdate }
 
 class NotificationItem {
   final String id;

@@ -1,223 +1,290 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/data/models/quiz_models.dart';
+import '../../data/datasources/marked_remote_datasource.dart'
+    show ReviewFilterOptions;
+import '../../data/datasources/mistakes_remote_datasource.dart';
 
+/// One question waiting to be reviewed.
 class MistakeEntry {
   final Question question;
+
+  /// When it was last got wrong. The list is ordered on this, ascending, so
+  /// "the questions the user got wrong longest ago come first" is the order
+  /// the server sends and the order the review session plays.
   final DateTime recordedAt;
+
+  /// How many times it has been missed in all.
+  final int timesWrong;
+
+  /// When the spaced review brings it back.
+  final DateTime? nextReviewAt;
 
   const MistakeEntry({
     required this.question,
     required this.recordedAt,
+    this.timesWrong = 0,
+    this.nextReviewAt,
   });
 
-  Map<String, dynamic> toJson() => {
-        'question': question.toJson(),
-        'recordedAt': recordedAt.toIso8601String(),
-      };
-
-  factory MistakeEntry.fromJson(Map<String, dynamic> json) {
+  factory MistakeEntry.fromRow(MistakeRow row) {
     return MistakeEntry(
-      question: Question.fromJson(
-        Map<String, dynamic>.from(json['question'] as Map),
-      ),
-      recordedAt: json['recordedAt'] != null
-          ? DateTime.tryParse(json['recordedAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      question: row.question,
+      // A mistake from before the server recorded the date sorts first, which
+      // is right: it is older than anything that has one.
+      recordedAt: row.lastWrongAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+      timesWrong: row.timesWrong,
+      nextReviewAt: row.nextReviewAt,
     );
   }
 }
 
+/// Mistakes to review.
+///
+/// The list, the order and the filters all come from the server now. They
+/// used to be worked out here, over a copy kept in the phone's own storage,
+/// which is how the list on one device could disagree with the number printed
+/// beside it - and how reinstalling the app wiped a user's mistakes while the
+/// server still held them.
+///
+/// The one definition of "my mistakes" lives on the server: answered wrongly
+/// and not answered correctly since. The quiz writes it; nothing else does.
+/// In particular a star does not, and this file never touches the starred
+/// list - that is what keeps the two counters apart.
 class MistakesReviewState {
   final List<MistakeEntry> entries;
+
+  /// Every outstanding mistake, whatever the filters. What the counter shows.
+  final int total;
+
+  /// What the chosen filters match - what Start review will play.
+  final int matching;
+
+  /// What the four filter menus offer, counted from the user's own mistakes.
+  final ReviewFilterOptions filters;
+
   final String? selectedOffice;
   final String? selectedDiscipline;
   final String? selectedLevel;
   final String? selectedTheme;
   final bool isLoading;
+  final String? errorMessage;
 
   const MistakesReviewState({
     this.entries = const [],
+    this.total = 0,
+    this.matching = 0,
+    this.filters = const ReviewFilterOptions(),
     this.selectedOffice,
     this.selectedDiscipline,
     this.selectedLevel,
     this.selectedTheme,
     this.isLoading = false,
+    this.errorMessage,
   });
+
+  bool get hasFilter =>
+      (selectedOffice ?? '').isNotEmpty ||
+      (selectedDiscipline ?? '').isNotEmpty ||
+      (selectedLevel ?? '').isNotEmpty ||
+      (selectedTheme ?? '').isNotEmpty;
 
   MistakesReviewState copyWith({
     List<MistakeEntry>? entries,
+    int? total,
+    int? matching,
+    ReviewFilterOptions? filters,
     String? selectedOffice,
     String? selectedDiscipline,
     String? selectedLevel,
     String? selectedTheme,
     bool? isLoading,
+    String? errorMessage,
     bool clearOffice = false,
     bool clearDiscipline = false,
     bool clearLevel = false,
     bool clearTheme = false,
+    bool clearError = false,
   }) {
     return MistakesReviewState(
       entries: entries ?? this.entries,
-      selectedOffice: clearOffice ? null : (selectedOffice ?? this.selectedOffice),
-      selectedDiscipline:
-          clearDiscipline ? null : (selectedDiscipline ?? this.selectedDiscipline),
+      total: total ?? this.total,
+      matching: matching ?? this.matching,
+      filters: filters ?? this.filters,
+      selectedOffice: clearOffice
+          ? null
+          : (selectedOffice ?? this.selectedOffice),
+      selectedDiscipline: clearDiscipline
+          ? null
+          : (selectedDiscipline ?? this.selectedDiscipline),
       selectedLevel: clearLevel ? null : (selectedLevel ?? this.selectedLevel),
       selectedTheme: clearTheme ? null : (selectedTheme ?? this.selectedTheme),
       isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 
-  /// Oldest mistakes first (FIFO) per requirement:
-  /// "The questions the user got wrong longest ago come first."
-  List<MistakeEntry> get filteredEntries {
-    final list = entries.where((entry) {
-      final q = entry.question;
-      if (selectedOffice != null &&
-          selectedOffice!.isNotEmpty &&
-          q.office.isNotEmpty &&
-          q.office.toLowerCase() != selectedOffice!.toLowerCase()) {
-        return false;
-      }
-      if (selectedDiscipline != null &&
-          selectedDiscipline!.isNotEmpty &&
-          q.discipline.isNotEmpty &&
-          q.discipline.toLowerCase() != selectedDiscipline!.toLowerCase()) {
-        return false;
-      }
-      if (selectedLevel != null &&
-          selectedLevel!.isNotEmpty &&
-          q.level.isNotEmpty &&
-          q.level.toLowerCase() != selectedLevel!.toLowerCase()) {
-        return false;
-      }
-      if (selectedTheme != null &&
-          selectedTheme!.isNotEmpty &&
-          q.theme.isNotEmpty &&
-          q.theme.toLowerCase() != selectedTheme!.toLowerCase()) {
-        return false;
-      }
-      return true;
-    }).toList();
+  /// The rows to show.
+  ///
+  /// The filtering and the ordering are the server's, so this no longer does
+  /// either: the list arrives filtered and oldest-first, and re-sorting it
+  /// here could only make the twenty on screen disagree with the twenty the
+  /// Start review button plays.
+  List<MistakeEntry> get filteredEntries => entries;
 
-    // FIFO: ascending order by recordedAt (longest ago comes first)
-    list.sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
-    return list;
-  }
+  List<String> get availableOffices =>
+      filters.offices.map((o) => o.name).toList();
 
-  List<String> get availableOffices {
-    final offices = <String>{};
-    for (final e in entries) {
-      if (e.question.office.isNotEmpty) offices.add(e.question.office);
+  /// The reader's wording, so a sheet called "UnitaryPatent" is offered as
+  /// "Unitary Patent" - and the key is kept for the request.
+  List<String> get availableDisciplines =>
+      filters.disciplines.map((d) => d.label).toList();
+
+  /// Beginner, Intermediate, Advanced, Expert - the server's order, not
+  /// alphabetical, which would read Advanced, Beginner, Expert, Intermediate.
+  List<String> get availableLevels =>
+      filters.levels.map((l) => l.name).toList();
+
+  /// Appendix B's order, like every other list of themes in the app.
+  List<String> get availableThemes =>
+      filters.themes.map((t) => t.name).toList();
+
+  /// The stored key behind a discipline the user picked by its label.
+  String? disciplineKeyFor(String? label) {
+    if (label == null || label.isEmpty) return null;
+    for (final d in filters.disciplines) {
+      if (d.label == label || d.name == label) return d.name;
     }
-    return offices.toList()..sort();
-  }
-
-  List<String> get availableDisciplines {
-    final disciplines = <String>{};
-    for (final e in entries) {
-      if (e.question.displayDiscipline.isNotEmpty) {
-        disciplines.add(e.question.displayDiscipline);
-      }
-    }
-    return disciplines.toList()..sort();
-  }
-
-  List<String> get availableLevels {
-    final levels = <String>{};
-    for (final e in entries) {
-      if (e.question.level.isNotEmpty) levels.add(e.question.level);
-    }
-    return levels.toList()..sort();
-  }
-
-  List<String> get availableThemes {
-    final themes = <String>{};
-    for (final e in entries) {
-      if (e.question.theme.isNotEmpty) themes.add(e.question.theme);
-    }
-    return themes.toList()..sort();
+    return label;
   }
 }
 
 class MistakesReviewNotifier extends Notifier<MistakesReviewState> {
-  static const String _storageKey = 'mistakes_review_entries_v1';
+  /// Big enough that the list rarely needs a second page, and the review
+  /// session never does - a session is twenty questions.
+  static const int _pageSize = 100;
+
+  late MistakesRemoteDataSource _remote;
 
   @override
   MistakesReviewState build() {
-    Future.microtask(() => loadMistakes());
+    _remote = ref.watch(mistakesRemoteDataSourceProvider);
+
+    final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
+    if (!isAuth) {
+      // The mistakes are kept with the account. The Review screen puts up its
+      // own sign-in sheet, so this is not an error state.
+      return const MistakesReviewState();
+    }
+
+    Future.microtask(loadMistakes);
     return const MistakesReviewState(isLoading: true);
   }
 
   Future<void> loadMistakes() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    // The discipline is chosen by its label and sent by its key.
+    final subject = state.disciplineKeyFor(state.selectedDiscipline);
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
-      if (raw != null && raw.isNotEmpty) {
-        final decoded = jsonDecode(raw) as List<dynamic>;
-        final entries = decoded
-            .map((item) => MistakeEntry.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList();
-        state = state.copyWith(entries: entries, isLoading: false);
-        return;
-      }
+      final page = await _remote.list(
+        office: state.selectedOffice,
+        subject: subject,
+        level: state.selectedLevel,
+        theme: state.selectedTheme,
+        limit: _pageSize,
+      );
+
+      final counts = await _remote.counts(
+        office: state.selectedOffice,
+        subject: subject,
+        level: state.selectedLevel,
+        theme: state.selectedTheme,
+      );
+
+      final filters = await _remote.filters(
+        // The office decides which disciplines and themes exist.
+        office: state.selectedOffice,
+        subject: subject,
+      );
+
+      state = state.copyWith(
+        entries: page.rows.map(MistakeEntry.fromRow).toList(),
+        // Unfiltered, so choosing a filter does not move the number on the
+        // Review screen or on Home.
+        total: counts.total,
+        matching: counts.matching,
+        filters: filters,
+        isLoading: false,
+      );
     } catch (e) {
-      debugPrint('Error loading mistakes: $e');
+      debugPrint('[Mistakes] load failed: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Could not load your mistakes.',
+      );
     }
-    state = state.copyWith(entries: [], isLoading: false);
   }
 
-  /// Records wrong answers from a completed quiz or answer feedback.
-  Future<void> recordMistakes(List<Question> wrongQuestions) async {
-    if (wrongQuestions.isEmpty) return;
-
-    final updated = List<MistakeEntry>.from(state.entries);
-    final now = DateTime.now();
-
-    for (final q in wrongQuestions) {
-      // If already in mistakes, keep oldest timestamp
-      final idx = updated.indexWhere((e) => e.question.id == q.id);
-      if (idx < 0) {
-        updated.add(MistakeEntry(question: q, recordedAt: now));
-      }
+  /// Just the numbers, for a screen that shows the count and not the list.
+  Future<void> refreshCounts() async {
+    try {
+      final counts = await _remote.counts();
+      state = state.copyWith(total: counts.total, matching: counts.matching);
+    } catch (e) {
+      debugPrint('[Mistakes] counts failed: $e');
     }
-
-    state = state.copyWith(entries: updated);
-    await _saveToStorage(updated);
   }
 
-  /// When answered correctly in review session, it leaves the list.
-  Future<void> removeCorrectMistakes(List<String> correctQuestionIds) async {
-    if (correctQuestionIds.isEmpty) return;
+  /// What a review session should be started with.
+  ///
+  /// The office is whatever the user filtered to, or nothing at all - and
+  /// nothing at all means every office. It used to default to IPI, so a user
+  /// who had chosen no filter was quietly given IPI's mistakes and only IPI's.
+  Map<String, String?> sessionArguments() => {
+    'office': state.selectedOffice,
+    'subject': state.disciplineKeyFor(state.selectedDiscipline),
+    'level': state.selectedLevel,
+    'theme': state.selectedTheme,
+  };
 
-    final updated = state.entries
-        .where((e) => !correctQuestionIds.contains(e.question.id))
-        .toList();
-
-    state = state.copyWith(entries: updated);
-    await _saveToStorage(updated);
-  }
+  // ------------------------------------------------------------------ filters
 
   void setOffice(String? office) {
-    state = state.copyWith(selectedOffice: office, clearOffice: office == null);
+    state = state.copyWith(
+      selectedOffice: office,
+      clearOffice: office == null || office.isEmpty,
+      clearDiscipline: true,
+      clearTheme: true,
+    );
+    loadMistakes();
   }
 
   void setDiscipline(String? discipline) {
     state = state.copyWith(
       selectedDiscipline: discipline,
-      clearDiscipline: discipline == null,
+      clearDiscipline: discipline == null || discipline.isEmpty,
+      clearTheme: true,
     );
+    loadMistakes();
   }
 
   void setLevel(String? level) {
-    state = state.copyWith(selectedLevel: level, clearLevel: level == null);
+    state = state.copyWith(
+      selectedLevel: level,
+      clearLevel: level == null || level.isEmpty,
+    );
+    loadMistakes();
   }
 
   void setTheme(String? theme) {
-    state = state.copyWith(selectedTheme: theme, clearTheme: theme == null);
+    state = state.copyWith(
+      selectedTheme: theme,
+      clearTheme: theme == null || theme.isEmpty,
+    );
+    loadMistakes();
   }
 
   void clearFilters() {
@@ -227,20 +294,11 @@ class MistakesReviewNotifier extends Notifier<MistakesReviewState> {
       clearLevel: true,
       clearTheme: true,
     );
-  }
-
-  Future<void> _saveToStorage(List<MistakeEntry> list) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
-      await prefs.setString(_storageKey, encoded);
-    } catch (e) {
-      debugPrint('Error saving mistakes: $e');
-    }
+    loadMistakes();
   }
 }
 
 final mistakesReviewProvider =
     NotifierProvider<MistakesReviewNotifier, MistakesReviewState>(
-  MistakesReviewNotifier.new,
-);
+      MistakesReviewNotifier.new,
+    );

@@ -61,10 +61,7 @@ class ProgressScreen extends ConsumerWidget {
                   'Once you have answered some questions, your progress by '
                   'level and by theme appears here.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
+                  style: TextStyle(color: AppColors.textSecondary, height: 1.5),
                 ),
               ),
             );
@@ -76,8 +73,7 @@ class ProgressScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
               itemCount: groups.length,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
-              itemBuilder: (context, index) =>
-                  _GroupCard(group: groups[index]),
+              itemBuilder: (context, index) => _GroupCard(group: groups[index]),
             ),
           );
         },

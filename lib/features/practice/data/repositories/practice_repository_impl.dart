@@ -16,7 +16,9 @@ class PracticeRepositoryImpl implements PracticeRepository {
   }
 
   @override
-  Future<List<DisciplineDetailModel>> getOfficeDisciplines(String office) async {
+  Future<List<DisciplineDetailModel>> getOfficeDisciplines(
+    String office,
+  ) async {
     return await remoteDataSource.getOfficeDisciplines(office);
   }
 
@@ -45,7 +47,7 @@ class PracticeRepositoryImpl implements PracticeRepository {
   @override
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
-    required String office,
+    String? office,
     String? subject,
     String? level,
     String? theme,
@@ -110,9 +112,7 @@ class PracticeRepositoryImpl implements PracticeRepository {
   Future<List<Map<String, dynamic>>> reviewSession({
     required String sessionId,
   }) async {
-    return await remoteDataSource.reviewSession(
-      sessionId: sessionId,
-    );
+    return await remoteDataSource.reviewSession(sessionId: sessionId);
   }
 }
 

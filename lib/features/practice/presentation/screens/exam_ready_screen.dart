@@ -243,16 +243,16 @@ class ExamReadyScreen extends ConsumerWidget {
               _ModeChooser(
                 examMode: ref.watch(_examModeProvider),
                 onChanged: (value) {
-                    final isAuth = ref.read(authProvider).isAuthenticated;
-                    if (!isAuth) {
-                      AuthGateBottomSheet.show(
-                        context,
-                        targetFeature: 'Exam mode',
-                      );
-                      return;
-                    }
-                    ref.read(_examModeProvider.notifier).set(value);
-                }
+                  final isAuth = ref.read(authProvider).isAuthenticated;
+                  if (!isAuth) {
+                    AuthGateBottomSheet.show(
+                      context,
+                      targetFeature: 'Exam mode',
+                    );
+                    return;
+                  }
+                  ref.read(_examModeProvider.notifier).set(value);
+                },
               ),
 
               const SizedBox(height: 32),

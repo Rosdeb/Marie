@@ -67,12 +67,19 @@ class OfficesNotifier extends Notifier<OfficesState> {
       state = state.copyWith(
         isLoading: false,
         offices: list,
-        filteredOffices: _applyFilters(list, state.selectedTerritory, state.searchQuery),
+        filteredOffices: _applyFilters(
+          list,
+          state.selectedTerritory,
+          state.searchQuery,
+        ),
       );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString().replaceFirst('ApiException: ', '').replaceFirst('Exception: ', ''),
+        errorMessage: e
+            .toString()
+            .replaceFirst('ApiException: ', '')
+            .replaceFirst('Exception: ', ''),
       );
     }
   }
@@ -80,14 +87,22 @@ class OfficesNotifier extends Notifier<OfficesState> {
   void selectTerritory(String territory) {
     state = state.copyWith(
       selectedTerritory: territory,
-      filteredOffices: _applyFilters(state.offices, territory, state.searchQuery),
+      filteredOffices: _applyFilters(
+        state.offices,
+        territory,
+        state.searchQuery,
+      ),
     );
   }
 
   void search(String query) {
     state = state.copyWith(
       searchQuery: query,
-      filteredOffices: _applyFilters(state.offices, state.selectedTerritory, query),
+      filteredOffices: _applyFilters(
+        state.offices,
+        state.selectedTerritory,
+        query,
+      ),
     );
   }
 
@@ -123,5 +138,6 @@ class OfficesNotifier extends Notifier<OfficesState> {
   }
 }
 
-final officesProvider =
-    NotifierProvider<OfficesNotifier, OfficesState>(OfficesNotifier.new);
+final officesProvider = NotifierProvider<OfficesNotifier, OfficesState>(
+  OfficesNotifier.new,
+);

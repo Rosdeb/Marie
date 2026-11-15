@@ -18,7 +18,7 @@ abstract class PracticeRemoteDataSource {
   Future<List<ProgressGroup>> getProgress();
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
-    required String office,
+    String? office,
     String? subject,
     String? level,
     String? theme,
@@ -151,10 +151,11 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
     }
     return [];
   }
+
   @override
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
-    required String office,
+    String? office,
     String? subject,
     String? level,
     String? theme,
@@ -164,7 +165,9 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
   }) async {
     final body = <String, dynamic>{
       'mode': mode,
-      'office': office,
+      // Left out rather than sent empty: the server reads a missing office as
+      // "every office", and an empty string as a mistake.
+      if (office != null && office.isNotEmpty) 'office': office,
       if (subject != null && subject.isNotEmpty) 'subject': subject,
       if (level != null && level.isNotEmpty) 'level': level,
       if (theme != null && theme.isNotEmpty) 'theme': theme,
@@ -211,9 +214,9 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
       if (subject != null && subject.isNotEmpty) 'subject': subject,
       if (profileType != null && profileType.isNotEmpty)
         'profileType': profileType,
-    // "Practice or exam mode" in the demo too (mock-up guide, Free demo -
-    // discipline). The demo is the one quiz most people will ever see, so the
-    // choice that defines how a quiz behaves belongs in it.
+      // "Practice or exam mode" in the demo too (mock-up guide, Free demo -
+      // discipline). The demo is the one quiz most people will ever see, so the
+      // choice that defines how a quiz behaves belongs in it.
       if (examMode) 'examMode': true,
     };
 

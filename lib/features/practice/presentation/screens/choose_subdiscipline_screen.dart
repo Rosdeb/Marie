@@ -13,7 +13,8 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
     final selection = ref.watch(practiceProvider);
     final jurisdiction = selection.jurisdiction ?? 'IPI';
     final disciplines = selection.disciplines;
-    final activeTopic = selection.topic ??
+    final activeTopic =
+        selection.topic ??
         (disciplines.isNotEmpty ? disciplines.first.name : 'Patents');
 
     return Scaffold(
@@ -67,8 +68,9 @@ class ChooseSubdisciplineScreen extends ConsumerWidget {
                         color: isSelected
                             ? AppColors.primary
                             : AppColors.textPrimary,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         fontSize: 13,
                       ),
                       onSelected: (selected) {

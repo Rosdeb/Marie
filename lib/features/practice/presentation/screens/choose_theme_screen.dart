@@ -90,37 +90,38 @@ class ChooseThemeScreen extends ConsumerWidget {
                 const SizedBox(height: 6),
                 const Text(
                   'Theme sessions include questions from all available levels.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF8A909A),
-                  ),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF8A909A)),
                 ),
                 const SizedBox(height: 16),
-                ...themes.map(
-                  (theme) {
-                    final perSession = theme.sessionLength > 0 ? theme.sessionLength : 20;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: TopicCard(
-                        title: theme.theme,
-                        subtitle: '${theme.questions} questions · $perSession per session',
-                        shortNote: (theme.isShortSession && (theme.note?.isNotEmpty ?? false))
-                            ? theme.note
-                            : null,
-                        onTap: () {
-                          final crossOffice = selection.mode == 'theme_across_offices';
-                          ref.read(practiceProvider.notifier).setTheme(theme);
+                ...themes.map((theme) {
+                  final perSession = theme.sessionLength > 0
+                      ? theme.sessionLength
+                      : 20;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: TopicCard(
+                      title: theme.theme,
+                      subtitle:
+                          '${theme.questions} questions · $perSession per session',
+                      shortNote:
+                          (theme.isShortSession &&
+                              (theme.note?.isNotEmpty ?? false))
+                          ? theme.note
+                          : null,
+                      onTap: () {
+                        final crossOffice =
+                            selection.mode == 'theme_across_offices';
+                        ref.read(practiceProvider.notifier).setTheme(theme);
 
-                          context.push(
-                            crossOffice
-                                ? '/practice/choose-offices'
-                                : '/practice/exam-ready',
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+                        context.push(
+                          crossOffice
+                              ? '/practice/choose-offices'
+                              : '/practice/exam-ready',
+                        );
+                      },
+                    ),
+                  );
+                }),
               ],
             ),
           );

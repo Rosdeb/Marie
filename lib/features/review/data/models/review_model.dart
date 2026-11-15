@@ -90,14 +90,14 @@ class PracticeHistorySummary {
       questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
       correctAnswers: (json['correctAnswers'] as num?)?.toInt() ?? 0,
       wrongAnswers: (json['wrongAnswers'] as num?)?.toInt() ?? 0,
-      successPercentage:
-          (json['successPercentage'] as num?)?.toDouble() ?? 0.0,
+      successPercentage: (json['successPercentage'] as num?)?.toDouble() ?? 0.0,
       failPercentage: (json['failPercentage'] as num?)?.toDouble() ?? 0.0,
       averageScorePercentage:
           (json['averageScorePercentage'] as num?)?.toDouble() ?? 0.0,
       time: json['time'] is Map<String, dynamic>
           ? PracticeHistoryTimeSummary.fromJson(
-              json['time'] as Map<String, dynamic>)
+              json['time'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -137,7 +137,8 @@ class PracticeHistoryMeta {
       totalPages: (json['totalPages'] as num?)?.toInt() ?? 1,
       summary: json['summary'] is Map<String, dynamic>
           ? PracticeHistorySummary.fromJson(
-              json['summary'] as Map<String, dynamic>)
+              json['summary'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -200,6 +201,13 @@ class ReviewSession {
   final String office;
   final String discipline;
   final String mode;
+
+  /// How the mode is written on screen, as the server writes it.
+  ///
+  /// Empty on an older server, where [modeDisplay] falls back to the app's
+  /// own map. Never print [mode] itself: that is the stored key.
+  final String modeLabel;
+
   final String level;
   final int score;
   final int totalQuestions;
@@ -229,6 +237,7 @@ class ReviewSession {
     this.office = '',
     this.discipline = '',
     this.mode = '',
+    this.modeLabel = '',
     required this.level,
     this.score = 0,
     required this.totalQuestions,
@@ -251,17 +260,20 @@ class ReviewSession {
   });
 
   factory ReviewSession.fromJson(Map<String, dynamic> json) {
-    final sId = json['sessionId'] as String? ??
+    final sId =
+        json['sessionId'] as String? ??
         json['id'] as String? ??
         json['_id'] as String? ??
         '';
     final office = json['office'] as String? ?? 'IPI';
     final discipline = json['discipline'] as String? ?? '';
     final mode = json['mode'] as String? ?? 'practice';
+    final serverModeLabel = json['modeLabel'] as String? ?? '';
     final level = json['level'] as String? ?? '';
     final score = (json['score'] as num?)?.toInt() ?? 0;
     final total = (json['totalQuestions'] as num?)?.toInt() ?? 20;
-    final percentage = (json['percentage'] as num?)?.toDouble() ??
+    final percentage =
+        (json['percentage'] as num?)?.toDouble() ??
         (total > 0 ? (score / total) * 100 : 0.0);
     final formatted = json['formatted'] as String? ?? '$score / $total';
     final completedAtRaw = json['completedAt'] as String? ?? '';
@@ -275,11 +287,11 @@ class ReviewSession {
     final avgMsPerQ = (json['averageMsPerQuestion'] as num?)?.toInt() ?? 0;
 
     final timingObj = json['timing'] is Map<String, dynamic>
-        ? PracticeSessionTiming.fromJson(
-            json['timing'] as Map<String, dynamic>)
+        ? PracticeSessionTiming.fromJson(json['timing'] as Map<String, dynamic>)
         : null;
 
-    final incorrect = (json['incorrectCount'] as num?)?.toInt() ??
+    final incorrect =
+        (json['incorrectCount'] as num?)?.toInt() ??
         ((total - score) > 0 ? (total - score) : 0);
     final flagged = (json['flaggedCount'] as num?)?.toInt() ?? 0;
 
@@ -305,12 +317,19 @@ class ReviewSession {
       'random': 'Random mix',
       'theme_across_offices': 'Cross-office',
       'learning_path': 'Learning path',
+      'marked': 'Marked questions',
     };
 
     final normalizedMode = mode.toLowerCase();
+
+    // By level is the one case the server's label cannot improve on, because
+    // the level itself is the more useful word: "Advanced Level", not
+    // "By level".
     final modeLabel = normalizedMode == 'by_level'
         ? (level.isNotEmpty ? '$level Level' : 'By level')
-        : (modeLabels[normalizedMode] ?? 'Practice');
+        : (serverModeLabel.isNotEmpty
+              ? serverModeLabel
+              : (modeLabels[normalizedMode] ?? 'Practice'));
 
     final title = discipline.isNotEmpty
         ? '$discipline - $modeLabel'
@@ -325,6 +344,7 @@ class ReviewSession {
       office: office,
       discipline: discipline,
       mode: mode,
+      modeLabel: serverModeLabel,
       level: level,
       score: score,
       totalQuestions: total,
@@ -356,10 +376,7 @@ class MistakesSummary {
   final int total;
   final List<OfficeMistakes> byOffice;
 
-  const MistakesSummary({
-    this.total = 0,
-    this.byOffice = const [],
-  });
+  const MistakesSummary({this.total = 0, this.byOffice = const []});
 
   factory MistakesSummary.fromJson(Map<String, dynamic> json) {
     final rawByOffice = json['byOffice'] as List<dynamic>? ?? [];
@@ -376,10 +393,7 @@ class OfficeMistakes {
   final String office;
   final int mistakes;
 
-  const OfficeMistakes({
-    required this.office,
-    required this.mistakes,
-  });
+  const OfficeMistakes({required this.office, required this.mistakes});
 
   factory OfficeMistakes.fromJson(Map<String, dynamic> json) {
     return OfficeMistakes(

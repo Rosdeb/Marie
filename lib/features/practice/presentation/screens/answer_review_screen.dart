@@ -68,15 +68,14 @@ class AnswerReviewScreen extends ConsumerWidget {
             // The server's answer wins; the local index is only the fallback
             // for a review of the session still in memory, where nothing has
             // come back from the server yet.
-            final serverChoice =
-                question.options.indexWhere((o) => o.isChosen);
+            final serverChoice = question.options.indexWhere((o) => o.isChosen);
             final int? chosenIndex = serverChoice >= 0
                 ? serverChoice
                 : (userChoice != null &&
-                        userChoice >= 0 &&
-                        userChoice < question.options.length
-                    ? userChoice
-                    : null);
+                          userChoice >= 0 &&
+                          userChoice < question.options.length
+                      ? userChoice
+                      : null);
 
             // "Unanswered: no option appears chosen, the correct one has a
             // green outline, and a clearly visible Unanswered label." An
@@ -84,10 +83,11 @@ class AnswerReviewScreen extends ConsumerWidget {
             // green fill and a tick.
             final isUnanswered = chosenIndex == null;
 
-            final isQuestionCorrect = !isUnanswered &&
+            final isQuestionCorrect =
+                !isUnanswered &&
                 (chosenIndex >= 0 && chosenIndex < question.options.length
                     ? (question.options[chosenIndex].isCorrect ||
-                        chosenIndex == question.correctOptionIndex)
+                          chosenIndex == question.correctOptionIndex)
                     : question.isCorrect);
 
             final isMarked = ref
@@ -325,9 +325,26 @@ class AnswerReviewScreen extends ConsumerWidget {
                                   : null,
                             ),
                             child: Text(
-                              option.key.isNotEmpty
-                                  ? option.key
-                                  : String.fromCharCode(65 + optIndex),
+                              /**
+                               * The letter is the position, not the stored
+                               * key.
+                               *
+                               * Marie, 13 November, point 2: the same answer
+                               * carried a different letter on the question
+                               * screen and on this one. The quiz prints
+                               * A, B, C, D down the list it shows; this
+                               * printed `option.key`, which is the letter the
+                               * workbook gave the option, and the session
+                               * shows them in its own fixed order. So the
+                               * right answer could be C here and B there.
+                               *
+                               * The server sends the options in the order the
+                               * reader saw them, so counting down the list is
+                               * exactly what the reader saw. The key is still
+                               * what gets sent back; it is simply never
+                               * printed.
+                               */
+                              String.fromCharCode(65 + optIndex),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -514,8 +531,8 @@ class _StatusChip extends StatelessWidget {
     final (text, colour) = isUnanswered
         ? ('Unanswered', AppColors.textSecondary)
         : isCorrect
-            ? ('Correct', AppColors.success)
-            : ('Incorrect', AppColors.error);
+        ? ('Correct', AppColors.success)
+        : ('Incorrect', AppColors.error);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

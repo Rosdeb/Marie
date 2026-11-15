@@ -344,7 +344,8 @@ class _ChooseJurisdictionScreenState
                             // known, so the screen that asks for it is skipped
                             // entirely: office, then how to practise. Asking
                             // twice is what Marie reported on 11 November.
-                            final alreadyChosen = selection.topicChosen &&
+                            final alreadyChosen =
+                                selection.topicChosen &&
                                 (selection.topic ?? '').trim().isNotEmpty;
                             if (alreadyChosen) {
                               // The discipline screen is also what tells the

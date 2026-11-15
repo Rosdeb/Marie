@@ -50,7 +50,9 @@ class _QuestionOfTheDayScreenState
 
     setState(() => _busy = true);
     try {
-      final response = await ref.read(apiClientProvider).post(
+      final response = await ref
+          .read(apiClientProvider)
+          .post(
             ApiConstants.questionOfTheDayAnswer,
             body: {
               'questionId': question.questionId,
@@ -176,8 +178,8 @@ class _QuestionOfTheDayScreenState
                     final accent = isTheCorrectOne
                         ? AppColors.success
                         : isTheWrongChoice
-                            ? AppColors.error
-                            : AppColors.primary;
+                        ? AppColors.error
+                        : AppColors.primary;
                     final highlighted =
                         isTheCorrectOne || isTheWrongChoice || isChosen;
 
@@ -264,10 +266,7 @@ class _QuestionOfTheDayScreenState
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppColors.border,
-                          width: 0.8,
-                        ),
+                        border: Border.all(color: AppColors.border, width: 0.8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

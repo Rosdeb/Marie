@@ -5,15 +5,21 @@ import '../entities/office_entity.dart';
 abstract class PracticeRepository {
   Future<List<OfficeEntity>> getOffices();
   Future<List<DisciplineDetailModel>> getOfficeDisciplines(String office);
-  Future<List<ThemeDetailModel>> getDisciplineThemes(String office, String subject);
+  Future<List<ThemeDetailModel>> getDisciplineThemes(
+    String office,
+    String subject,
+  );
   Future<List<ThemeDetailModel>> getCrossOfficeThemes(String subject);
   Future<List<ProgressGroup>> getProgress();
+
   /// One session as it stands, for resuming a paused quiz from Home.
   Future<Map<String, dynamic>> getSession({required String sessionId});
 
   Future<Map<String, dynamic>> startPracticeSession({
     required String mode,
-    required String office,
+
+    /// Null means every office the user has: review_mistakes and marked.
+    String? office,
     String? subject,
     String? level,
     String? theme,
@@ -21,6 +27,7 @@ abstract class PracticeRepository {
     String? profileType,
     bool examMode,
   });
+
   /// examMode: the demo offers Practice or Exam like any other quiz.
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
@@ -41,7 +48,5 @@ abstract class PracticeRepository {
     required String sessionId,
     required List<Map<String, dynamic>> answers,
   });
-  Future<List<Map<String, dynamic>>> reviewSession({
-    required String sessionId,
-  });
+  Future<List<Map<String, dynamic>>> reviewSession({required String sessionId});
 }

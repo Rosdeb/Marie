@@ -114,10 +114,9 @@ class ThemeOrderHelper {
     final titleWords = normTitle.split(' ').where((w) => w.length > 3).toSet();
     if (titleWords.isNotEmpty) {
       for (int i = 0; i < primaryList.length; i++) {
-        final canonicalWords = _normalize(primaryList[i])
-            .split(' ')
-            .where((w) => w.length > 3)
-            .toSet();
+        final canonicalWords = _normalize(
+          primaryList[i],
+        ).split(' ').where((w) => w.length > 3).toSet();
         if (titleWords.intersection(canonicalWords).isNotEmpty) {
           return i;
         }

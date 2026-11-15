@@ -112,8 +112,9 @@ class ReviewNotifier extends Notifier<ReviewState> {
   }
 }
 
-final reviewStateProvider =
-    NotifierProvider<ReviewNotifier, ReviewState>(ReviewNotifier.new);
+final reviewStateProvider = NotifierProvider<ReviewNotifier, ReviewState>(
+  ReviewNotifier.new,
+);
 
 final reviewSessionsProvider = Provider<List<ReviewSession>>((ref) {
   return ref.watch(reviewStateProvider).sessions;
@@ -130,7 +131,8 @@ class ReviewFilterNotifier extends Notifier<ReviewFilter> {
 
 final reviewFilterProvider =
     NotifierProvider<ReviewFilterNotifier, ReviewFilter>(
-        ReviewFilterNotifier.new);
+      ReviewFilterNotifier.new,
+    );
 
 final filteredReviewSessionsProvider = Provider<List<ReviewSession>>((ref) {
   final reviewState = ref.watch(reviewStateProvider);
@@ -144,12 +146,8 @@ final filteredReviewSessionsProvider = Provider<List<ReviewSession>>((ref) {
           .where((s) => s.isFlagged || s.flaggedCount > 0)
           .toList();
     case ReviewFilter.incorrect:
-      return reviewState.sessions
-          .where((s) => s.accuracy < 70)
-          .toList();
+      return reviewState.sessions.where((s) => s.accuracy < 70).toList();
     case ReviewFilter.completed:
-      return reviewState.sessions
-          .where((s) => s.accuracy >= 70)
-          .toList();
+      return reviewState.sessions.where((s) => s.accuracy >= 70).toList();
   }
 });

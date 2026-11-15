@@ -57,7 +57,8 @@ class HomeNotifier extends Notifier<HomeState> {
         state = state.copyWith(data: cachedData);
       } else {
         final user = ref.read(authProvider).currentUser;
-        final name = user?.firstName ??
+        final name =
+            user?.firstName ??
             (user != null && user.name.isNotEmpty
                 ? user.name.split(' ').first
                 : '');
@@ -78,7 +79,8 @@ class HomeNotifier extends Notifier<HomeState> {
 
   Future<void> load() async {
     final token = await _storage.getAccessToken();
-    final isAuth = ref.read(authProvider).isAuthenticated ||
+    final isAuth =
+        ref.read(authProvider).isAuthenticated ||
         (token != null && token.isNotEmpty);
     if (!isAuth) {
       state = const HomeState(isLoading: false, data: null);
@@ -121,4 +123,6 @@ class HomeNotifier extends Notifier<HomeState> {
   }
 }
 
-final homeProvider = NotifierProvider<HomeNotifier, HomeState>(HomeNotifier.new);
+final homeProvider = NotifierProvider<HomeNotifier, HomeState>(
+  HomeNotifier.new,
+);

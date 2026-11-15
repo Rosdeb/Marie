@@ -22,7 +22,11 @@ class NotificationScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textPrimary, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: AppColors.textPrimary,
+            size: 18,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -55,13 +59,19 @@ class NotificationScreen extends ConsumerWidget {
       body: notifState.isLoading
           ? const NotificationListShimmer()
           : RefreshIndicator(
-              onRefresh: () => ref.read(notificationProvider.notifier).fetchNotifications(),
+              onRefresh: () =>
+                  ref.read(notificationProvider.notifier).fetchNotifications(),
               child: notifications.isEmpty
                   ? _buildEmptyState(context)
                   : SafeArea(
                       child: ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         itemCount: notifications.length,
                         separatorBuilder: (context, index) => Divider(
                           height: 24,
@@ -70,7 +80,11 @@ class NotificationScreen extends ConsumerWidget {
                         ),
                         itemBuilder: (context, index) {
                           final item = notifications[index];
-                          return _buildPlainNotificationItem(context, ref, item);
+                          return _buildPlainNotificationItem(
+                            context,
+                            ref,
+                            item,
+                          );
                         },
                       ),
                     ),
@@ -118,7 +132,9 @@ class NotificationScreen extends ConsumerWidget {
                           item.title,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: item.isRead ? FontWeight.w500 : FontWeight.w700,
+                            fontWeight: item.isRead
+                                ? FontWeight.w500
+                                : FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -198,10 +214,7 @@ class NotificationScreen extends ConsumerWidget {
               const Text(
                 "You're all caught up! Check back later for practice reminders and updates.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
             ],
           ),

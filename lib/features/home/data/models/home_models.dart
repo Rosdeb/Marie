@@ -27,22 +27,23 @@ class HomeGreeting {
   });
 
   factory HomeGreeting.fromJson(Map<String, dynamic> json) => HomeGreeting(
-        firstName: json['firstName'] as String? ??
-            json['name'] as String? ??
-            '',
-        learningGoal: json['learningGoal'] as String?,
-        dailyGoalMinutes: (json['dailyGoalMinutes'] as num?)?.toInt() ??
-            (json['dailyGoal'] as num?)?.toInt() ??
-            (json['goalMinutes'] as num?)?.toInt(),
-        minutesToday: (json['minutesToday'] as num?)?.toInt() ??
-            (json['todayMinutes'] as num?)?.toInt() ??
-            (json['minutesPracticedToday'] as num?)?.toInt() ??
-            0,
-        streakDays: (json['streakDays'] as num?)?.toInt() ??
-            (json['streak'] as num?)?.toInt() ??
-            (json['currentStreak'] as num?)?.toInt() ??
-            0,
-      );
+    firstName: json['firstName'] as String? ?? json['name'] as String? ?? '',
+    learningGoal: json['learningGoal'] as String?,
+    dailyGoalMinutes:
+        (json['dailyGoalMinutes'] as num?)?.toInt() ??
+        (json['dailyGoal'] as num?)?.toInt() ??
+        (json['goalMinutes'] as num?)?.toInt(),
+    minutesToday:
+        (json['minutesToday'] as num?)?.toInt() ??
+        (json['todayMinutes'] as num?)?.toInt() ??
+        (json['minutesPracticedToday'] as num?)?.toInt() ??
+        0,
+    streakDays:
+        (json['streakDays'] as num?)?.toInt() ??
+        (json['streak'] as num?)?.toInt() ??
+        (json['currentStreak'] as num?)?.toInt() ??
+        0,
+  );
 
   /// How far through the daily goal, 0..1. Null when no goal is set.
   double? get goalProgress {
@@ -88,9 +89,11 @@ class HomePausedSession {
 
   /// "IPI · Patents · question 7 of 20", the line the mock-up shows.
   String get summary {
-    final where = [officeLabel, subject, level]
-        .where((p) => p != null && p.isNotEmpty)
-        .join(' · ');
+    final where = [
+      officeLabel,
+      subject,
+      level,
+    ].where((p) => p != null && p.isNotEmpty).join(' · ');
     final at = totalQuestions > 0
         ? 'question ${answered + 1 > totalQuestions ? totalQuestions : answered + 1} of $totalQuestions'
         : '';
@@ -181,7 +184,9 @@ class HomeQuestionOfTheDay {
         questionText: json['questionText'] as String? ?? '',
         options: ((json['options'] as List<dynamic>?) ?? [])
             .whereType<Map>()
-            .map((o) => HomeQuestionOption.fromJson(Map<String, dynamic>.from(o)))
+            .map(
+              (o) => HomeQuestionOption.fromJson(Map<String, dynamic>.from(o)),
+            )
             .toList(),
       );
 }
@@ -193,9 +198,23 @@ class HomeMistakes {
   const HomeMistakes({this.dueToday = 0, this.total = 0});
 
   factory HomeMistakes.fromJson(Map<String, dynamic> json) => HomeMistakes(
-        dueToday: (json['dueToday'] as num?)?.toInt() ?? 0,
-        total: (json['total'] as num?)?.toInt() ?? 0,
-      );
+    dueToday: (json['dueToday'] as num?)?.toInt() ?? 0,
+    total: (json['total'] as num?)?.toInt() ?? 0,
+  );
+}
+
+/// How many questions the user has starred by hand.
+///
+/// Its own figure, from its own collection on the server. It travels beside
+/// [HomeMistakes] and is counted nowhere near it, which is the short answer
+/// to why the two lines used to read the same number.
+class HomeMarkedQuestions {
+  final int total;
+
+  const HomeMarkedQuestions({this.total = 0});
+
+  factory HomeMarkedQuestions.fromJson(Map<String, dynamic> json) =>
+      HomeMarkedQuestions(total: (json['total'] as num?)?.toInt() ?? 0);
 }
 
 class HomeWeekDay {
@@ -214,11 +233,11 @@ class HomeWeekDay {
   });
 
   factory HomeWeekDay.fromJson(Map<String, dynamic> json) => HomeWeekDay(
-        day: json['day'] as String? ?? '',
-        weekday: json['weekday'] as String? ?? '',
-        questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
-        minutes: (json['minutes'] as num?)?.toInt() ?? 0,
-      );
+    day: json['day'] as String? ?? '',
+    weekday: json['weekday'] as String? ?? '',
+    questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
+    minutes: (json['minutes'] as num?)?.toInt() ?? 0,
+  );
 }
 
 class HomeWeakestTheme {
@@ -268,19 +287,20 @@ class HomeThisWeek {
   });
 
   factory HomeThisWeek.fromJson(Map<String, dynamic> json) => HomeThisWeek(
-        questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
-        correctAnswers: (json['correctAnswers'] as num?)?.toInt() ?? 0,
-        correctRate: (json['correctRate'] as num?)?.toInt(),
-        minutesPractised: (json['minutesPractised'] as num?)?.toInt() ?? 0,
-        days: ((json['days'] as List<dynamic>?) ?? [])
-            .whereType<Map>()
-            .map((d) => HomeWeekDay.fromJson(Map<String, dynamic>.from(d)))
-            .toList(),
-        weakestTheme: json['weakestTheme'] is Map
-            ? HomeWeakestTheme.fromJson(
-                Map<String, dynamic>.from(json['weakestTheme'] as Map))
-            : null,
-      );
+    questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
+    correctAnswers: (json['correctAnswers'] as num?)?.toInt() ?? 0,
+    correctRate: (json['correctRate'] as num?)?.toInt(),
+    minutesPractised: (json['minutesPractised'] as num?)?.toInt() ?? 0,
+    days: ((json['days'] as List<dynamic>?) ?? [])
+        .whereType<Map>()
+        .map((d) => HomeWeekDay.fromJson(Map<String, dynamic>.from(d)))
+        .toList(),
+    weakestTheme: json['weakestTheme'] is Map
+        ? HomeWeakestTheme.fromJson(
+            Map<String, dynamic>.from(json['weakestTheme'] as Map),
+          )
+        : null,
+  );
 
   bool get hasAnything => questionsAnswered > 0 || minutesPractised > 0;
 }
@@ -307,13 +327,13 @@ class HomeOffice {
   });
 
   factory HomeOffice.fromJson(Map<String, dynamic> json) => HomeOffice(
-        code: json['code'] as String? ?? '',
-        label: json['label'] as String? ?? '',
-        questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
-        questionsTotal: (json['questionsTotal'] as num?)?.toInt() ?? 0,
-        percentage: (json['percentage'] as num?)?.toInt() ?? 0,
-        hasContent: json['hasContent'] as bool? ?? false,
-      );
+    code: json['code'] as String? ?? '',
+    label: json['label'] as String? ?? '',
+    questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
+    questionsTotal: (json['questionsTotal'] as num?)?.toInt() ?? 0,
+    percentage: (json['percentage'] as num?)?.toInt() ?? 0,
+    hasContent: json['hasContent'] as bool? ?? false,
+  );
 }
 
 class HomeBadge {
@@ -338,14 +358,14 @@ class HomeBadge {
   });
 
   factory HomeBadge.fromJson(Map<String, dynamic> json) => HomeBadge(
-        id: json['id'] as String? ?? '',
-        tier: json['tier'] as String? ?? '',
-        officeLabel: json['officeLabel'] as String? ?? '',
-        subject: json['subject'] as String? ?? '',
-        level: json['level'] as String?,
-        percentage: (json['percentage'] as num?)?.toInt() ?? 0,
-        title: json['title'] as String? ?? '',
-      );
+    id: json['id'] as String? ?? '',
+    tier: json['tier'] as String? ?? '',
+    officeLabel: json['officeLabel'] as String? ?? '',
+    subject: json['subject'] as String? ?? '',
+    level: json['level'] as String?,
+    percentage: (json['percentage'] as num?)?.toInt() ?? 0,
+    title: json['title'] as String? ?? '',
+  );
 }
 
 class HomeBadges {
@@ -358,15 +378,14 @@ class HomeBadges {
   const HomeBadges({this.total = 0, this.latest, this.nextText});
 
   factory HomeBadges.fromJson(Map<String, dynamic> json) => HomeBadges(
-        total: (json['total'] as num?)?.toInt() ?? 0,
-        latest: json['latest'] is Map
-            ? HomeBadge.fromJson(
-                Map<String, dynamic>.from(json['latest'] as Map))
-            : null,
-        nextText: json['next'] is Map
-            ? (json['next'] as Map)['text'] as String?
-            : null,
-      );
+    total: (json['total'] as num?)?.toInt() ?? 0,
+    latest: json['latest'] is Map
+        ? HomeBadge.fromJson(Map<String, dynamic>.from(json['latest'] as Map))
+        : null,
+    nextText: json['next'] is Map
+        ? (json['next'] as Map)['text'] as String?
+        : null,
+  );
 }
 
 class HomeData {
@@ -375,6 +394,7 @@ class HomeData {
   final HomeLearningPath? learningPath;
   final HomeQuestionOfTheDay? questionOfTheDay;
   final HomeMistakes mistakes;
+  final HomeMarkedQuestions markedQuestions;
   final HomeThisWeek thisWeek;
   final List<HomeOffice> offices;
   final HomeBadges badges;
@@ -385,6 +405,7 @@ class HomeData {
     this.learningPath,
     this.questionOfTheDay,
     this.mistakes = const HomeMistakes(),
+    this.markedQuestions = const HomeMarkedQuestions(),
     this.thisWeek = const HomeThisWeek(),
     this.offices = const [],
     this.badges = const HomeBadges(),
@@ -416,8 +437,10 @@ class HomeData {
     final pathMap = cont['learningPath'];
     final qotdMap = today['questionOfTheDay'];
     final mistakesMap = today['mistakes'];
+    final markedMap = today['markedQuestions'];
 
-    final rawOffices = (json['myOffices'] as List<dynamic>?) ??
+    final rawOffices =
+        (json['myOffices'] as List<dynamic>?) ??
         (json['offices'] as List<dynamic>?) ??
         [];
 
@@ -435,6 +458,9 @@ class HomeData {
       mistakes: mistakesMap is Map
           ? HomeMistakes.fromJson(Map<String, dynamic>.from(mistakesMap))
           : const HomeMistakes(),
+      markedQuestions: markedMap is Map
+          ? HomeMarkedQuestions.fromJson(Map<String, dynamic>.from(markedMap))
+          : const HomeMarkedQuestions(),
       thisWeek: HomeThisWeek.fromJson(sub('thisWeek') ?? const {}),
       offices: rawOffices
           .whereType<Map>()

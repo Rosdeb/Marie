@@ -54,6 +54,7 @@ class ApiConstants {
 
   // Notifications
   static const String notifications = '/notification/get-all';
+
   /// Where the app reports the FCM token of the device it is running on.
   static const String deviceToken = '/notification/device-token';
   static const String notificationUnreadCount = '/notification/unread-count';
@@ -82,11 +83,13 @@ class ApiConstants {
 
   // Practice & Demo endpoints
   static const String practiceOffices = '/practice/offices';
-  static String practiceDisciplines(String office) => '/practice/offices/$office/disciplines';
+  static String practiceDisciplines(String office) =>
+      '/practice/offices/$office/disciplines';
   static String practiceThemes(String office, String subject) =>
       '/practice/offices/$office/disciplines/$subject/themes';
   static String practiceCrossOfficeThemes(String subject) =>
       '/practice/themes/cross-office?subject=$subject';
+
   /// The progress page: per office and discipline, by level and by theme.
   static const String practiceProgress = '/practice/progress';
   static const String practiceSession = '/practice/session';
@@ -94,16 +97,47 @@ class ApiConstants {
   /// One session, with what was already answered and the clock it was on.
   /// What "Continue" on Home resumes from.
   static String practiceSessionById(String id) => '/practice/session/$id';
+
   /// One answer at a time. In practice mode the reply carries the verdict,
   /// the explanation and the legal basis, which the question payload never
   /// does - the app is not told which option is correct in advance.
-  static String practiceSessionAnswer(String sessionId) => '/practice/session/$sessionId/answer';
-  static String practiceSessionSubmit(String sessionId) => '/practice/session/$sessionId/submit';
-  static String practiceSessionReview(String sessionId) => '/practice/session/$sessionId/review';
-  static String practiceSessionResume(String sessionId) => '/practice/session/$sessionId';
+  static String practiceSessionAnswer(String sessionId) =>
+      '/practice/session/$sessionId/answer';
+  static String practiceSessionSubmit(String sessionId) =>
+      '/practice/session/$sessionId/submit';
+  static String practiceSessionReview(String sessionId) =>
+      '/practice/session/$sessionId/review';
+  static String practiceSessionResume(String sessionId) =>
+      '/practice/session/$sessionId';
   static const String practiceHistory = '/practice/history';
   static const String practiceLearningPath = '/practice/learning-path';
+
+  /// The counts: total over the whole list, matching for the chosen filters.
   static const String practiceMistakes = '/practice/mistakes';
+
+  /// The list itself, oldest mistake first, with answers and explanations.
+  static const String practiceMistakeQuestions = '/practice/mistakes/questions';
+
+  /// What the office, discipline, level and theme menus should offer.
+  static const String practiceMistakeFilters = '/practice/mistakes/filters';
+
+  /// Marked questions: the ones starred by hand.
+  ///
+  /// Its own collection on the server, which is the whole point. Before this
+  /// the stars lived in the phone's own storage and the Review screen filled
+  /// both of its lines from the one number it had - the mistakes total - so
+  /// both read 151 (Marie, build 11).
+  static const String marked = '/practice/marked';
+  static const String markedCount = '/practice/marked/count';
+  static const String markedFilters = '/practice/marked/filters';
+
+  /// Which of a list of questions are starred - one call for a whole session.
+  static const String markedStatus = '/practice/marked/status';
+
+  /// One-time: hand the server the stars this phone was keeping on its own.
+  static const String markedImport = '/practice/marked/import';
+
+  static String markedById(String questionId) => '/practice/marked/$questionId';
 
   // Referral (LinkedIn)
   static const String sharePreview = '/referral/share-preview';
@@ -113,7 +147,8 @@ class ApiConstants {
   static const String linkedinShare = '/referral/linkedin/share';
   static const String validatePromoCode = '/referral/validate-code';
   static const String redeemPromoCode = '/referral/redeem';
-  static const String contentVideos = '/content/videos?placement=referral_guide';
+  static const String contentVideos =
+      '/content/videos?placement=referral_guide';
   // Any of the four placements of section 1.2: welcome, home,
   // referral_guide, help_support.
   static String contentVideosFor(String placement) =>

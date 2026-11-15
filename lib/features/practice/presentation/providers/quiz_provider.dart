@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../review/presentation/providers/marked_questions_provider.dart';
 import '../../../review/presentation/providers/mistakes_review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../data/models/quiz_models.dart';
@@ -38,6 +39,7 @@ class QuizNotifier extends Notifier<QuizState> {
   Future<bool> startDemoSession({
     String office = 'IPI',
     String? subject,
+
     /// Practice or Exam, chosen on the demo screen like any other quiz.
     bool examMode = false,
     // No profile question before the demo (point 2.1), so the demo is the
@@ -57,7 +59,8 @@ class QuizNotifier extends Notifier<QuizState> {
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
       final sessionId = data['sessionId'] as String? ?? '';
-      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
+      final timeLimitMinutes =
+          (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final rawQuestions = data['questions'] as List<dynamic>? ?? [];
 
       final questions = rawQuestions
@@ -69,11 +72,14 @@ class QuizNotifier extends Notifier<QuizState> {
       state = QuizState(
         sessionId: sessionId,
         selectedOffice: office,
-        selectedSubdiscipline: subject ??
+        selectedSubdiscipline:
+            subject ??
             (questions.isNotEmpty
                 ? questions.first.discipline
                 : 'IP Law Essentials'),
-        selectedLevel: questions.isNotEmpty ? questions.first.level : 'All Levels',
+        selectedLevel: questions.isNotEmpty
+            ? questions.first.level
+            : 'All Levels',
         questionCount: questions.length,
         questions: questions,
         currentIndex: 0,
@@ -99,8 +105,15 @@ class QuizNotifier extends Notifier<QuizState> {
     }
   }
 
+  /// Start a session in any of the modes.
+  ///
+  /// [office] is optional, because two modes do not have one: a mistakes
+  /// review with no office filter covers every office the user has, and a
+  /// quiz over the marked questions is whatever the user starred. The Mistakes
+  /// screen used to pass `selectedOffice ?? 'IPI'` to satisfy a required
+  /// parameter, which quietly narrowed an unfiltered review to IPI alone.
   Future<bool> startPracticeSession({
-    required String office,
+    String? office,
     String mode = 'by_level',
     String? subject,
     String? level,
@@ -109,12 +122,17 @@ class QuizNotifier extends Notifier<QuizState> {
     String? profileType,
     bool examMode = false,
   }) async {
-    final entitlement = ref.read(entitlementProvider);
-    if (!entitlement.canAccessOffice(office)) {
-      state = state.copyWith(
-        errorMessage: 'Subscription required to practice $office.',
-      );
-      return false;
+    // The paywall is the office, so there is nothing to check when no office
+    // is named: the questions are the user's own mistakes or their own stars,
+    // drawn from what they have already been given access to.
+    if (office != null && office.isNotEmpty) {
+      final entitlement = ref.read(entitlementProvider);
+      if (!entitlement.canAccessOffice(office)) {
+        state = state.copyWith(
+          errorMessage: 'Subscription required to practice $office.',
+        );
+        return false;
+      }
     }
 
     _timer?.cancel();
@@ -134,7 +152,8 @@ class QuizNotifier extends Notifier<QuizState> {
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
       final sessionId = data['sessionId'] as String? ?? '';
-      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
+      final timeLimitMinutes =
+          (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final rawQuestions = data['questions'] as List<dynamic>? ?? [];
 
       final questions = rawQuestions
@@ -145,9 +164,17 @@ class QuizNotifier extends Notifier<QuizState> {
 
       state = QuizState(
         sessionId: sessionId,
-        selectedOffice: office,
-        selectedSubdiscipline: subject ?? (questions.isNotEmpty ? questions.first.discipline : 'Patents'),
-        selectedLevel: level ?? (questions.isNotEmpty ? questions.first.level : 'Beginner'),
+        // A mistakes review or a marked quiz names no office, and may well
+        // span several. The first question gives the header something true
+        // to show rather than a default office the session is not about.
+        selectedOffice:
+            office ?? (questions.isNotEmpty ? questions.first.office : ''),
+        selectedSubdiscipline:
+            subject ??
+            (questions.isNotEmpty ? questions.first.discipline : 'Patents'),
+        selectedLevel:
+            level ??
+            (questions.isNotEmpty ? questions.first.level : 'Beginner'),
         questionCount: questions.length,
         questions: questions,
         currentIndex: 0,
@@ -164,17 +191,28 @@ class QuizNotifier extends Notifier<QuizState> {
         remainingSeconds: totalSec,
       );
 
+      /**
+       * Light the stars this session carries.
+       *
+       * One call for the whole session rather than one per question, and
+       * done here rather than on the screens, so the star on the question
+       * screen and the star on the explanation screen are reading the same
+       * answer. A quiz of twenty asks once.
+       *
+       * It only reads. A session can never add a star or remove one, which
+       * is what keeps the marked list independent of what the user answers.
+       */
+      ref.read(markedQuestionsProvider.notifier).syncStatusFor(questions);
+
       _startTimer();
       return true;
     } catch (e) {
-      final err = e.toString()
+      final err = e
+          .toString()
           .replaceFirst('Exception: ', '')
           .replaceFirst('ServerException: ', '')
           .replaceFirst('AuthException: ', '');
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: err,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: err);
       return false;
     }
   }
@@ -246,18 +284,20 @@ class QuizNotifier extends Notifier<QuizState> {
         resumeAt = i;
       }
 
-      final timeLimitMinutes = (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
+      final timeLimitMinutes =
+          (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final totalSec = timeLimitMinutes * 60;
-      final remaining =
-          (data['remainingSeconds'] as num?)?.toInt() ?? totalSec;
+      final remaining = (data['remainingSeconds'] as num?)?.toInt() ?? totalSec;
       final elapsed = (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
 
       state = QuizState(
         sessionId: data['sessionId'] as String? ?? sessionId,
         selectedOffice: data['office'] as String? ?? '',
-        selectedSubdiscipline: data['subject'] as String? ??
+        selectedSubdiscipline:
+            data['subject'] as String? ??
             (questions.isNotEmpty ? questions.first.discipline : ''),
-        selectedLevel: data['level'] as String? ??
+        selectedLevel:
+            data['level'] as String? ??
             (questions.isNotEmpty ? questions.first.level : ''),
         questionCount: questions.length,
         questions: questions,
@@ -274,6 +314,19 @@ class QuizNotifier extends Notifier<QuizState> {
         totalSeconds: totalSec,
         remainingSeconds: remaining < 0 ? 0 : remaining,
       );
+
+      /**
+       * Light the stars this session carries.
+       *
+       * One call for the whole session rather than one per question, and
+       * done here rather than on the screens, so the star on the question
+       * screen and the star on the explanation screen are reading the same
+       * answer. A quiz of twenty asks once.
+       *
+       * It only reads. A session can never add a star or remove one, which
+       * is what keeps the marked list independent of what the user answers.
+       */
+      ref.read(markedQuestionsProvider.notifier).syncStatusFor(questions);
 
       _startTimer();
       return true;
@@ -316,10 +369,22 @@ class QuizNotifier extends Notifier<QuizState> {
         questionText:
             'Until when may a third party request full examination of a Swiss patent application?',
         options: const [
-          QuestionOption(key: 'A', text: 'At any time before the IPI decides on the grant'),
-          QuestionOption(key: 'B', text: "6 months from the search report's publication"),
-          QuestionOption(key: 'C', text: "9 months from publication of the patent's grant"),
-          QuestionOption(key: 'D', text: "4 months from publication of the patent's registration"),
+          QuestionOption(
+            key: 'A',
+            text: 'At any time before the IPI decides on the grant',
+          ),
+          QuestionOption(
+            key: 'B',
+            text: "6 months from the search report's publication",
+          ),
+          QuestionOption(
+            key: 'C',
+            text: "9 months from publication of the patent's grant",
+          ),
+          QuestionOption(
+            key: 'D',
+            text: "4 months from publication of the patent's registration",
+          ),
         ],
         correctOptionIndex: 0,
         explanation:
@@ -337,8 +402,14 @@ class QuizNotifier extends Notifier<QuizState> {
         options: const [
           QuestionOption(key: 'A', text: 'Yes, as the period is still running'),
           QuestionOption(key: 'B', text: 'No; it must go to the civil courts'),
-          QuestionOption(key: 'C', text: 'Yes, descriptiveness is a valid ground'),
-          QuestionOption(key: 'D', text: 'No; it must seek non-use cancellation'),
+          QuestionOption(
+            key: 'C',
+            text: 'Yes, descriptiveness is a valid ground',
+          ),
+          QuestionOption(
+            key: 'D',
+            text: 'No; it must seek non-use cancellation',
+          ),
         ],
         correctOptionIndex: 1,
         explanation:
@@ -369,8 +440,10 @@ class QuizNotifier extends Notifier<QuizState> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.remainingSeconds > 1 && state.elapsedSeconds < state.totalSeconds) {
-        final currentSpent = (state.timeSpentPerQuestion[state.currentIndex] ?? 0) + 1;
+      if (state.remainingSeconds > 1 &&
+          state.elapsedSeconds < state.totalSeconds) {
+        final currentSpent =
+            (state.timeSpentPerQuestion[state.currentIndex] ?? 0) + 1;
         final updatedSpent = Map<int, int>.from(state.timeSpentPerQuestion);
         updatedSpent[state.currentIndex] = currentSpent;
 
@@ -421,9 +494,11 @@ class QuizNotifier extends Notifier<QuizState> {
     if (!skip && selectedIdx == null) return false;
 
     final selectedKey =
-        (selectedIdx != null && selectedIdx >= 0 && selectedIdx < question.options.length)
-            ? question.options[selectedIdx].key
-            : null;
+        (selectedIdx != null &&
+            selectedIdx >= 0 &&
+            selectedIdx < question.options.length)
+        ? question.options[selectedIdx].key
+        : null;
 
     final sessionId = state.sessionId;
     if (sessionId == null || sessionId.isEmpty) return false;
@@ -515,7 +590,10 @@ class QuizNotifier extends Notifier<QuizState> {
         for (int i = 0; i < state.questions.length; i++) {
           final q = state.questions[i];
           final selectedIdx = state.userAnswers[i];
-          final selectedKey = (selectedIdx != null && selectedIdx >= 0 && selectedIdx < q.options.length)
+          final selectedKey =
+              (selectedIdx != null &&
+                  selectedIdx >= 0 &&
+                  selectedIdx < q.options.length)
               ? q.options[selectedIdx].key
               : null;
           final timeSpent = state.timeSpentPerQuestion[i] ?? 10;
@@ -603,15 +681,21 @@ class QuizNotifier extends Notifier<QuizState> {
           );
         }
 
-        // Update mistakes pool: wrong answers stay or are recorded; correct answers leave
-        final wrongQuestions = reviewQuestions.where((q) => !q.isCorrect).toList();
-        final correctIds = reviewQuestions.where((q) => q.isCorrect).map((q) => q.id).toList();
-        if (wrongQuestions.isNotEmpty) {
-          ref.read(mistakesReviewProvider.notifier).recordMistakes(wrongQuestions);
-        }
-        if (correctIds.isNotEmpty) {
-          ref.read(mistakesReviewProvider.notifier).removeCorrectMistakes(correctIds);
-        }
+        /**
+         * The mistakes list is the server's, so there is nothing to record
+         * here any more.
+         *
+         * The submit has already written it: a wrong answer puts the question
+         * in the list, a right one takes it out, and the spaced review decides
+         * when it comes back. This used to keep a second copy on the phone and
+         * maintain it from the review payload, which is how the list and the
+         * count beside it could disagree.
+         *
+         * So all that is left is to ask for the new numbers. Only the mistakes
+         * count can have changed: answering a question does not touch a star,
+         * and nothing in a session can reach the starred list.
+         */
+        ref.read(mistakesReviewProvider.notifier).refreshCounts();
 
         state = state.copyWith(
           isSubmitting: false,
@@ -630,10 +714,7 @@ class QuizNotifier extends Notifier<QuizState> {
       }
     }
 
-    state = state.copyWith(
-      isSubmitting: false,
-      isSubmitted: true,
-    );
+    state = state.copyWith(isSubmitting: false, isSubmitted: true);
   }
 
   /// "New session with the same settings" on the results screen.
@@ -670,8 +751,12 @@ class QuizNotifier extends Notifier<QuizState> {
     _timer?.cancel();
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final reviewList = await _practiceRepository.reviewSession(sessionId: sessionId);
-      final reviewQuestions = reviewList.map((item) => Question.fromJson(item)).toList();
+      final reviewList = await _practiceRepository.reviewSession(
+        sessionId: sessionId,
+      );
+      final reviewQuestions = reviewList
+          .map((item) => Question.fromJson(item))
+          .toList();
       state = state.copyWith(
         sessionId: sessionId,
         reviewQuestions: reviewQuestions,
@@ -699,4 +784,6 @@ class QuizNotifier extends Notifier<QuizState> {
   }
 }
 
-final quizProvider = NotifierProvider<QuizNotifier, QuizState>(QuizNotifier.new);
+final quizProvider = NotifierProvider<QuizNotifier, QuizState>(
+  QuizNotifier.new,
+);

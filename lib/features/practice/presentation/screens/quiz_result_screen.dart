@@ -67,19 +67,13 @@ class QuizResultScreen extends ConsumerWidget {
             // 4. Breakdown: BY THEME (Shown first per visual design)
             if (tally.byTheme.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _BreakdownCard(
-                title: 'BY THEME',
-                rows: tally.byTheme,
-              ),
+              _BreakdownCard(title: 'BY THEME', rows: tally.byTheme),
             ],
 
             // 5. Breakdown: BY LEVEL
             if (tally.byLevel.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _BreakdownCard(
-                title: 'BY LEVEL',
-                rows: tally.byLevel,
-              ),
+              _BreakdownCard(title: 'BY LEVEL', rows: tally.byLevel),
             ],
 
             const SizedBox(height: 28),
@@ -182,28 +176,28 @@ class QuizResultScreen extends ConsumerWidget {
   }
 
   String _formatTime(QuizState quiz) {
-    final seconds = (quiz.totalSecondsFromApi != null && quiz.totalSecondsFromApi! > 0)
+    final seconds =
+        (quiz.totalSecondsFromApi != null && quiz.totalSecondsFromApi! > 0)
         ? quiz.totalSecondsFromApi!
-        : quiz.timeSpentPerQuestion.values
-            .fold<int>(0, (total, s) => total + s);
+        : quiz.timeSpentPerQuestion.values.fold<int>(
+            0,
+            (total, s) => total + s,
+          );
     final minutes = seconds ~/ 60;
     final rest = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${rest.toString().padLeft(2, '0')}';
   }
 
   void _say(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
 /// Top row with centered session subtitle and a circular close button on the right.
 class _TopHeader extends StatelessWidget {
-  const _TopHeader({
-    required this.title,
-    required this.onClose,
-  });
+  const _TopHeader({required this.title, required this.onClose});
 
   final String title;
   final VoidCallback onClose;
@@ -315,10 +309,7 @@ class _StatsSummaryRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: _StatCard(
-              value: '$correct',
-              label: 'Correct',
-            ),
+            child: _StatCard(value: '$correct', label: 'Correct'),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -329,10 +320,7 @@ class _StatsSummaryRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: _StatCard(
-              value: timeText,
-              label: 'Time',
-            ),
+            child: _StatCard(value: timeText, label: 'Time'),
           ),
         ],
       ),
@@ -341,10 +329,7 @@ class _StatsSummaryRow extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.value,
-    required this.label,
-  });
+  const _StatCard({required this.value, required this.label});
 
   final String value;
   final String label;
@@ -395,10 +380,7 @@ class _StatCard extends StatelessWidget {
 
 /// White rounded card containing uppercase header + rows with progress bars.
 class _BreakdownCard extends StatelessWidget {
-  const _BreakdownCard({
-    required this.title,
-    required this.rows,
-  });
+  const _BreakdownCard({required this.title, required this.rows});
 
   final String title;
   final List<_Slice> rows;
@@ -458,7 +440,9 @@ class _BreakdownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ratio = slice.total == 0 ? 0.0 : (slice.correct / slice.total).clamp(0.0, 1.0);
+    final ratio = slice.total == 0
+        ? 0.0
+        : (slice.correct / slice.total).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -549,9 +533,11 @@ class _Tally {
     List<_Slice> byLevel = [];
     if (state.byLevelFromApi.isNotEmpty) {
       byLevel = state.byLevelFromApi
-          .map((s) => _Slice(s.name)
-            ..total = s.asked
-            ..correct = s.correct)
+          .map(
+            (s) => _Slice(s.name)
+              ..total = s.asked
+              ..correct = s.correct,
+          )
           .where((s) => s.total > 0)
           .toList();
     }
@@ -559,9 +545,11 @@ class _Tally {
     List<_Slice> byTheme = [];
     if (state.byThemeFromApi.isNotEmpty) {
       byTheme = state.byThemeFromApi
-          .map((s) => _Slice(s.name)
-            ..total = s.asked
-            ..correct = s.correct)
+          .map(
+            (s) => _Slice(s.name)
+              ..total = s.asked
+              ..correct = s.correct,
+          )
           .where((s) => s.total > 0)
           .toList();
     }
@@ -599,17 +587,24 @@ class _Tally {
           : (state.selectedTheme.isNotEmpty ? state.selectedTheme : '');
       final levelName = q.level.isNotEmpty
           ? q.level
-          : (state.selectedLevel.isNotEmpty && state.selectedLevel != 'All Levels'
-              ? state.selectedLevel
-              : '');
+          : (state.selectedLevel.isNotEmpty &&
+                    state.selectedLevel != 'All Levels'
+                ? state.selectedLevel
+                : '');
 
       if (byLevel.isEmpty && levelName.isNotEmpty) {
-        final slice = fallbackLevels.putIfAbsent(levelName, () => _Slice(levelName));
+        final slice = fallbackLevels.putIfAbsent(
+          levelName,
+          () => _Slice(levelName),
+        );
         slice.total++;
         if (isRight) slice.correct++;
       }
       if (byTheme.isEmpty && themeName.isNotEmpty) {
-        final slice = fallbackThemes.putIfAbsent(themeName, () => _Slice(themeName));
+        final slice = fallbackThemes.putIfAbsent(
+          themeName,
+          () => _Slice(themeName),
+        );
         slice.total++;
         if (isRight) slice.correct++;
       }

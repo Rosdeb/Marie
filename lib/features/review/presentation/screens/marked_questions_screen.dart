@@ -13,7 +13,8 @@ class MarkedQuestionsScreen extends ConsumerStatefulWidget {
   const MarkedQuestionsScreen({super.key});
 
   @override
-  ConsumerState<MarkedQuestionsScreen> createState() => _MarkedQuestionsScreenState();
+  ConsumerState<MarkedQuestionsScreen> createState() =>
+      _MarkedQuestionsScreenState();
 }
 
 class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
@@ -90,7 +91,9 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
                                   : const Color(0xFF9E9E9E),
                               size: 28,
                             ),
-                            tooltip: isMarked ? 'Unmark question' : 'Mark question',
+                            tooltip: isMarked
+                                ? 'Unmark question'
+                                : 'Mark question',
                             onPressed: () {
                               ref
                                   .read(markedQuestionsProvider.notifier)
@@ -143,7 +146,10 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: optBg,
                             borderRadius: BorderRadius.circular(10),
@@ -268,27 +274,48 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
     );
   }
 
+  /// Start a quiz over the starred questions.
+  ///
+  /// A real session on the server, in the "marked" mode, rather than a quiz
+  /// assembled here out of the rows on screen.
+  ///
+  /// It used to call startQuiz() with twenty local questions and a made-up
+  /// minute each. That looked right and lost everything a session carries: no
+  /// row in Past sessions, so the quiz vanished when it ended; no timer from
+  /// the level settings; no fixed option order, so the letters moved between
+  /// the question and its explanation; and no score written against the
+  /// account. The office was guessed from the first question and the rest of
+  /// the list was played under it.
+  ///
+  /// The server draws them: at most twenty, newest star first, and it leaves
+  /// every star exactly where it is. Answering a marked question - rightly or
+  /// wrongly - never takes it off this list.
   Future<void> _startMarkedQuiz(List<Question> markedQuestions) async {
     if (markedQuestions.isEmpty) return;
 
     setState(() => _isStartingQuiz = true);
     try {
-      // Pick up to 20 questions
-      final questionsSlice = markedQuestions.take(20).toList();
-      final firstOffice = questionsSlice.first.office.isNotEmpty
-          ? questionsSlice.first.office
-          : 'IPI';
+      ref.read(practiceProvider.notifier).setMode('marked');
 
-      ref.read(practiceProvider.notifier).setJurisdiction(firstOffice);
-
-      // Start quiz session with marked questions
-      ref.read(quizProvider.notifier).startQuiz(
-            timePerQuestion: 60,
-            questions: questionsSlice,
+      final ok = await ref
+          .read(quizProvider.notifier)
+          .startPracticeSession(
+            // No office: the questions are whatever the user starred, which
+            // may well span several offices.
+            mode: 'marked',
+            examMode: false,
           );
 
       if (!mounted) return;
-      context.push('/practice/active-quiz');
+
+      if (ok) {
+        context.push('/practice/active-quiz');
+      } else {
+        final err =
+            ref.read(quizProvider).errorMessage ??
+            'Could not start a quiz with your marked questions';
+        FloatingErrorBar.show(context, message: err);
+      }
     } catch (e) {
       if (mounted) {
         FloatingErrorBar.show(context, message: 'Failed to start quiz: $e');
@@ -309,6 +336,14 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
     final markedState = ref.watch(markedQuestionsProvider);
     final questions = markedState.items;
 
+    /**
+     * The server's count of every starred question, not the length of the
+     * page loaded - so the line reads the same number the Review screen and
+     * Home print.
+     */
+    final totalMarked = markedState.total;
+    final sessionSize = totalMarked > 20 ? 20 : totalMarked;
+
     return Scaffold(
       backgroundColor: screenBg,
       appBar: AppBar(
@@ -316,7 +351,11 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: inkDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: inkDark,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -334,7 +373,7 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Text(
-              '${questions.length} questions marked by you',
+              '$totalMarked questions marked by you',
               style: const TextStyle(
                 fontSize: 13,
                 color: mutedText,
@@ -343,20 +382,31 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
             ),
           ),
           Expanded(
-            child: questions.isEmpty
+            // A spinner while the first page is on its way: an empty list and
+            // a list that has not arrived look the same, and "you have marked
+            // nothing" is the wrong thing to say about the second.
+            child: markedState.isLoading && questions.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : questions.isEmpty
                 ? _buildEmptyState(inkDark, mutedText)
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    itemCount: questions.length,
-                    itemBuilder: (context, index) {
-                      final q = questions[index];
-                      return _MarkedQuestionCard(
-                        question: q,
-                        onTap: () => _showQuestionDetails(context, q),
-                        onUnmark: () =>
-                            ref.read(markedQuestionsProvider.notifier).unmark(q.id),
-                      );
-                    },
+                : RefreshIndicator(
+                    onRefresh: () => ref
+                        .read(markedQuestionsProvider.notifier)
+                        .loadMarkedQuestions(),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      itemCount: questions.length,
+                      itemBuilder: (context, index) {
+                        final q = questions[index];
+                        return _MarkedQuestionCard(
+                          question: q,
+                          onTap: () => _showQuestionDetails(context, q),
+                          onUnmark: () => ref
+                              .read(markedQuestionsProvider.notifier)
+                              .unmark(q.id),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],
@@ -376,8 +426,8 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
         child: CustomButton(
           text: _isStartingQuiz
               ? 'Starting quiz…'
-              : 'Start quiz with marked (${questions.length > 20 ? 20 : questions.length})',
-          onPressed: questions.isEmpty || _isStartingQuiz
+              : 'Start quiz with marked ($sessionSize)',
+          onPressed: sessionSize == 0 || _isStartingQuiz
               ? null
               : () => _startMarkedQuiz(questions),
         ),
@@ -423,11 +473,7 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
             Text(
               'Tap the star button on any question or explanation screen during practice to bookmark it here for later review.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: muted,
-                height: 1.4,
-              ),
+              style: TextStyle(fontSize: 14, color: muted, height: 1.4),
             ),
           ],
         ),
@@ -451,7 +497,9 @@ class _MarkedQuestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tags = <String>[];
     if (question.office.isNotEmpty) tags.add(question.office);
-    if (question.displayDiscipline.isNotEmpty) tags.add(question.displayDiscipline);
+    if (question.displayDiscipline.isNotEmpty) {
+      tags.add(question.displayDiscipline);
+    }
     if (question.level.isNotEmpty) tags.add(question.level);
     if (question.theme.isNotEmpty) tags.add(question.theme);
 

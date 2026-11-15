@@ -91,7 +91,9 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
   @override
   Widget build(BuildContext context) {
     final officesState = ref.watch(officesProvider);
-    final offices = officesState.offices.where((o) => o.demoQuestions > 0).toList();
+    final offices = officesState.offices
+        .where((o) => o.demoQuestions > 0)
+        .toList();
     final quiz = ref.watch(quizProvider);
 
     final chosen = _chosen;
@@ -145,7 +147,8 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
 
                   if (offices.isEmpty)
                     const _Empty(
-                      text: 'No demo questions have been imported yet. '
+                      text:
+                          'No demo questions have been imported yet. '
                           'Please try again later.',
                     )
                   else ...[
@@ -210,7 +213,7 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
                     _ModeCard(
                       title: 'Exam',
                       subtitle:
-                      'No corrections until the end. When the time runs '
+                          'No corrections until the end. When the time runs '
                           'out, the session is scored.',
                       selected: _examMode,
                       onTap: () {
@@ -238,7 +241,9 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
   }
 
   Future<void> _start(OfficeDisciplineEntity discipline) async {
-    final started = await ref.read(quizProvider.notifier).startDemoSession(
+    final started = await ref
+        .read(quizProvider.notifier)
+        .startDemoSession(
           office: _officeCode ?? '',
           subject: discipline.name,
           // No profile is asked before the demo (point 2.1), so the demo is
@@ -253,7 +258,8 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
     } else {
       FloatingErrorBar.show(
         context,
-        message: ref.read(quizProvider).errorMessage ??
+        message:
+            ref.read(quizProvider).errorMessage ??
             'The demo could not be started. Please try again.',
       );
     }
@@ -488,8 +494,9 @@ class _DisciplineRow extends StatelessWidget {
                         title,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),

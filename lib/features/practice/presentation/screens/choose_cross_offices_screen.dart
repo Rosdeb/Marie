@@ -115,9 +115,7 @@ class _ChooseCrossOfficesScreenState
                             child: Text(
                               'No other office in your plan has questions yet.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
+                              style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
                         )
@@ -203,7 +201,9 @@ class _OfficeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.primary.withValues(alpha: 0.07) : Colors.white,
+      color: selected
+          ? AppColors.primary.withValues(alpha: 0.07)
+          : Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,

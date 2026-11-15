@@ -21,11 +21,11 @@ class QuestionOption {
   }
 
   Map<String, dynamic> toJson() => {
-        'key': key,
-        'text': text,
-        'isCorrect': isCorrect,
-        'isChosen': isChosen,
-      };
+    'key': key,
+    'text': text,
+    'isCorrect': isCorrect,
+    'isChosen': isChosen,
+  };
 }
 
 class Question {
@@ -33,6 +33,7 @@ class Question {
   final int number;
   final String progress;
   final String office;
+
   /// The key the question is stored under; matched on, never displayed raw.
   final String discipline;
 
@@ -75,20 +76,32 @@ class Question {
 
   factory Question.fromJson(Map<String, dynamic> json) {
     final rawOptions = json['options'] as List<dynamic>? ?? [];
-    final parsedOptions = rawOptions
-        .map((opt) {
-          if (opt is Map) {
-            return QuestionOption.fromJson(Map<String, dynamic>.from(opt));
-          } else {
-            return QuestionOption(key: '', text: opt.toString());
-          }
-        })
-        .toList();
+    final parsedOptions = rawOptions.map((opt) {
+      if (opt is Map) {
+        return QuestionOption.fromJson(Map<String, dynamic>.from(opt));
+      } else {
+        return QuestionOption(key: '', text: opt.toString());
+      }
+    }).toList();
 
     int correctIdx = parsedOptions.indexWhere((opt) => opt.isCorrect);
 
+    // A list that names the right answer rather than marking it in place -
+    // the marked and mistakes lists both send correctKey - still has to light
+    // the right row.
+    if (correctIdx < 0) {
+      final correctKey = json['correctKey'] as String?;
+      if (correctKey != null && correctKey.isNotEmpty) {
+        correctIdx = parsedOptions.indexWhere((opt) => opt.key == correctKey);
+      }
+    }
+
     return Question(
-      id: json['id'] as String? ?? json['_id'] as String? ?? '',
+      id:
+          json['id'] as String? ??
+          json['questionId'] as String? ??
+          json['_id'] as String? ??
+          '',
       number: (json['number'] as num?)?.toInt() ?? 1,
       progress: json['progress'] as String? ?? '',
       office: json['office'] as String? ?? '',
@@ -96,7 +109,8 @@ class Question {
       disciplineLabel: json['disciplineLabel'] as String? ?? '',
       level: json['level'] as String? ?? '',
       theme: json['theme'] as String? ?? '',
-      questionText: json['questionText'] as String? ?? json['question'] as String? ?? '',
+      questionText:
+          json['questionText'] as String? ?? json['question'] as String? ?? '',
       options: parsedOptions,
       correctOptionIndex: correctIdx >= 0 ? correctIdx : -1,
       selectedKey: json['selectedKey'] as String?,
@@ -108,23 +122,23 @@ class Question {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'number': number,
-        'progress': progress,
-        'office': office,
-        'discipline': discipline,
-        'disciplineLabel': disciplineLabel,
-        'level': level,
-        'theme': theme,
-        'questionText': questionText,
-        'options': options.map((o) => o.toJson()).toList(),
-        'correctOptionIndex': correctOptionIndex,
-        'selectedKey': selectedKey,
-        'isCorrect': isCorrect,
-        'timeSpentSeconds': timeSpentSeconds,
-        'explanation': explanation,
-        'legalBasis': legalBasis,
-      };
+    'id': id,
+    'number': number,
+    'progress': progress,
+    'office': office,
+    'discipline': discipline,
+    'disciplineLabel': disciplineLabel,
+    'level': level,
+    'theme': theme,
+    'questionText': questionText,
+    'options': options.map((o) => o.toJson()).toList(),
+    'correctOptionIndex': correctOptionIndex,
+    'selectedKey': selectedKey,
+    'isCorrect': isCorrect,
+    'timeSpentSeconds': timeSpentSeconds,
+    'explanation': explanation,
+    'legalBasis': legalBasis,
+  };
 
   Question copyWith({
     String? id,
@@ -222,7 +236,8 @@ class QuizBreakdownSlice {
   factory QuizBreakdownSlice.fromJson(Map<String, dynamic> json) {
     return QuizBreakdownSlice(
       name: json['name'] as String? ?? json['label'] as String? ?? '',
-      asked: (json['asked'] as num?)?.toInt() ??
+      asked:
+          (json['asked'] as num?)?.toInt() ??
           (json['total'] as num?)?.toInt() ??
           0,
       correct: (json['correct'] as num?)?.toInt() ?? 0,
@@ -231,11 +246,11 @@ class QuizBreakdownSlice {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'asked': asked,
-        'correct': correct,
-        'percentage': percentage,
-      };
+    'name': name,
+    'asked': asked,
+    'correct': correct,
+    'percentage': percentage,
+  };
 }
 
 class QuizState {
@@ -347,7 +362,8 @@ class QuizState {
     return QuizState(
       sessionId: sessionId ?? this.sessionId,
       selectedOffice: selectedOffice ?? this.selectedOffice,
-      selectedSubdiscipline: selectedSubdiscipline ?? this.selectedSubdiscipline,
+      selectedSubdiscipline:
+          selectedSubdiscipline ?? this.selectedSubdiscipline,
       selectedLevel: selectedLevel ?? this.selectedLevel,
       questionCount: questionCount ?? this.questionCount,
       questions: questions ?? this.questions,
@@ -381,7 +397,8 @@ class QuizState {
     if (scoreFromApi > 0) return scoreFromApi;
     int count = 0;
     userAnswers.forEach((index, chosenOption) {
-      if (index < questions.length && questions[index].correctOptionIndex == chosenOption) {
+      if (index < questions.length &&
+          questions[index].correctOptionIndex == chosenOption) {
         count++;
       }
     });
