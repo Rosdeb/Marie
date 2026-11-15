@@ -3,6 +3,7 @@ import '../../data/models/practice_setup_model.dart';
 import '../../data/models/discipline_theme_models.dart';
 import '../../data/repositories/practice_repository_impl.dart';
 import '../../domain/repositories/practice_repository.dart';
+import '../../utils/theme_order_helper.dart';
 
 class PracticeNotifier extends Notifier<PracticeSelection> {
   late final PracticeRepository _practiceRepository;
@@ -63,7 +64,8 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
       final themes = state.mode == 'theme_across_offices'
           ? await _practiceRepository.getCrossOfficeThemes(subject)
           : await _practiceRepository.getDisciplineThemes(office, subject);
-      state = state.copyWith(themes: themes, isLoadingThemes: false);
+      final sortedThemes = ThemeOrderHelper.sortThemes(themes, subject);
+      state = state.copyWith(themes: sortedThemes, isLoadingThemes: false);
     } catch (e) {
       state = state.copyWith(isLoadingThemes: false);
     }

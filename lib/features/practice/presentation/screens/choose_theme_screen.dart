@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../providers/practice_provider.dart';
+import '../../utils/theme_order_helper.dart';
 import '../widgets/practice_chips.dart';
 
 class ChooseThemeScreen extends ConsumerWidget {
@@ -77,7 +78,11 @@ class ChooseThemeScreen extends ConsumerWidget {
             );
           }
 
-          final themes = selection.themes;
+          // Sort themes according to Appendix B canonical order (never alphabetical)
+          final themes = ThemeOrderHelper.sortThemes(
+            selection.themes,
+            selection.topic,
+          );
 
           return SafeArea(
             child: ListView(
@@ -101,16 +106,12 @@ class ChooseThemeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: TopicCard(
                       title: theme.theme,
-                      subtitle:
-                          '${theme.questions} questions · $perSession per session',
-                      shortNote:
-                          (theme.isShortSession &&
-                              (theme.note?.isNotEmpty ?? false))
-                          ? theme.note
-                          : null,
+                      subtitle: '${theme.questions} questions · $perSession per session',
+                      // shortNote: (theme.isShortSession && (theme.note?.isNotEmpty ?? false))
+                      //     ? theme.note
+                      //     : null,
                       onTap: () {
-                        final crossOffice =
-                            selection.mode == 'theme_across_offices';
+                        final crossOffice = selection.mode == 'theme_across_offices';
                         ref.read(practiceProvider.notifier).setTheme(theme);
 
                         context.push(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
+import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../practice/data/models/quiz_models.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
@@ -370,21 +371,19 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              '$totalMarked questions marked by you',
-              style: const TextStyle(
-                fontSize: 13,
-                color: mutedText,
-                fontWeight: FontWeight.w500,
+          if (questions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Text(
+                '$totalMarked questions marked by you',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: mutedText,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
           Expanded(
-            // A spinner while the first page is on its way: an empty list and
-            // a list that has not arrived look the same, and "you have marked
-            // nothing" is the wrong thing to say about the second.
             child: markedState.isLoading && questions.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : questions.isEmpty
@@ -411,73 +410,223 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+      bottomNavigationBar: questions.isEmpty
+          ? null
+          : Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: CustomButton(
+                text: _isStartingQuiz
+                    ? 'Starting quiz…'
+                    : 'Start quiz with marked ($sessionSize)',
+                onPressed: sessionSize == 0 || _isStartingQuiz
+                    ? null
+                    : () => _startMarkedQuiz(questions),
+              ),
             ),
-          ],
-        ),
-        child: CustomButton(
-          text: _isStartingQuiz
-              ? 'Starting quiz…'
-              : 'Start quiz with marked ($sessionSize)',
-          onPressed: sessionSize == 0 || _isStartingQuiz
-              ? null
-              : () => _startMarkedQuiz(questions),
-        ),
-      ),
     );
   }
 
   Widget _buildEmptyState(Color ink, Color muted) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Layered Icon Badge with warm amber glow
             Container(
-              padding: const EdgeInsets.all(20),
+              width: 84,
+              height: 84,
               decoration: BoxDecoration(
-                color: Colors.white,
                 shape: BoxShape.circle,
+                color: const Color(0xFFFEF3C7),
+                border: Border.all(color: const Color(0xFFFDE68A), width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.star_outline_rounded,
-                size: 48,
-                color: Color(0xFFFFB300),
+              child: const Center(
+                child: Icon(
+                  Icons.star_rounded,
+                  size: 42,
+                  color: Color(0xFFD97706),
+                ),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
+
+            // Title
             Text(
               'No marked questions yet',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: ink,
+                letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Tap the star button on any question or explanation screen during practice to bookmark it here for later review.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: muted, height: 1.4),
+
+            // Description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                'Bookmark tricky or essential questions during practice quizzes or review to build your personal revision list.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: muted,
+                  height: 1.45,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // "How it works" guidance card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E2DA)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 15,
+                          color: Color(0xFFD97706),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'HOW TO USE MARKED QUESTIONS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: Color(0xFF78716C),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _buildGuidanceStep(
+                    icon: Icons.star_outline_rounded,
+                    title: 'Star any question',
+                    description:
+                        'Tap the star button on any question or its explanation screen.',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildGuidanceStep(
+                    icon: Icons.bookmark_added_outlined,
+                    title: 'Stays until you unmark it',
+                    description:
+                        'Questions stay in your list even when answered correctly in quizzes.',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildGuidanceStep(
+                    icon: Icons.play_circle_outline_rounded,
+                    title: 'Practice anytime',
+                    description:
+                        'Launch targeted 20-question revision sessions from your marked pool.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Primary Call to Action Button
+            SizedBox(
+              width: double.infinity,
+              child: CustomButton(
+                text: 'Go to practice',
+                onPressed: () {
+                  ref.read(bottomNavProvider.notifier).changeIndex(1);
+                  context.go('/main');
+                },
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildGuidanceStep({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F5F0),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: const Color(0xFF44403C)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1C1917),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF78716C),
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

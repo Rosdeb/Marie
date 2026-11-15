@@ -168,72 +168,85 @@ class ActiveQuizScreen extends ConsumerWidget {
                         // Question Metadata Header Row
                         Row(
                           children: [
-                            if (question.office.isNotEmpty) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryDeep,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  question.office,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (question.office.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryDeep,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          question.office,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    if (question.discipline.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          question.displayDiscipline,
+                                          style: const TextStyle(
+                                            color: AppColors.primary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    if (question.level.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          question.level,
+                                          style: const TextStyle(
+                                            color: Color(0xFF475569),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                            ],
-                            if (question.discipline.isNotEmpty) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  question.displayDiscipline,
-                                  style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            if (question.level.isNotEmpty) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  question.level,
-                                  style: const TextStyle(
-                                    color: Color(0xFF475569),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            const Spacer(),
+                            ),
+                            const SizedBox(width: 8),
                             Text(
                               question.progress.isNotEmpty
                                   ? question.progress
@@ -255,7 +268,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(6),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 7,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
@@ -276,7 +289,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                                           ? const Color(0xFFFFB300)
                                           : AppColors.textSecondary,
                                     ),
-                                    const SizedBox(width: 4),
+                                    const SizedBox(width: 3),
                                     Text(
                                       isMarked ? 'Marked' : 'Mark',
                                       style: TextStyle(
@@ -316,7 +329,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(6),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 7,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
@@ -331,7 +344,7 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       size: 13,
                                       color: AppColors.textSecondary,
                                     ),
-                                    SizedBox(width: 4),
+                                    SizedBox(width: 3),
                                     Text(
                                       'Report',
                                       style: TextStyle(
