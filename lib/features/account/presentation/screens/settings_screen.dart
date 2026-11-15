@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,6 +86,15 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    final String storeSettingsText;
+    if (!kIsWeb && Platform.isIOS) {
+      storeSettingsText = 'in your Apple Account settings';
+    } else if (!kIsWeb && Platform.isAndroid) {
+      storeSettingsText = 'in your Google Play settings';
+    } else {
+      storeSettingsText = 'in your device subscription settings';
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -97,9 +108,9 @@ class SettingsScreen extends ConsumerWidget {
               Icon(
                 Icons.warning_amber_rounded,
                 color: Colors.redAccent,
-                size: 28,
+                size: 26,
               ),
-              SizedBox(width: 8),
+              SizedBox(width: 10),
               Text(
                 'Delete Account',
                 style: TextStyle(
@@ -110,19 +121,57 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          content: const Text(
-            // Marie's wording, 3 November 2026, point 1.5. The old text claimed
-            // subscriptions were erased too; deleting the IPro account does not
-            // cancel an App Store or Google Play subscription, and saying so
-            // would have left people being charged for something they thought
-            // they had ended.
-            'Are you sure you want to delete your account? Your study progress will be permanently erased. Deleting your account does not cancel your subscription: cancel it in your App Store or Google Play settings.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you want to delete your account? All your personal data and study progress will be permanently erased from our servers within 90 days in accordance with our Privacy Policy.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFFFFE082),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: Color(0xFFB78103),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Deleting your account does not cancel an active subscription. Please cancel it $storeSettingsText.',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Color(0xFF5D4037),
+                          height: 1.35,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
@@ -139,6 +188,7 @@ class SettingsScreen extends ConsumerWidget {
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
                 elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -151,9 +201,10 @@ class SettingsScreen extends ConsumerWidget {
                 if (success && context.mounted) {
                   await ref.read(authProvider.notifier).logout();
                   if (!context.mounted) return;
-                  FloatingErrorBar.show(
+                  FloatingSuccessBar.show(
                     context,
-                    message: 'Your account has been deleted.',
+                    message:
+                        'Your account has been deleted. All personal data will be completely erased within 90 days.',
                   );
                   context.go('/onboarding');
                 } else if (context.mounted) {
@@ -432,7 +483,6 @@ class SettingsScreen extends ConsumerWidget {
             // app would quietly go on showing the old one.
             ..._buildLegalCards(context, ref),
             const SizedBox(height: 24),
-
             _buildSectionHeader('Account Actions'),
             const SizedBox(height: 8),
 

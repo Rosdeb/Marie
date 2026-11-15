@@ -533,20 +533,84 @@ class QuizNotifier extends Notifier<QuizState> {
         final submitData = submitResp['data'] as Map<String, dynamic>? ?? {};
         final score = (submitData['score'] as num?)?.toInt() ?? 0;
         final percentage = (submitData['percentage'] as num?)?.toInt() ?? 0;
+        final totalQuestions = (submitData['totalQuestions'] as num?)?.toInt();
+        final totalSeconds = (submitData['totalSeconds'] as num?)?.toInt();
+
+        final rawByLevel = submitData['byLevel'] as List<dynamic>? ?? [];
+        final byLevelSlices = rawByLevel
+            .whereType<Map<String, dynamic>>()
+            .map((e) => QuizBreakdownSlice.fromJson(e))
+            .toList();
+
+        final rawByTheme = submitData['byTheme'] as List<dynamic>? ?? [];
+        final byThemeSlices = rawByTheme
+            .whereType<Map<String, dynamic>>()
+            .map((e) => QuizBreakdownSlice.fromJson(e))
+            .toList();
 
         final reviewList = await _practiceRepository.reviewSession(
           sessionId: sessionId,
         );
 
-        final reviewQuestions = reviewList
-            .map((item) => Question.fromJson(item))
-            .toList();
+        final reviewQuestions = <Question>[];
+        for (int i = 0; i < reviewList.length; i++) {
+          final item = reviewList[i];
+          final orig = (i < state.questions.length) ? state.questions[i] : null;
+          final parsed = Question.fromJson(item);
+          reviewQuestions.add(
+            Question(
+              id: parsed.id.isNotEmpty ? parsed.id : (orig?.id ?? ''),
+              number: parsed.number,
+              progress: parsed.progress.isNotEmpty
+                  ? parsed.progress
+                  : (orig?.progress ?? ''),
+              office: parsed.office.isNotEmpty
+                  ? parsed.office
+                  : (orig?.office ?? ''),
+              discipline: parsed.discipline.isNotEmpty
+                  ? parsed.discipline
+                  : (orig?.discipline ?? ''),
+              disciplineLabel: parsed.disciplineLabel.isNotEmpty
+                  ? parsed.disciplineLabel
+                  : (orig?.disciplineLabel ?? ''),
+              level: parsed.level.isNotEmpty
+                  ? parsed.level
+                  : (orig?.level ?? ''),
+              theme: parsed.theme.isNotEmpty
+                  ? parsed.theme
+                  : (orig?.theme ?? ''),
+              questionText: parsed.questionText.isNotEmpty
+                  ? parsed.questionText
+                  : (orig?.questionText ?? ''),
+              options: parsed.options.isNotEmpty
+                  ? parsed.options
+                  : (orig?.options ?? const []),
+              correctOptionIndex: parsed.correctOptionIndex >= 0
+                  ? parsed.correctOptionIndex
+                  : (orig?.correctOptionIndex ?? -1),
+              selectedKey: parsed.selectedKey ?? orig?.selectedKey,
+              isCorrect: parsed.isCorrect,
+              timeSpentSeconds:
+                  parsed.timeSpentSeconds ?? orig?.timeSpentSeconds,
+              explanation: parsed.explanation.isNotEmpty
+                  ? parsed.explanation
+                  : (orig?.explanation ?? ''),
+              legalBasis: parsed.legalBasis.isNotEmpty
+                  ? parsed.legalBasis
+                  : (orig?.legalBasis ?? ''),
+            ),
+          );
+        }
 
         state = state.copyWith(
           isSubmitting: false,
           isSubmitted: true,
           scoreFromApi: score,
           percentageFromApi: percentage,
+          totalQuestionsFromApi: totalQuestions,
+          totalSecondsFromApi: totalSeconds,
+          byLevelFromApi: byLevelSlices,
+          byThemeFromApi: byThemeSlices,
           reviewQuestions: reviewQuestions,
         );
         return;

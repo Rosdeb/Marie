@@ -77,6 +77,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ? summary.averageScorePercentage
         : (totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0.0);
 
+    final totalMistakes = (summary != null && summary.wrongAnswers > 0)
+        ? summary.wrongAnswers
+        : (reviewState.mistakes.total > 0
+            ? reviewState.mistakes.total
+            : (summary?.wrongAnswers ??
+                reviewState.sessions.fold<int>(
+                  0,
+                  (sum, s) => sum + s.incorrectCount,
+                )));
+
+    final flaggedCount = reviewState.sessions.fold<int>(
+      0,
+      (sum, s) => sum + s.flaggedCount,
+    );
+
     final needsFocusCount = reviewState.sessions
         .where((s) => s.accuracy < 70)
         .length;
@@ -170,44 +185,44 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     context.push('/practice/progress');
                   },
                 ),
-                //const SizedBox(height: 10),
-                // _ActionCard(
-                //   icon: Icons.refresh_rounded,
-                //   iconColor: Colors.orange,
-                //   title: 'Mistakes to review',
-                //   subtitle: '$totalMistakes questions to review',
-                //   onTap: () {
-                //     if (!isAuth) {
-                //       AuthGateBottomSheet.show(context, targetFeature: 'Mistake review');
-                //       return;
-                //     }
-                //     // Toggle mistakes / needs focus filter
-                //     if (currentFilter == ReviewFilter.incorrect) {
-                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
-                //     } else {
-                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.incorrect);
-                //     }
-                //   },
-                // ),
-                // const SizedBox(height: 10),
-                // _ActionCard(
-                //   icon: Icons.star_rounded,
-                //   iconColor: Colors.amber,
-                //   title: 'Marked questions',
-                //   subtitle: '$flaggedCount questions you marked',
-                //   onTap: () {
-                //     if (!isAuth) {
-                //       AuthGateBottomSheet.show(context, targetFeature: 'Marked questions');
-                //       return;
-                //     }
-                //     // Toggle flagged filter
-                //     if (currentFilter == ReviewFilter.flagged) {
-                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
-                //     } else {
-                //       ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.flagged);
-                //     }
-                //   },
-                // ),
+                const SizedBox(height: 10),
+                _ActionCard(
+                  icon: Icons.refresh_rounded,
+                  iconColor: Colors.orange,
+                  title: 'Mistakes to review',
+                  subtitle: '$totalMistakes questions to review',
+                  onTap: () {
+                    if (!isAuth) {
+                      AuthGateBottomSheet.show(context, targetFeature: 'Mistake review');
+                      return;
+                    }
+                    // Toggle mistakes / needs focus filter
+                    if (currentFilter == ReviewFilter.incorrect) {
+                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
+                    } else {
+                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.incorrect);
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+                _ActionCard(
+                  icon: Icons.star_rounded,
+                  iconColor: Colors.amber,
+                  title: 'Marked questions',
+                  subtitle: '$flaggedCount questions you marked',
+                  onTap: () {
+                    if (!isAuth) {
+                      AuthGateBottomSheet.show(context, targetFeature: 'Marked questions');
+                      return;
+                    }
+                    // Toggle flagged filter
+                    if (currentFilter == ReviewFilter.flagged) {
+                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.all);
+                    } else {
+                      ref.read(reviewFilterProvider.notifier).setFilter(ReviewFilter.flagged);
+                    }
+                  },
+                ),
                 const SizedBox(height: 24),
 
                 // Past Sessions Header
@@ -353,11 +368,55 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   static String _formatSessionTitle(ReviewSession session) {
     final disc = session.discipline.isNotEmpty ? session.discipline : session.topic;
-    final lvl = session.level.isNotEmpty ? session.level : 'Practice';
+    final lvl = _formatLevelOrMode(session);
     if (disc.isNotEmpty) {
       return '$disc · $lvl';
     }
     return session.title.isNotEmpty ? session.title : 'Practice Session';
+  }
+
+  static String _formatLevelOrMode(ReviewSession session) {
+    const modeLabels = <String, String>{
+      'review_mistakes': 'Mistakes review',
+      'random': 'Random mix',
+      'by_theme': 'By theme',
+      'demo': 'Demo',
+      'by_level': 'By level',
+      'theme_across_offices': 'Cross-office',
+      'learning_path': 'Learning path',
+    };
+
+    final rawLevel = session.level.trim();
+    final rawMode = session.mode.trim();
+    final normalizedLevel = rawLevel.toLowerCase();
+    final normalizedMode = rawMode.toLowerCase();
+
+    // If level is an internal mode code (e.g. REVIEW_MISTAKES, RANDOM, BY_THEME, DEMO)
+    if (modeLabels.containsKey(normalizedLevel)) {
+      return modeLabels[normalizedLevel]!;
+    }
+
+    // If mode is specified and is not 'by_level', show the readable mode name
+    if (normalizedMode.isNotEmpty && normalizedMode != 'by_level') {
+      if (modeLabels.containsKey(normalizedMode)) {
+        return modeLabels[normalizedMode]!;
+      }
+      return _formatMode(rawMode);
+    }
+
+    // When mode is by_level or real level is specified
+    if (rawLevel.isNotEmpty && normalizedLevel != 'by_level') {
+      if (normalizedLevel.startsWith('level_')) {
+        return 'Level ${rawLevel.substring(6)}';
+      }
+      return rawLevel;
+    }
+
+    if (modeLabels.containsKey(normalizedMode)) {
+      return modeLabels[normalizedMode]!;
+    }
+
+    return 'Practice';
   }
 
   static String _formatSessionSubtitle(ReviewSession session) {
@@ -370,7 +429,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   static String _formatMode(String mode) {
-    switch (mode) {
+    final normalized = mode.trim().toLowerCase();
+    switch (normalized) {
       case 'by_level':
         return 'By level';
       case 'by_theme':
@@ -380,7 +440,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       case 'demo':
         return 'Demo';
       case 'review_mistakes':
-        return 'Mistakes';
+        return 'Mistakes review';
       case 'theme_across_offices':
         return 'Cross-office';
       case 'learning_path':

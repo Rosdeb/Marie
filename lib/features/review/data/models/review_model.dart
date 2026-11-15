@@ -325,7 +325,7 @@ class ReviewSession {
       office: office,
       discipline: discipline,
       mode: mode,
-      level: level.isNotEmpty ? level : mode.toUpperCase(),
+      level: level,
       score: score,
       totalQuestions: total,
       correctCount: score,

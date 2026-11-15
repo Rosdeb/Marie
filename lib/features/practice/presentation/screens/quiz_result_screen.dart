@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../data/models/quiz_models.dart';
@@ -10,61 +9,88 @@ import '../providers/quiz_provider.dart';
 
 /// The end of a session.
 ///
-/// Section 8: "score (e.g. 15 / 20, 75 %), breakdown by theme and by level,
-/// then the list of questions ... Buttons: 'Retry the wrong ones', 'New
-/// session with the same settings', 'Change settings'. Do not invent a pass
-/// mark."
-///
-/// The pass mark is the thing to watch: the screen used to show a trophy at
-/// 70% and a lesser icon below it, which is a pass mark in all but name.
-/// There is none here, and nothing on this screen reads as pass or fail.
+/// Matches the clean result layout:
+/// - Top header with session context & circular close button
+/// - Large score display (e.g. 1 / 20) + supportive subtitle (no pass/fail mark)
+/// - 3-column summary tiles: Correct | Wrong or unanswered | Time (MM:SS)
+/// - BY THEME and BY LEVEL cards with progress bars and fraction counts
+/// - Action buttons at the bottom
 class QuizResultScreen extends ConsumerWidget {
   const QuizResultScreen({super.key});
+
+  // Warm background and subtle surface tokens matching the design
+  static const Color _screenBg = Color(0xFFF7F5F0);
+  static const Color _inkDark = Color(0xFF141C2B);
+  static const Color _mutedText = Color(0xFF6B7280);
+  static const Color _dividerColor = Color(0xFFF0EDE6);
+  static const Color _trackBg = Color(0xFFE5E2DA);
+  static const Color _progressAccent = Color(0xFFC93B2B);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quizState = ref.watch(quizProvider);
     final tally = _Tally.of(quizState);
 
+    final subtitleHeader = _buildSessionHeader(quizState);
+    final formattedTime = _formatTime(quizState);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _screenBg,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            _ScoreCard(tally: tally),
-            const SizedBox(height: 16),
-
-            _CountsRow(tally: tally),
+            // 1. Top Header Bar (Title + Circular Close Button)
+            _TopHeader(
+              title: subtitleHeader,
+              onClose: () {
+                ref.read(quizProvider.notifier).reset();
+                ref.read(bottomNavProvider.notifier).changeIndex(1);
+                context.go('/main');
+              },
+            ),
 
             const SizedBox(height: 12),
-            _TimeTaken(quiz: quizState),
 
-            // Shown whenever there is anything to break down.
-            //
-            // The threshold used to be more than one level or theme, which
-            // meant a session on a single level said nothing about it at all.
-            // Marie's point is that the totals alone are not enough - "not
-            // only the totals" - so one row is still worth drawing; only an
-            // empty breakdown is left out.
-            if (tally.byLevel.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              _Breakdown(title: 'By level', rows: tally.byLevel),
-            ],
+            // 2. Hero Score & Supportive Subtext
+            _HeroScoreSection(tally: tally),
+
+            const SizedBox(height: 24),
+
+            // 3. Three Summary Cards (Correct | Wrong or unanswered | Time)
+            _StatsSummaryRow(
+              correct: tally.correct,
+              wrongOrUnanswered: tally.wrong + tally.unanswered,
+              timeText: formattedTime,
+            ),
+
+            // 4. Breakdown: BY THEME (Shown first per visual design)
             if (tally.byTheme.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              _Breakdown(title: 'By theme', rows: tally.byTheme),
+              const SizedBox(height: 16),
+              _BreakdownCard(
+                title: 'BY THEME',
+                rows: tally.byTheme,
+              ),
+            ],
+
+            // 5. Breakdown: BY LEVEL
+            if (tally.byLevel.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _BreakdownCard(
+                title: 'BY LEVEL',
+                rows: tally.byLevel,
+              ),
             ],
 
             const SizedBox(height: 28),
 
+            // 6. Action Buttons
             CustomButton(
               text: 'Review my answers',
               onPressed: () => context.push('/practice/answer-review'),
             ),
             const SizedBox(height: 12),
 
-            // Nothing to retry when the session was answered perfectly.
             if (tally.wrong + tally.unanswered > 0) ...[
               CustomButton(
                 text: 'Retry the wrong ones',
@@ -144,10 +170,346 @@ class QuizResultScreen extends ConsumerWidget {
     );
   }
 
+  String _buildSessionHeader(QuizState state) {
+    final parts = <String>[];
+    if (state.selectedSubdiscipline.isNotEmpty) {
+      parts.add(state.selectedSubdiscipline);
+    } else if (state.selectedOffice.isNotEmpty) {
+      parts.add(state.selectedOffice);
+    }
+    if (parts.isEmpty) return 'Practice session';
+    return parts.join(' · ');
+  }
+
+  String _formatTime(QuizState quiz) {
+    final seconds = (quiz.totalSecondsFromApi != null && quiz.totalSecondsFromApi! > 0)
+        ? quiz.totalSecondsFromApi!
+        : quiz.timeSpentPerQuestion.values
+            .fold<int>(0, (total, s) => total + s);
+    final minutes = seconds ~/ 60;
+    final rest = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${rest.toString().padLeft(2, '0')}';
+  }
+
   void _say(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+}
+
+/// Top row with centered session subtitle and a circular close button on the right.
+class _TopHeader extends StatelessWidget {
+  const _TopHeader({
+    required this.title,
+    required this.onClose,
+  });
+
+  final String title;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 44),
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: QuizResultScreen._mutedText,
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              elevation: 0.5,
+              shadowColor: Colors.black.withValues(alpha: 0.08),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onClose,
+                child: const SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: QuizResultScreen._inkDark,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Large centered score (e.g., "1 / 20") and supportive caption underneath.
+class _HeroScoreSection extends StatelessWidget {
+  const _HeroScoreSection({required this.tally});
+
+  final _Tally tally;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          '${tally.correct} / ${tally.total}',
+          style: const TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.w800,
+            color: QuizResultScreen._inkDark,
+            letterSpacing: -1.0,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            '${tally.percentage} % · Keep going: the explanations are there to help you.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.35,
+              fontWeight: FontWeight.w500,
+              color: QuizResultScreen._mutedText,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 3-column metric row: Correct | Wrong or unanswered | Time
+class _StatsSummaryRow extends StatelessWidget {
+  const _StatsSummaryRow({
+    required this.correct,
+    required this.wrongOrUnanswered,
+    required this.timeText,
+  });
+
+  final int correct;
+  final int wrongOrUnanswered;
+  final String timeText;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _StatCard(
+              value: '$correct',
+              label: 'Correct',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatCard(
+              value: '$wrongOrUnanswered',
+              label: 'Wrong or\nunanswered',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatCard(
+              value: timeText,
+              label: 'Time',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.value,
+    required this.label,
+  });
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: QuizResultScreen._inkDark,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11.5,
+              height: 1.25,
+              fontWeight: FontWeight.w500,
+              color: QuizResultScreen._mutedText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// White rounded card containing uppercase header + rows with progress bars.
+class _BreakdownCard extends StatelessWidget {
+  const _BreakdownCard({
+    required this.title,
+    required this.rows,
+  });
+
+  final String title;
+  final List<_Slice> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final validRows = rows
+        .where((r) => r.label.trim().isNotEmpty && r.total > 0)
+        .toList();
+    if (validRows.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: QuizResultScreen._mutedText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          for (var i = 0; i < validRows.length; i++) ...[
+            _BreakdownRow(slice: validRows[i]),
+            if (i < validRows.length - 1)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: QuizResultScreen._dividerColor,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  const _BreakdownRow({required this.slice});
+
+  final _Slice slice;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = slice.total == 0 ? 0.0 : (slice.correct / slice.total).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          // Label column
+          Expanded(
+            flex: 11,
+            child: Text(
+              slice.label,
+              style: const TextStyle(
+                fontSize: 13.5,
+                height: 1.3,
+                fontWeight: FontWeight.w500,
+                color: QuizResultScreen._inkDark,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Horizontal Progress Bar
+          SizedBox(
+            width: 82,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: ratio,
+                minHeight: 5,
+                backgroundColor: QuizResultScreen._trackBg,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  QuizResultScreen._progressAccent,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Fraction Score (e.g. 1/2)
+          SizedBox(
+            width: 34,
+            child: Text(
+              '${slice.correct}/${slice.total}',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: QuizResultScreen._inkDark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -163,11 +525,6 @@ class _Slice {
 }
 
 /// The session counted up: right, wrong, unanswered, and the two breakdowns.
-///
-/// Counted from the review the server returned where there is one, because
-/// that is what was actually recorded. The questions held in memory are the
-/// fallback for a session scored locally when submit could not reach the
-/// server.
 class _Tally {
   _Tally({
     required this.correct,
@@ -188,14 +545,35 @@ class _Tally {
   final List<_Slice> byTheme;
 
   static _Tally of(QuizState state) {
+    // 1. Prefer API breakdown slices if returned by submitSession
+    List<_Slice> byLevel = [];
+    if (state.byLevelFromApi.isNotEmpty) {
+      byLevel = state.byLevelFromApi
+          .map((s) => _Slice(s.name)
+            ..total = s.asked
+            ..correct = s.correct)
+          .where((s) => s.total > 0)
+          .toList();
+    }
+
+    List<_Slice> byTheme = [];
+    if (state.byThemeFromApi.isNotEmpty) {
+      byTheme = state.byThemeFromApi
+          .map((s) => _Slice(s.name)
+            ..total = s.asked
+            ..correct = s.correct)
+          .where((s) => s.total > 0)
+          .toList();
+    }
+
     final source = state.reviewQuestions.isNotEmpty
         ? state.reviewQuestions
         : state.questions;
 
-    final levels = <String, _Slice>{};
-    final themes = <String, _Slice>{};
+    final fallbackLevels = <String, _Slice>{};
+    final fallbackThemes = <String, _Slice>{};
 
-    int correct = 0;
+    int localCorrect = 0;
     int unanswered = 0;
 
     for (var i = 0; i < source.length; i++) {
@@ -208,319 +586,59 @@ class _Tally {
         answered = q.options.any((o) => o.isChosen) || q.selectedKey != null;
         isRight = q.isCorrect;
       } else {
-        // Local fallback: what this device recorded while playing.
         final chosen = state.userAnswers[i];
         answered = chosen != null;
         isRight = answered && chosen == q.correctOptionIndex;
       }
 
-      if (isRight) correct++;
+      if (isRight) localCorrect++;
       if (!answered) unanswered++;
 
-      if (q.level.isNotEmpty) {
-        final slice = levels.putIfAbsent(q.level, () => _Slice(q.level));
+      final themeName = q.theme.isNotEmpty
+          ? q.theme
+          : (state.selectedTheme.isNotEmpty ? state.selectedTheme : '');
+      final levelName = q.level.isNotEmpty
+          ? q.level
+          : (state.selectedLevel.isNotEmpty && state.selectedLevel != 'All Levels'
+              ? state.selectedLevel
+              : '');
+
+      if (byLevel.isEmpty && levelName.isNotEmpty) {
+        final slice = fallbackLevels.putIfAbsent(levelName, () => _Slice(levelName));
         slice.total++;
         if (isRight) slice.correct++;
       }
-      if (q.theme.isNotEmpty) {
-        final slice = themes.putIfAbsent(q.theme, () => _Slice(q.theme));
+      if (byTheme.isEmpty && themeName.isNotEmpty) {
+        final slice = fallbackThemes.putIfAbsent(themeName, () => _Slice(themeName));
         slice.total++;
         if (isRight) slice.correct++;
       }
     }
 
-    final total = source.length;
-    // "The score must be computed from the answers: 7 out of 20 is 35 %."
+    if (byLevel.isEmpty) {
+      byLevel = fallbackLevels.values.toList();
+    }
+    if (byTheme.isEmpty) {
+      byTheme = fallbackThemes.values.toList();
+    }
+
+    final total = state.totalQuestionsFromApi ?? source.length;
     final apiScore = state.scoreFromApi;
-    final score = apiScore > 0 ? apiScore : correct;
-    final percentage = total == 0 ? 0 : ((score / total) * 100).round();
+    final score = apiScore > 0 ? apiScore : localCorrect;
+    final percentage = state.percentageFromApi > 0
+        ? state.percentageFromApi
+        : (total == 0 ? 0 : ((score / total) * 100).round());
+
+    final wrongCount = (total - score - unanswered).clamp(0, total);
 
     return _Tally(
       correct: score,
-      // Unanswered questions count as wrong, and are also named separately
-      // so the reader can tell the two apart.
-      wrong: total - score - unanswered,
+      wrong: wrongCount,
       unanswered: unanswered,
       total: total,
       percentage: percentage,
-      byLevel: levels.values.toList(),
-      byTheme: themes.values.toList(),
-    );
-  }
-}
-
-class _ScoreCard extends StatelessWidget {
-  const _ScoreCard({required this.tally});
-
-  final _Tally tally;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Session complete',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            '${tally.correct} / ${tally.total}',
-            style: const TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${tally.percentage}%',
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CountsRow extends StatelessWidget {
-  const _CountsRow({required this.tally});
-
-  final _Tally tally;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _CountTile(
-            label: 'Correct',
-            value: tally.correct,
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _CountTile(
-            label: 'Wrong',
-            value: tally.wrong,
-            color: AppColors.error,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _CountTile(
-            label: 'Unanswered',
-            value: tally.unanswered,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CountTile extends StatelessWidget {
-  const _CountTile({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// "breakdown by theme and by level".
-class _Breakdown extends StatelessWidget {
-  const _Breakdown({required this.title, required this.rows});
-
-  final String title;
-  final List<_Slice> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            children: [
-              for (final row in rows)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          row.label,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '${row.correct} / ${row.total}',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        width: 42,
-                        child: Text(
-                          '${row.percentage}%',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// How long the session took.
-///
-/// Summed from the per-question clocks rather than from the wall clock,
-/// because "closing the app suspends it": the time that counts is the time
-/// actually spent answering, which is the only figure both the app and the
-/// server agree on.
-class _TimeTaken extends StatelessWidget {
-  const _TimeTaken({required this.quiz});
-
-  final QuizState quiz;
-
-  @override
-  Widget build(BuildContext context) {
-    final seconds = quiz.timeSpentPerQuestion.values
-        .fold<int>(0, (total, s) => total + s);
-
-    final minutes = seconds ~/ 60;
-    final rest = seconds % 60;
-    final text = minutes > 0
-        ? '$minutes min ${rest.toString().padLeft(2, '0')} s'
-        : '$rest s';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.timer_outlined,
-            size: 19,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'Time',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
+      byLevel: byLevel,
+      byTheme: byTheme,
     );
   }
 }

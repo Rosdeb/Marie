@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../providers/practice_provider.dart';
-import '../../utils/theme_order_helper.dart';
 import '../widgets/practice_chips.dart';
 
 class ChooseThemeScreen extends ConsumerWidget {
@@ -39,27 +38,46 @@ class ChooseThemeScreen extends ConsumerWidget {
       body: Builder(
         builder: (context) {
           if (selection.isLoadingThemes) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (selection.themes.isEmpty) {
-            return Center(
+            return const SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  selection.errorMessage ??
-                      'There are no themes available for this discipline yet.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Color(0xFF8A909A)),
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PracticeChips(showMode: true),
+                    Expanded(child: Center(child: CircularProgressIndicator())),
+                  ],
                 ),
               ),
             );
           }
+          if (selection.themes.isEmpty) {
+            return SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
+                children: [
+                  const PracticeChips(showMode: true),
+                  const SizedBox(height: 48),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        selection.errorMessage ??
+                            'There are no themes available for this discipline yet.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(0xFF8A909A)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
 
-          // Sort themes according to Appendix B canonical discipline order
-          final sortedThemes = ThemeOrderHelper.sortThemes(
-            selection.themes,
-            selection.topic,
-          );
+          final themes = selection.themes;
 
           return SafeArea(
             child: ListView(
@@ -68,9 +86,6 @@ class ChooseThemeScreen extends ConsumerWidget {
                 vertical: 12.0,
               ),
               children: [
-                // The chips replace the line of plain text that used to sit
-                // here: the same information, but changeable where it stands
-                // (Marie, 11 November, point 11).
                 const PracticeChips(showMode: true),
                 const SizedBox(height: 6),
                 const Text(
@@ -81,26 +96,21 @@ class ChooseThemeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...sortedThemes.map(
+                ...themes.map(
                   (theme) {
-                    final perSession =
-                        theme.sessionLength > 0 ? theme.sessionLength : 20;
+                    final perSession = theme.sessionLength > 0 ? theme.sessionLength : 20;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: TopicCard(
                         title: theme.theme,
-                        subtitle:
-                            '${theme.questions} questions · $perSession per session',
-                        shortNote: (theme.isShortSession &&
-                                (theme.note?.isNotEmpty ?? false))
+                        subtitle: '${theme.questions} questions · $perSession per session',
+                        shortNote: (theme.isShortSession && (theme.note?.isNotEmpty ?? false))
                             ? theme.note
                             : null,
                         onTap: () {
-                          final crossOffice =
-                              selection.mode == 'theme_across_offices';
+                          final crossOffice = selection.mode == 'theme_across_offices';
                           ref.read(practiceProvider.notifier).setTheme(theme);
-                          // One theme, then the offices to compare it in - the
-                          // order Marie sets out in section 5.
+
                           context.push(
                             crossOffice
                                 ? '/practice/choose-offices'

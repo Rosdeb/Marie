@@ -1321,7 +1321,7 @@ class _DiscoverSection extends StatelessWidget {
         if (showDemo)
           _Line(
             title: 'Try a free demo',
-            subtitle: 'No account required',
+            subtitle: '20 question . no account required',
             leading: const Icon(
               Icons.play_circle_outline_rounded,
               size: 22,

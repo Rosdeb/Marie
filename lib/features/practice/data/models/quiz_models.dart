@@ -142,6 +142,38 @@ class QuestionFeedback {
   }
 }
 
+class QuizBreakdownSlice {
+  final String name;
+  final int asked;
+  final int correct;
+  final int percentage;
+
+  const QuizBreakdownSlice({
+    required this.name,
+    required this.asked,
+    required this.correct,
+    required this.percentage,
+  });
+
+  factory QuizBreakdownSlice.fromJson(Map<String, dynamic> json) {
+    return QuizBreakdownSlice(
+      name: json['name'] as String? ?? json['label'] as String? ?? '',
+      asked: (json['asked'] as num?)?.toInt() ??
+          (json['total'] as num?)?.toInt() ??
+          0,
+      correct: (json['correct'] as num?)?.toInt() ?? 0,
+      percentage: (json['percentage'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'asked': asked,
+        'correct': correct,
+        'percentage': percentage,
+      };
+}
+
 class QuizState {
   final String? sessionId;
   final String selectedOffice;
@@ -179,6 +211,10 @@ class QuizState {
   final int totalSeconds;
   final int scoreFromApi;
   final int percentageFromApi;
+  final int? totalQuestionsFromApi;
+  final int? totalSecondsFromApi;
+  final List<QuizBreakdownSlice> byLevelFromApi;
+  final List<QuizBreakdownSlice> byThemeFromApi;
   final List<Question> reviewQuestions;
   final String? errorMessage;
 
@@ -205,6 +241,10 @@ class QuizState {
     this.totalSeconds = 1200,
     this.scoreFromApi = 0,
     this.percentageFromApi = 0,
+    this.totalQuestionsFromApi,
+    this.totalSecondsFromApi,
+    this.byLevelFromApi = const [],
+    this.byThemeFromApi = const [],
     this.reviewQuestions = const [],
     this.errorMessage,
   });
@@ -232,6 +272,10 @@ class QuizState {
     int? totalSeconds,
     int? scoreFromApi,
     int? percentageFromApi,
+    int? totalQuestionsFromApi,
+    int? totalSecondsFromApi,
+    List<QuizBreakdownSlice>? byLevelFromApi,
+    List<QuizBreakdownSlice>? byThemeFromApi,
     List<Question>? reviewQuestions,
     String? errorMessage,
     bool clearError = false,
@@ -259,6 +303,11 @@ class QuizState {
       totalSeconds: totalSeconds ?? this.totalSeconds,
       scoreFromApi: scoreFromApi ?? this.scoreFromApi,
       percentageFromApi: percentageFromApi ?? this.percentageFromApi,
+      totalQuestionsFromApi:
+          totalQuestionsFromApi ?? this.totalQuestionsFromApi,
+      totalSecondsFromApi: totalSecondsFromApi ?? this.totalSecondsFromApi,
+      byLevelFromApi: byLevelFromApi ?? this.byLevelFromApi,
+      byThemeFromApi: byThemeFromApi ?? this.byThemeFromApi,
       reviewQuestions: reviewQuestions ?? this.reviewQuestions,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );

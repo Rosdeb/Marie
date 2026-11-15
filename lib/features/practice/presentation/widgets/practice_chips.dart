@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../domain/entities/office_entity.dart';
 import '../providers/offices_provider.dart';
 import '../providers/practice_provider.dart';
@@ -48,7 +47,8 @@ class PracticeChips extends ConsumerWidget {
 
     // The discipline is written as the server writes it for a reader, so
     // WIPO's Patents sheet reads "PCT" here as it does everywhere else.
-    final disciplineLabel = selection.disciplines
+    final disciplineLabel =
+        selection.disciplines
             .where((d) => d.name == discipline)
             .map((d) => d.displayName)
             .firstOrNull ??
@@ -82,41 +82,22 @@ class PracticeChips extends ConsumerWidget {
 
   String _officeLabelOf(WidgetRef ref, String code) {
     final match = ref
-        .read(officesProvider)
+        .watch(officesProvider)
         .offices
         .where((o) => o.code == code)
         .firstOrNull;
-    // `name` is what the server writes for a reader, which already applies the
-    // MOIP rename; the code is only the fallback.
     return (match?.name.isNotEmpty ?? false) ? match!.name : code;
   }
 
   // ------------------------------------------------------------ the pickers
 
   Future<void> _pickOffice(BuildContext context, WidgetRef ref) async {
-    final entitlement = ref.read(entitlementProvider);
-    final discipline = ref.read(practiceProvider).topic ?? '';
-    final chosen = discipline.trim().toLowerCase();
-
-    bool teaches(OfficeEntity o) {
-      if (chosen.isEmpty) return o.questions > 0;
-      return o.disciplines.any(
-        (d) =>
-            d.questions > 0 &&
-            (d.name.trim().toLowerCase() == chosen ||
-                d.label.trim().toLowerCase() == chosen),
-      );
+    var offices = ref.read(officesProvider).offices;
+    if (offices.isEmpty) {
+      await ref.read(officesProvider.notifier).fetchOffices();
+      if (!context.mounted) return;
+      offices = ref.read(officesProvider).offices;
     }
-
-    // Only offices in the plan, and only those with questions in the
-    // discipline already chosen. Offering one of the other thirteen here would
-    // put the reader back on the paywall they did not ask for.
-    final offices = ref
-        .read(officesProvider)
-        .offices
-        .where((o) => entitlement.canAccessOffice(o.code))
-        .where(teaches)
-        .toList();
 
     final picked = await _showPicker<OfficeEntity>(
       context,
@@ -124,12 +105,16 @@ class PracticeChips extends ConsumerWidget {
       items: offices,
       isCurrent: (o) => o.code == ref.read(practiceProvider).jurisdiction,
       label: (o) => o.name.isNotEmpty ? o.name : o.code,
-      // "the drop-down list shows, for each office, only its own disciplines"
-      // (Marie, Part 2, Practice, point 2).
-      detail: (o) => o.disciplines.map((d) => d.displayName).join(' · '),
-      empty: chosen.isEmpty
-          ? 'No office in your plan has questions yet.'
-          : 'No other office in your plan has $discipline questions yet.',
+      detail: (o) {
+        if (o.disciplines.isNotEmpty) {
+          return o.disciplines.map((d) => d.displayName).join(' · ');
+        }
+        if (o.fullName.isNotEmpty) {
+          return o.fullName;
+        }
+        return o.territory;
+      },
+      empty: 'No offices available.',
     );
 
     if (picked == null) return;
@@ -158,14 +143,12 @@ class PracticeChips extends ConsumerWidget {
   Future<void> _pickMode(BuildContext context, WidgetRef ref) async {
     final office = ref.read(practiceProvider).jurisdiction ?? '';
 
-    // "Not available for WIPO and the UPC (their own theme lists)" - the
-    // mock-up guide, Theme across offices. Their themes are not comparable
-    // with the other thirteen offices', so the mode is left out rather than
-    // offered and then refused.
     final entries = _modeLabels.entries
-        .where((e) =>
-            e.key != 'theme_across_offices' ||
-            !(office == 'WIPO' || office == 'UPC'))
+        .where(
+          (e) =>
+              e.key != 'theme_across_offices' ||
+              !(office == 'WIPO' || office == 'UPC'),
+        )
         .toList();
 
     final picked = await _showPicker(
@@ -266,8 +249,7 @@ class PracticeChips extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       label(item),
