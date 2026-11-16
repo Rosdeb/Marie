@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/providers/home_provider.dart';
+import '../../../review/presentation/providers/mistakes_review_provider.dart';
 import '../providers/practice_provider.dart';
 import '../widgets/practice_chips.dart';
 
@@ -33,7 +34,10 @@ class ChoosePracticeModeScreen extends ConsumerWidget {
     final home = ref.watch(homeProvider).data;
 
     final office = selection.jurisdiction ?? '';
-    final mistakesWaiting = home?.mistakes.total ?? 0;
+    final mistakesReviewState = ref.watch(mistakesReviewProvider);
+    final mistakesWaiting = mistakesReviewState.total > 0
+        ? mistakesReviewState.total
+        : (home?.mistakes.total ?? 0);
     final path = home?.learningPath;
 
     // "Not available for WIPO and the UPC (their own theme lists)" - their

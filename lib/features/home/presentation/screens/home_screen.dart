@@ -13,7 +13,7 @@ import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
 import '../../../referral/presentation/providers/referral_offer_provider.dart';
-import '../../../review/presentation/providers/review_provider.dart';
+import '../../../review/presentation/providers/mistakes_review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../data/models/home_models.dart';
 import '../providers/home_provider.dart';
@@ -700,6 +700,11 @@ class _TodaySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final mistakesReviewState = ref.watch(mistakesReviewProvider);
+    final count = mistakesReviewState.total > 0
+        ? mistakesReviewState.total
+        : mistakes.total;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -777,15 +782,15 @@ class _TodaySection extends ConsumerWidget {
           ),
         _Line(
           title: 'Mistakes to review',
-          subtitle: mistakes.total > 0
-              ? '${mistakes.dueToday} due today · ${mistakes.total} in total'
-              : '0 due today · 0 in total',
+          subtitle: count > 0
+              ? '$count questions to review'
+              : '0 questions to review',
           leading: const Icon(
             Icons.replay_rounded,
             size: 22,
             color: AppColors.primary,
           ),
-          trailing: mistakes.dueToday > 0
+          trailing: count > 0
               ? Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 9,
@@ -796,7 +801,7 @@ class _TodaySection extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '${mistakes.dueToday}',
+                    '$count',
                     style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
@@ -805,15 +810,7 @@ class _TodaySection extends ConsumerWidget {
                   ),
                 )
               : null,
-          // The mistakes live on the Review tab, so Home switches to it
-          // rather than opening a second copy of the same screen.
-          onTap: () {
-            ref.read(bottomNavProvider.notifier).changeIndex(2);
-            ref.read(reviewStateProvider.notifier).fetchReviewData();
-            if (GoRouterState.of(context).matchedLocation != '/main') {
-              context.go('/main');
-            }
-          },
+          onTap: () => context.push('/review/mistakes'),
         ),
       ],
     );

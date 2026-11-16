@@ -93,18 +93,12 @@ class QuizResultScreen extends ConsumerWidget {
                 onPressed: quizState.isLoading
                     ? null
                     : () async {
-                        final started = await ref
-                            .read(quizProvider.notifier)
-                            .retryWrongOnes();
+                        final started = await ref.read(quizProvider.notifier).retryWrongOnes();
                         if (!context.mounted) return;
                         if (started) {
                           context.pushReplacement('/practice/active-quiz');
                         } else {
-                          _say(
-                            context,
-                            ref.read(quizProvider).errorMessage ??
-                                'There is nothing to retry yet.',
-                          );
+                          _say(context, ref.read(quizProvider).errorMessage ?? 'There is nothing to retry yet.',);
                         }
                       },
               ),
@@ -118,18 +112,12 @@ class QuizResultScreen extends ConsumerWidget {
               onPressed: quizState.isLoading
                   ? null
                   : () async {
-                      final started = await ref
-                          .read(quizProvider.notifier)
-                          .restartWithSameSettings();
+                      final started = await ref.read(quizProvider.notifier).restartWithSameSettings();
                       if (!context.mounted) return;
                       if (started) {
                         context.pushReplacement('/practice/active-quiz');
                       } else {
-                        _say(
-                          context,
-                          ref.read(quizProvider).errorMessage ??
-                              'That session could not be started again.',
-                        );
+                        _say(context, ref.read(quizProvider).errorMessage ?? 'That session could not be started again.',);
                       }
                     },
             ),
@@ -143,14 +131,10 @@ class QuizResultScreen extends ConsumerWidget {
                 final currentDiscipline = quizState.selectedSubdiscipline;
 
                 if (currentOffice.isNotEmpty) {
-                  ref
-                      .read(practiceProvider.notifier)
-                      .setJurisdiction(currentOffice);
+                  ref.read(practiceProvider.notifier).setJurisdiction(currentOffice);
                 }
                 if (currentDiscipline.isNotEmpty) {
-                  ref
-                      .read(practiceProvider.notifier)
-                      .setTopic(currentDiscipline);
+                  ref.read(practiceProvider.notifier).setTopic(currentDiscipline);
                 }
 
                 ref.read(quizProvider.notifier).reset();
