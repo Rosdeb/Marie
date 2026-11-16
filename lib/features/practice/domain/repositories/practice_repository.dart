@@ -26,6 +26,11 @@ abstract class PracticeRepository {
     List<String>? offices,
     String? profileType,
     bool examMode,
+
+    /// "retry" only: the finished session whose wrong ones are being redone.
+    /// Every other mode names its questions by office, discipline and level;
+    /// this one names the session they were just asked in.
+    String? sessionId,
   });
 
   /// examMode: the demo offers Practice or Exam like any other quiz.

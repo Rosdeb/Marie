@@ -25,6 +25,7 @@ abstract class PracticeRemoteDataSource {
     List<String>? offices,
     String? profileType,
     bool examMode,
+    String? sessionId,
   });
   Future<Map<String, dynamic>> startDemoSession({
     required String office,
@@ -162,6 +163,7 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
     List<String>? offices,
     String? profileType,
     bool examMode = false,
+    String? sessionId,
   }) async {
     final body = <String, dynamic>{
       'mode': mode,
@@ -176,6 +178,9 @@ class PracticeRemoteDataSourceImpl implements PracticeRemoteDataSource {
         'profileType': profileType,
       // Practice is the server's default; only say so when it is not.
       if (examMode) 'examMode': true,
+      // "retry" names a session instead of a selection. Left out for every
+      // other mode, where the server ignores it.
+      if (sessionId != null && sessionId.isNotEmpty) 'sessionId': sessionId,
     };
 
     final response = await apiClient.post(

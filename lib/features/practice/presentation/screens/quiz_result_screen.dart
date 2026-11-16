@@ -7,6 +7,19 @@ import '../../data/models/quiz_models.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
 
+// Warm background and subtle surface tokens matching the design.
+//
+// Written at the top of the file rather than on the screen class: the small
+// widgets below share them, and the screen now has state of its own, so a
+// token living on one of the two halves would have to be reached for through
+// the other.
+const Color _screenBg = Color(0xFFF7F5F0);
+const Color _inkDark = Color(0xFF141C2B);
+const Color _mutedText = Color(0xFF6B7280);
+const Color _dividerColor = Color(0xFFF0EDE6);
+const Color _trackBg = Color(0xFFE5E2DA);
+const Color _progressAccent = Color(0xFFC93B2B);
+
 /// The end of a session.
 ///
 /// Matches the clean result layout:
@@ -15,19 +28,55 @@ import '../providers/quiz_provider.dart';
 /// - 3-column summary tiles: Correct | Wrong or unanswered | Time (MM:SS)
 /// - BY THEME and BY LEVEL cards with progress bars and fraction counts
 /// - Action buttons at the bottom
-class QuizResultScreen extends ConsumerWidget {
+class QuizResultScreen extends ConsumerStatefulWidget {
   const QuizResultScreen({super.key});
 
-  // Warm background and subtle surface tokens matching the design
-  static const Color _screenBg = Color(0xFFF7F5F0);
-  static const Color _inkDark = Color(0xFF141C2B);
-  static const Color _mutedText = Color(0xFF6B7280);
-  static const Color _dividerColor = Color(0xFFF0EDE6);
-  static const Color _trackBg = Color(0xFFE5E2DA);
-  static const Color _progressAccent = Color(0xFFC93B2B);
+  @override
+  ConsumerState<QuizResultScreen> createState() => _QuizResultScreenState();
+}
+
+class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
+  /// The two buttons that start something, named so the one waiting can be
+  /// told from the one that is not.
+  static const String _retry = 'retry';
+  static const String _newSession = 'new-session';
+
+  /// Which button is waiting on the server, or null when none is.
+  ///
+  /// This used to be quizState.isLoading - one flag for the whole provider -
+  /// so tapping "Retry the wrong ones" put a loading circle on "New session
+  /// with the same settings" at the same time, and the reader had no way to
+  /// tell which of the two they were about to be given. Marie reported it
+  /// alongside the retry itself, in build 11.
+  ///
+  /// It lives on the screen because "which button did I tap" is a fact about
+  /// this screen and about nothing else. Both are still disabled while either
+  /// one runs, so a second tap cannot start a second session.
+  String? _pending;
+
+  /// Start one of them, and go to the quiz if it started.
+  Future<void> _run(
+    String action,
+    Future<bool> Function() start,
+    String whenNothingHappened,
+  ) async {
+    setState(() => _pending = action);
+
+    final started = await start();
+    if (!mounted) return;
+
+    setState(() => _pending = null);
+
+    if (started) {
+      context.pushReplacement('/practice/active-quiz');
+    } else {
+      _say(context, ref.read(quizProvider).errorMessage ?? whenNothingHappened);
+    }
+  }
+
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final quizState = ref.watch(quizProvider);
     final tally = _Tally.of(quizState);
 
@@ -85,22 +134,29 @@ class QuizResultScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
 
+            /**
+             * "Retry the wrong ones".
+             *
+             * Shown only while there is something to retry, which is what
+             * ends the chain: retry the eighteen, get five wrong, retry those
+             * five, and when a session finally comes back with none wrong the
+             * button is not drawn at all.
+             *
+             * The count it will start is the one printed above it - "Wrong or
+             * unanswered" - because both are this session's own questions.
+             */
             if (tally.wrong + tally.unanswered > 0) ...[
               CustomButton(
                 text: 'Retry the wrong ones',
                 isSecondary: true,
-                isLoading: quizState.isLoading,
-                onPressed: quizState.isLoading
+                isLoading: _pending == _retry,
+                onPressed: _pending != null
                     ? null
-                    : () async {
-                        final started = await ref.read(quizProvider.notifier).retryWrongOnes();
-                        if (!context.mounted) return;
-                        if (started) {
-                          context.pushReplacement('/practice/active-quiz');
-                        } else {
-                          _say(context, ref.read(quizProvider).errorMessage ?? 'There is nothing to retry yet.',);
-                        }
-                      },
+                    : () => _run(
+                        _retry,
+                        ref.read(quizProvider.notifier).retryWrongOnes,
+                        'There is nothing to retry yet.',
+                      ),
               ),
               const SizedBox(height: 12),
             ],
@@ -108,18 +164,14 @@ class QuizResultScreen extends ConsumerWidget {
             CustomButton(
               text: 'New session with the same settings',
               isSecondary: true,
-              isLoading: quizState.isLoading,
-              onPressed: quizState.isLoading
+              isLoading: _pending == _newSession,
+              onPressed: _pending != null
                   ? null
-                  : () async {
-                      final started = await ref.read(quizProvider.notifier).restartWithSameSettings();
-                      if (!context.mounted) return;
-                      if (started) {
-                        context.pushReplacement('/practice/active-quiz');
-                      } else {
-                        _say(context, ref.read(quizProvider).errorMessage ?? 'That session could not be started again.',);
-                      }
-                    },
+                  : () => _run(
+                      _newSession,
+                      ref.read(quizProvider.notifier).restartWithSameSettings,
+                      'That session could not be started again.',
+                    ),
             ),
             const SizedBox(height: 12),
 
@@ -203,7 +255,7 @@ class _TopHeader extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
-                color: QuizResultScreen._mutedText,
+                color: _mutedText,
               ),
             ),
           ),
@@ -223,7 +275,7 @@ class _TopHeader extends StatelessWidget {
                   child: Icon(
                     Icons.close_rounded,
                     size: 18,
-                    color: QuizResultScreen._inkDark,
+                    color: _inkDark,
                   ),
                 ),
               ),
@@ -250,7 +302,7 @@ class _HeroScoreSection extends StatelessWidget {
           style: const TextStyle(
             fontSize: 48,
             fontWeight: FontWeight.w800,
-            color: QuizResultScreen._inkDark,
+            color: _inkDark,
             letterSpacing: -1.0,
             height: 1.1,
           ),
@@ -265,7 +317,7 @@ class _HeroScoreSection extends StatelessWidget {
               fontSize: 13.5,
               height: 1.35,
               fontWeight: FontWeight.w500,
-              color: QuizResultScreen._mutedText,
+              color: _mutedText,
             ),
           ),
         ),
@@ -341,7 +393,7 @@ class _StatCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: QuizResultScreen._inkDark,
+              color: _inkDark,
               letterSpacing: -0.3,
             ),
           ),
@@ -353,7 +405,7 @@ class _StatCard extends StatelessWidget {
               fontSize: 11.5,
               height: 1.25,
               fontWeight: FontWeight.w500,
-              color: QuizResultScreen._mutedText,
+              color: _mutedText,
             ),
           ),
         ],
@@ -398,7 +450,7 @@ class _BreakdownCard extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
-              color: QuizResultScreen._mutedText,
+              color: _mutedText,
             ),
           ),
           const SizedBox(height: 6),
@@ -408,7 +460,7 @@ class _BreakdownCard extends StatelessWidget {
               const Divider(
                 height: 1,
                 thickness: 1,
-                color: QuizResultScreen._dividerColor,
+                color: _dividerColor,
               ),
           ],
         ],
@@ -441,7 +493,7 @@ class _BreakdownRow extends StatelessWidget {
                 fontSize: 13.5,
                 height: 1.3,
                 fontWeight: FontWeight.w500,
-                color: QuizResultScreen._inkDark,
+                color: _inkDark,
               ),
             ),
           ),
@@ -454,9 +506,9 @@ class _BreakdownRow extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: ratio,
                 minHeight: 5,
-                backgroundColor: QuizResultScreen._trackBg,
+                backgroundColor: _trackBg,
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                  QuizResultScreen._progressAccent,
+                  _progressAccent,
                 ),
               ),
             ),
@@ -471,7 +523,7 @@ class _BreakdownRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: QuizResultScreen._inkDark,
+                color: _inkDark,
               ),
             ),
           ),

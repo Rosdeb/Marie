@@ -435,6 +435,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       'theme_across_offices': 'Cross-office',
       'learning_path': 'Learning path',
       'marked': 'Marked questions',
+      'retry': 'Retry the wrong ones',
     };
 
     final rawLevel = session.level.trim();
@@ -504,6 +505,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         return 'Learning path';
       case 'marked':
         return 'Marked questions';
+      case 'retry':
+        return 'Retry the wrong ones';
       default:
         if (mode.isEmpty) return 'Practice';
         /**

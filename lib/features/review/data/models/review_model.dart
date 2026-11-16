@@ -318,6 +318,7 @@ class ReviewSession {
       'theme_across_offices': 'Cross-office',
       'learning_path': 'Learning path',
       'marked': 'Marked questions',
+      'retry': 'Retry the wrong ones',
     };
 
     final normalizedMode = mode.toLowerCase();

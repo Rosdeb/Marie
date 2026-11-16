@@ -54,6 +54,7 @@ class PracticeRepositoryImpl implements PracticeRepository {
     List<String>? offices,
     String? profileType,
     bool examMode = false,
+    String? sessionId,
   }) async {
     return await remoteDataSource.startPracticeSession(
       mode: mode,
@@ -64,6 +65,7 @@ class PracticeRepositoryImpl implements PracticeRepository {
       offices: offices,
       profileType: profileType,
       examMode: examMode,
+      sessionId: sessionId,
     );
   }
 

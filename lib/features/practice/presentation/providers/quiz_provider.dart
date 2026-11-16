@@ -121,6 +121,11 @@ class QuizNotifier extends Notifier<QuizState> {
     List<String>? offices,
     String? profileType,
     bool examMode = false,
+
+    /// "retry" only: the finished session whose wrong and unanswered
+    /// questions are being redone. The mode names a session rather than a
+    /// selection, so office, discipline and level come back from the server.
+    String? sessionId,
   }) async {
     // The paywall is the office, so there is nothing to check when no office
     // is named: the questions are the user's own mistakes or their own stars,
@@ -148,10 +153,13 @@ class QuizNotifier extends Notifier<QuizState> {
         offices: offices,
         profileType: profileType,
         examMode: examMode,
+        sessionId: sessionId,
       );
 
       final data = response['data'] as Map<String, dynamic>? ?? {};
-      final sessionId = data['sessionId'] as String? ?? '';
+      // Renamed: sessionId is now the session being retried, so the one the
+      // reply carries - the session just created - needs its own name.
+      final newSessionId = data['sessionId'] as String? ?? '';
       final timeLimitMinutes =
           (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final rawQuestions = data['questions'] as List<dynamic>? ?? [];
@@ -162,19 +170,43 @@ class QuizNotifier extends Notifier<QuizState> {
 
       final totalSec = timeLimitMinutes * 60;
 
+      /// What the server says this session is about.
+      ///
+      /// A retry names no office, discipline or level in the request - it
+      /// names the session it is redoing - and the server answers with the
+      /// ones that session was played under. Reading them back is what keeps
+      /// the header on a retry reading "Patents · Beginner", rather than
+      /// taking it from the first question, which is only right by luck when
+      /// a session spans more than one.
+      ///
+      /// What was asked for still wins where there was something to ask for.
+      String pick(String? asked, String key, String fromQuestions) {
+        if (asked != null && asked.isNotEmpty) return asked;
+        final said = (data[key] as String?)?.trim() ?? '';
+        if (said.isNotEmpty) return said;
+        return fromQuestions;
+      }
+
       state = QuizState(
-        sessionId: sessionId,
+        sessionId: newSessionId,
         // A mistakes review or a marked quiz names no office, and may well
         // span several. The first question gives the header something true
         // to show rather than a default office the session is not about.
-        selectedOffice:
-            office ?? (questions.isNotEmpty ? questions.first.office : ''),
-        selectedSubdiscipline:
-            subject ??
-            (questions.isNotEmpty ? questions.first.discipline : 'Patents'),
-        selectedLevel:
-            level ??
-            (questions.isNotEmpty ? questions.first.level : 'Beginner'),
+        selectedOffice: pick(
+          office,
+          'office',
+          questions.isNotEmpty ? questions.first.office : '',
+        ),
+        selectedSubdiscipline: pick(
+          subject,
+          'subject',
+          questions.isNotEmpty ? questions.first.discipline : 'Patents',
+        ),
+        selectedLevel: pick(
+          level,
+          'level',
+          questions.isNotEmpty ? questions.first.level : 'Beginner',
+        ),
         questionCount: questions.length,
         questions: questions,
         currentIndex: 0,
@@ -184,7 +216,7 @@ class QuizNotifier extends Notifier<QuizState> {
         // resumed session cannot come back in the other mode.
         examMode: data['examMode'] as bool? ?? examMode,
         mode: mode,
-        selectedTheme: theme ?? '',
+        selectedTheme: pick(theme, 'theme', ''),
         isSubmitted: false,
         elapsedSeconds: 0,
         totalSeconds: totalSec,
@@ -723,27 +755,73 @@ class QuizNotifier extends Notifier<QuizState> {
   /// than sending the reader back through the menus.
   Future<bool> restartWithSameSettings() {
     final level = state.selectedLevel;
+    final hasLevel = level.isNotEmpty && level != 'All Levels';
+    final theme = state.selectedTheme;
+
+    /// The mode to start again in.
+    ///
+    /// Normally the one just played. A retry is the exception, because it is
+    /// not a setting: it means "ask me these particular questions again", and
+    /// those have now been asked. Starting another one would need the session
+    /// it came from, which has been played through. On a retry's result
+    /// screen "the same settings" means the ones its questions were drawn
+    /// under in the first place - the office, discipline, level and theme the
+    /// retry inherited and is showing in its own header.
+    final mode = state.mode != 'retry'
+        ? state.mode
+        : theme.isNotEmpty
+        ? 'by_theme'
+        : hasLevel
+        ? 'by_level'
+        : 'random';
+
     return startPracticeSession(
       office: state.selectedOffice,
-      mode: state.mode,
+      mode: mode,
       subject: state.selectedSubdiscipline,
-      level: (level.isEmpty || level == 'All Levels') ? null : level,
-      theme: state.selectedTheme.isEmpty ? null : state.selectedTheme,
+      // "A single level is never combined with a theme": by_theme runs all
+      // four levels and the server refuses a level sent with it.
+      level: (mode == 'by_theme' || !hasLevel) ? null : level,
+      theme: theme.isEmpty ? null : theme,
       examMode: state.examMode,
     );
   }
 
-  /// "Retry the wrong ones".
+  /// "Retry the wrong ones" on the result screen.
   ///
-  /// Served by the review_mistakes mode: "questions the user answered wrongly
-  /// before and has not yet answered correctly since" - which, straight after
-  /// a session, is the wrong ones from it. Scoped to the same office so the
-  /// retry stays about what was just practised.
+  /// The questions of this session that were got wrong or left unanswered -
+  /// all of them, nothing else, in the order they were asked.
+  ///
+  /// It used to start a review_mistakes session, which answers a different
+  /// question: every mistake the reader has left outstanding anywhere, drawn
+  /// twenty at a time, at whatever levels those mistakes happen to be at.
+  /// Marie tapped it after a Patents / Beginner session she had scored 2/20
+  /// in and was given twenty questions she had never seen, at mixed levels -
+  /// build 11, with the screenshots. Nothing on the screen could explain it,
+  /// because the right answer was never twenty of anything: it was eighteen.
+  ///
+  /// The session id is the whole request. Office, discipline, level and theme
+  /// are the server's to supply from the session being retried, so the header
+  /// cannot drift from the questions actually being asked.
+  ///
+  /// A retry is an ordinary session, so its own result screen offers a retry
+  /// of whatever is still wrong - eighteen, then five, then one - until a
+  /// session comes back with nothing left to retry and the button no longer
+  /// appears. That repetition is not arranged anywhere; it is what being an
+  /// ordinary session means.
   Future<bool> retryWrongOnes() {
+    final id = state.sessionId ?? '';
+    if (id.isEmpty) {
+      state = state.copyWith(errorMessage: 'There is nothing to retry yet.');
+      return Future.value(false);
+    }
+
     return startPracticeSession(
-      office: state.selectedOffice,
-      mode: 'review_mistakes',
-      examMode: false,
+      mode: 'retry',
+      sessionId: id,
+      // Sent for an older server; this one takes it from the session being
+      // retried, so a retry is played the way its session was.
+      examMode: state.examMode,
     );
   }
 
