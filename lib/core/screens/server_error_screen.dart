@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../network/server_availability_controller.dart';
 import '../theme/app_colors.dart';
@@ -20,7 +21,13 @@ class _ServerErrorScreenState extends State<ServerErrorScreen> {
     final success = await ServerAvailabilityController.instance.retry();
     if (!mounted) return;
 
-    if (!success) {
+    if (success) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        context.go('/');
+      }
+    } else {
       setState(() => _isRetrying = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

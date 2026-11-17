@@ -238,6 +238,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             // Office Filter
             _FilterDropdown(
               label: 'Office',
+              allLabel: 'All offices',
               value: state.selectedOffice,
               options: state.availableOffices,
               onSelected: (val) =>
@@ -248,6 +249,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             // Discipline Filter
             _FilterDropdown(
               label: 'Discipline',
+              allLabel: 'All discipline',
               value: state.selectedDiscipline,
               options: state.availableDisciplines,
               onSelected: (val) =>
@@ -258,6 +260,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             // Level Filter
             _FilterDropdown(
               label: 'Level',
+              allLabel: 'All levels',
               value: state.selectedLevel,
               options: state.availableLevels,
               onSelected: (val) =>
@@ -268,6 +271,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             // Theme Filter
             _FilterDropdown(
               label: 'Theme',
+              allLabel: 'All themes',
               value: state.selectedTheme,
               options: state.availableThemes,
               onSelected: (val) =>
@@ -328,12 +332,14 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
 
 class _FilterDropdown extends StatelessWidget {
   final String label;
+  final String? allLabel;
   final String? value;
   final List<String> options;
   final ValueChanged<String?> onSelected;
 
   const _FilterDropdown({
     required this.label,
+    this.allLabel,
     required this.value,
     required this.options,
     required this.onSelected,
@@ -350,7 +356,10 @@ class _FilterDropdown extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (context) {
         return [
-          PopupMenuItem<String?>(value: null, child: Text('All $label')),
+          PopupMenuItem<String?>(
+            value: null,
+            child: Text(allLabel ?? 'All $label'),
+          ),
           ...options.map(
             (opt) => PopupMenuItem<String?>(
               value: opt,

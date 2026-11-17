@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../error/exceptions.dart';
 import '../storage/local_storage.dart';
-import 'server_availability_controller.dart';
 
 class ApiClient {
   static const Duration _requestTimeout = Duration(seconds: 20);
@@ -197,12 +196,6 @@ class ApiClient {
       return decoded ?? {'statusCode': response.statusCode};
     }
 
-    if (response.statusCode == 408 || response.statusCode >= 500) {
-      ServerAvailabilityController.instance.reportUnavailable(
-        'Our server is temporarily unavailable. Please try again shortly.',
-      );
-    }
-
     String? errorMessage;
     if (decoded is Map<String, dynamic>) {
       if (decoded['message'] != null &&
@@ -276,6 +269,9 @@ class ApiClient {
           !response.body.contains('<html') &&
           response.body.length < 300) {
         errorMessage = response.body.trim();
+      } else if (response.statusCode >= 500) {
+        errorMessage =
+            'Server error (${response.statusCode}). Please try again later.';
       } else {
         errorMessage =
             'Request failed (${response.statusCode}). Please try again.';
@@ -320,15 +316,12 @@ class ApiClient {
         resend: (h) => _client.get(uri, headers: h),
       );
     } on SocketException {
-      _reportConnectionFailure();
       throw NetworkException(
         message: 'No internet connection. Please check your network.',
       );
     } on http.ClientException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'Unable to connect to the server.');
     } on TimeoutException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
@@ -363,15 +356,12 @@ class ApiClient {
         resend: (h) => _client.post(uri, headers: h, body: jsonBody),
       );
     } on SocketException {
-      _reportConnectionFailure();
       throw NetworkException(
         message: 'No internet connection. Please check your network.',
       );
     } on http.ClientException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'Unable to connect to the server.');
     } on TimeoutException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
@@ -406,15 +396,12 @@ class ApiClient {
         resend: (h) => _client.patch(uri, headers: h, body: jsonBody),
       );
     } on SocketException {
-      _reportConnectionFailure();
       throw NetworkException(
         message: 'No internet connection. Please check your network.',
       );
     } on http.ClientException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'Unable to connect to the server.');
     } on TimeoutException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
@@ -447,15 +434,12 @@ class ApiClient {
         resend: (h) => _client.delete(uri, headers: h),
       );
     } on SocketException {
-      _reportConnectionFailure();
       throw NetworkException(
         message: 'No internet connection. Please check your network.',
       );
     } on http.ClientException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'Unable to connect to the server.');
     } on TimeoutException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
@@ -512,27 +496,18 @@ class ApiClient {
       _logResponse('PATCH (Multipart)', uri, response);
       return _processResponse(response);
     } on SocketException {
-      _reportConnectionFailure();
       throw NetworkException(
         message: 'No internet connection. Please check your network.',
       );
     } on http.ClientException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'Unable to connect to the server.');
     } on TimeoutException {
-      _reportConnectionFailure();
       throw NetworkException(message: 'The server took too long to respond.');
     } on ApiException {
       rethrow;
     } catch (e) {
       throw ApiException(message: e.toString());
     }
-  }
-
-  void _reportConnectionFailure() {
-    ServerAvailabilityController.instance.reportUnavailable(
-      'We could not reach the server. Check your internet connection and try again.',
-    );
   }
 }
 
