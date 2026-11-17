@@ -494,7 +494,19 @@ class _MistakeQuestionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Options
-                  ...question.options.map((opt) {
+                  ...List.generate(question.options.length, (index) {
+                    final opt = question.options[index];
+                    /// The letter shown to the reader.
+                    ///
+                    /// The position in the list, never the option's own key - exactly
+                    /// as the quiz and the Answer Review print it. The server sends
+                    /// these options in the order the question was last asked in, so
+                    /// counting A, B, C, D down the list reproduces the letters the
+                    /// reader answered with. Printing opt.key instead showed the
+                    /// workbook's own letter, which is why the same answer could read
+                    /// "C" here and "D" in the quiz.
+                    final optionLetter = String.fromCharCode(65 + index);
+
                     final isCorrect = opt.isCorrect;
                     final isChosen = opt.key == question.selectedKey;
                     Color optBg = const Color(0xFFFAFAFA);
@@ -526,7 +538,7 @@ class _MistakeQuestionCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${opt.key}. ',
+                            '$optionLetter. ',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: textColor,
