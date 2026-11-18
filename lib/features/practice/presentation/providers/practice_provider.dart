@@ -37,9 +37,35 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
       } else {
         updatedTopic = null;
       }
+      String? currentLevel = state.level;
+      int? questions = state.previewQuestions;
+      int? minutes = state.previewMinutes;
+      if (updatedTopic != null && disciplines.isNotEmpty) {
+        final nonNullTopic = updatedTopic;
+        final disc = disciplines.firstWhere(
+          (d) => d.name.toLowerCase() == nonNullTopic.toLowerCase(),
+          orElse: () => disciplines.first,
+        );
+        final matches = disc.levels.where(
+          (item) =>
+              item.level.toLowerCase() == (currentLevel ?? '').toLowerCase(),
+        );
+        if (matches.isNotEmpty) {
+          questions = matches.first.questionsPerSession;
+          minutes = matches.first.minutes;
+        } else if (disc.levels.isNotEmpty) {
+          final firstLevel = disc.levels.first;
+          currentLevel = firstLevel.level;
+          questions = firstLevel.questionsPerSession;
+          minutes = firstLevel.minutes;
+        }
+      }
       state = state.copyWith(
         disciplines: disciplines,
         topic: updatedTopic,
+        level: currentLevel,
+        previewQuestions: questions,
+        previewMinutes: minutes,
         isLoadingDisciplines: false,
       );
       if (updatedTopic != null) {
@@ -79,7 +105,38 @@ class PracticeNotifier extends Notifier<PracticeSelection> {
   void setTopic(String topic) {
     // Called from a tap on Home or on the discipline screen, never from a
     // default, so this is where the choice is recorded.
-    state = state.copyWith(topic: topic, topicChosen: true);
+    final disc = state.disciplines.where(
+      (item) => item.name.toLowerCase() == topic.toLowerCase(),
+    );
+    int? questions = state.previewQuestions;
+    int? minutes = state.previewMinutes;
+    String? currentLevel = state.level;
+
+    if (state.mode == 'by_level' && disc.isNotEmpty) {
+      final matches = disc.first.levels.where(
+        (item) => item.level.toLowerCase() == (currentLevel ?? '').toLowerCase(),
+      );
+      if (matches.isNotEmpty) {
+        questions = matches.first.questionsPerSession;
+        minutes = matches.first.minutes;
+      } else if (disc.first.levels.isNotEmpty) {
+        final firstLevel = disc.first.levels.first;
+        currentLevel = firstLevel.level;
+        questions = firstLevel.questionsPerSession;
+        minutes = firstLevel.minutes;
+      }
+    }
+
+    state = state.copyWith(
+      topic: topic,
+      topicChosen: true,
+      level: currentLevel,
+      theme: (state.mode == 'by_theme' || state.mode == 'theme_across_offices')
+          ? null
+          : state.theme,
+      previewQuestions: questions,
+      previewMinutes: minutes,
+    );
     final office = state.jurisdiction ?? 'IPI';
     loadThemes(office, topic);
   }

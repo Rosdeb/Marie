@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
+import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../../subscription/presentation/widgets/plan_upsell_bottom_sheet.dart';
@@ -278,6 +279,62 @@ class ExamReadyScreen extends ConsumerWidget {
                           return;
                         }
 
+                        // Validate mode requirements before starting session
+                        if (selection.mode == 'by_theme' ||
+                            selection.mode == 'theme_across_offices') {
+                          if (selection.theme == null ||
+                              selection.theme!.trim().isEmpty) {
+                            FloatingErrorBar.show(
+                              context,
+                              message:
+                                  'Please choose a theme before starting this session.',
+                            );
+                            return;
+                          }
+                        }
+
+                        if (selection.mode == 'by_level') {
+                          if (selection.level == null ||
+                              selection.level!.trim().isEmpty) {
+                            FloatingErrorBar.show(
+                              context,
+                              message:
+                                  'Please choose a level before starting this session.',
+                            );
+                            return;
+                          }
+                        }
+
+                        if (selection.mode == 'theme_across_offices') {
+                          if (selection.offices.isEmpty) {
+                            FloatingErrorBar.show(
+                              context,
+                              message:
+                                  'Please choose offices before starting this session.',
+                            );
+                            return;
+                          }
+                        }
+
+                        if (jurisdiction.isEmpty) {
+                          FloatingErrorBar.show(
+                            context,
+                            message:
+                                'Please choose an office before starting this session.',
+                          );
+                          return;
+                        }
+
+                        if (selection.topic == null ||
+                            selection.topic!.trim().isEmpty) {
+                          FloatingErrorBar.show(
+                            context,
+                            message:
+                                'Please choose a discipline before starting this session.',
+                          );
+                          return;
+                        }
+
                         final success = await ref
                             .read(quizProvider.notifier)
                             .startPracticeSession(
@@ -315,12 +372,7 @@ class ExamReadyScreen extends ConsumerWidget {
                                 territory: 'Official IP Office',
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(err),
-                                  backgroundColor: AppColors.error,
-                                ),
-                              );
+                              FloatingErrorBar.show(context, message: err);
                             }
                           }
                         }

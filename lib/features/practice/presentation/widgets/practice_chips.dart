@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/office_entity.dart';
 import '../providers/offices_provider.dart';
@@ -138,6 +139,12 @@ class PracticeChips extends ConsumerWidget {
     if (picked == null) return;
     ref.read(practiceProvider.notifier).setTopic(picked.name);
     ref.read(quizProvider.notifier).setSubdiscipline(picked.name);
+
+    if (!context.mounted) return;
+    final mode = ref.read(practiceProvider).mode;
+    if (mode == 'by_theme' || mode == 'theme_across_offices') {
+      context.pushReplacement('/practice/choose-theme');
+    }
   }
 
   Future<void> _pickMode(BuildContext context, WidgetRef ref) async {
@@ -162,7 +169,28 @@ class PracticeChips extends ConsumerWidget {
     );
 
     if (picked == null) return;
+    final currentMode = ref.read(practiceProvider).mode;
+    if (currentMode == picked.key) return;
+
     ref.read(practiceProvider.notifier).setMode(picked.key);
+
+    if (!context.mounted) return;
+
+    // Follow the exact same flow as ChoosePracticeModeScreen
+    switch (picked.key) {
+      case 'by_level':
+        context.pushReplacement('/practice/choose-level');
+        break;
+      case 'by_theme':
+      case 'theme_across_offices':
+        context.pushReplacement('/practice/choose-theme');
+        break;
+      case 'random':
+      case 'review_mistakes':
+      case 'learning_path':
+        context.pushReplacement('/practice/exam-ready');
+        break;
+    }
   }
 
   /// One sheet for all three, so the three chips behave identically.
