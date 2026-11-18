@@ -249,7 +249,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             // Discipline Filter
             _FilterDropdown(
               label: 'Discipline',
-              allLabel: 'All discipline',
+              allLabel: 'All disciplines',
               value: state.selectedDiscipline,
               options: state.availableDisciplines,
               onSelected: (val) =>
