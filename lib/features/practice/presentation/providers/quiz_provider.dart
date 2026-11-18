@@ -862,7 +862,25 @@ class QuizNotifier extends Notifier<QuizState> {
         _localStorage.clearSessionRemainingTime(sessionId);
         return;
       } catch (e) {
-        // Submit failed remotely, continue with local scoring
+        /**
+         * The server could not be reached, or could not be understood.
+         *
+         * The quiz is still over for the reader - they are taken to the
+         * result screen, scored from what the phone knows - but whether the
+         * session was finished on the server is now unknown. It may well have
+         * been: the submit completes and saves the session before it does
+         * anything else, so a timeout on the way back leaves a session that
+         * is finished on the server and still open here.
+         *
+         * Home is therefore asked again rather than told. The paused card is
+         * not cleared from here, because if the submit really did not arrive
+         * the session is still open and the reader should keep the offer to
+         * resume it; and if it did arrive, the server will say so and the
+         * card goes. Leaving Home untouched is what left a "Continue" card
+         * pointing at a quiz the reader had already finished, which answered
+         * "That session was already finished" when they tapped it.
+         */
+        ref.read(homeProvider.notifier).load();
       }
     }
 
