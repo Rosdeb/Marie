@@ -400,11 +400,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       spacing: 10,
       runSpacing: 10,
       children: disciplines.map((d) {
-        final isSelected = activeDiscipline.replaceAll(' ', '').toLowerCase() ==
-            d.name.toLowerCase();
+        final isSelected = activeDiscipline.replaceAll(' ', '').toLowerCase() == d.name.toLowerCase();
         final levelCount = d.levels.where((level) => level.isAvailable).length;
-        final sub =
-            '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
+        final sub = '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
         final isFullWidth = disciplines.length.isOdd && d == disciplines.last;
 
         return SizedBox(

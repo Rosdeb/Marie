@@ -150,6 +150,23 @@ class LocalStorage {
     await prefs.remove(_homeDataKey);
   }
 
+  static const String _sessionRemainingPrefix = 'quiz_remaining_sec_';
+
+  Future<void> saveSessionRemainingTime(String sessionId, int remainingSeconds) async {
+    final prefs = await _instance;
+    await prefs.setInt('$_sessionRemainingPrefix$sessionId', remainingSeconds);
+  }
+
+  Future<int?> getSessionRemainingTime(String sessionId) async {
+    final prefs = await _instance;
+    return prefs.getInt('$_sessionRemainingPrefix$sessionId');
+  }
+
+  Future<void> clearSessionRemainingTime(String sessionId) async {
+    final prefs = await _instance;
+    await prefs.remove('$_sessionRemainingPrefix$sessionId');
+  }
+
   Future<void> clearAuth() async {
     final prefs = await _instance;
     await prefs.remove(AppConstants.accessTokenKey);

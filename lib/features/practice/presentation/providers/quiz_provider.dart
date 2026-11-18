@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../../review/presentation/providers/marked_questions_provider.dart';
 import '../../../review/presentation/providers/mistakes_review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
@@ -12,6 +13,7 @@ class QuizNotifier extends Notifier<QuizState> {
   Timer? _timer;
   AppLifecycleListener? _lifecycle;
   late final PracticeRepository _practiceRepository;
+  late final LocalStorage _localStorage;
 
   /// Whether the quiz's clock is meant to be running.
   ///
@@ -26,6 +28,7 @@ class QuizNotifier extends Notifier<QuizState> {
   @override
   QuizState build() {
     _practiceRepository = ref.watch(practiceRepositoryProvider);
+    _localStorage = ref.watch(localStorageProvider);
 
     /**
      * The quiz is paused while the app is not in front of the reader.
@@ -57,6 +60,17 @@ class QuizNotifier extends Notifier<QuizState> {
   void _pauseClock() {
     _timer?.cancel();
     _timer = null;
+    _persistRemainingTime();
+  }
+
+  void _persistRemainingTime() {
+    final sessionId = state.sessionId;
+    if (sessionId != null &&
+        sessionId.isNotEmpty &&
+        state.remainingSeconds > 0 &&
+        !state.isSubmitted) {
+      _localStorage.saveSessionRemainingTime(sessionId, state.remainingSeconds);
+    }
   }
 
   /// Starts ticking again, if the clock was running when it was paused.
@@ -369,6 +383,9 @@ class QuizNotifier extends Notifier<QuizState> {
       final fromServer =
           (data['remainingSeconds'] as num?)?.toInt() ?? totalSec;
 
+      final localRemaining =
+          await _localStorage.getSessionRemainingTime(sessionId);
+
       /**
        * The clock this session comes back with.
        *
@@ -385,11 +402,15 @@ class QuizNotifier extends Notifier<QuizState> {
           state.totalSeconds > 0 &&
           !state.isSubmitted;
 
-      var remaining = keptOwnClock
-          ? (state.remainingSeconds < fromServer
-                ? state.remainingSeconds
-                : fromServer)
-          : fromServer;
+      var remaining = fromServer;
+      if (localRemaining != null &&
+          localRemaining > 0 &&
+          localRemaining < remaining) {
+        remaining = localRemaining;
+      }
+      if (keptOwnClock && state.remainingSeconds < remaining) {
+        remaining = state.remainingSeconds;
+      }
       if (remaining < 0) remaining = 0;
       if (remaining > totalSec) remaining = totalSec;
 
@@ -576,6 +597,11 @@ class QuizNotifier extends Notifier<QuizState> {
         remainingSeconds: remaining,
         timeSpentPerQuestion: updatedSpent,
       );
+
+      // Periodically persist timer so closing/killing the app saves the exact time
+      if (remaining % 5 == 0) {
+        _persistRemainingTime();
+      }
     });
   }
 
@@ -828,6 +854,7 @@ class QuizNotifier extends Notifier<QuizState> {
           byThemeFromApi: byThemeSlices,
           reviewQuestions: reviewQuestions,
         );
+        _localStorage.clearSessionRemainingTime(sessionId);
         return;
       } catch (e) {
         // Submit failed remotely, continue with local scoring

@@ -1104,38 +1104,21 @@ class _MyOfficesSection extends ConsumerWidget {
           final shortCode = o.code.isNotEmpty ? o.code : o.label;
           final territory = officeTerritory(shortCode);
           final fullName = officeFullName(shortCode);
-          final displayTitle = territory.isNotEmpty && fullName.isNotEmpty
-              ? '$territory – $fullName'
-              : (fullName.isNotEmpty
-                  ? fullName
-                  : (territory.isNotEmpty ? territory : officeLabel(shortCode)));
+          final badge = officeLabel(shortCode);
 
-          return _Line(
-            title: displayTitle,
-            subtitle: o.hasContent
-                ? '${o.percentage}% completed · ${o.questionsAnswered} of ${o.questionsTotal} questions'
-                : 'No questions imported yet',
-            leading: _OfficeCircleBadge(code: shortCode),
-            trailing: o.hasContent
-                ? SizedBox(
-                    width: 52,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: (o.percentage / 100).clamp(0.0, 1.0),
-                        minHeight: 6,
-                        backgroundColor: AppColors.border,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          o.percentage >= 75
-                              ? const Color(0xFF10B981)
-                              : (o.percentage >= 35
-                                    ? AppColors.primary
-                                    : const Color(0xFFF59E0B)),
-                        ),
-                      ),
-                    ),
-                  )
-                : null,
+          final title = territory.isNotEmpty
+              ? territory
+              : (fullName.isNotEmpty ? fullName : badge);
+          final subtitle = fullName.isNotEmpty ? fullName : badge;
+          final progress = o.hasContent
+              ? '${o.percentage}% · ${o.questionsAnswered} of ${o.questionsTotal}'
+              : 'No questions imported yet';
+
+          return OfficeStatusCard(
+            badgeText: badge,
+            title: title,
+            subtitle: subtitle,
+            progressText: progress,
             onTap: () {
               ref.read(practiceProvider.notifier).setJurisdiction(o.code);
               ref.read(bottomNavProvider.notifier).changeIndex(1);
@@ -1180,44 +1163,122 @@ class _MyOfficesSection extends ConsumerWidget {
   }
 }
 
-class _OfficeCircleBadge extends StatelessWidget {
-  const _OfficeCircleBadge({required this.code});
+class OfficeStatusCard extends StatelessWidget {
+  final String badgeText;
+  final String title;
+  final String subtitle;
+  final String progressText;
+  final VoidCallback? onTap;
 
-  final String code;
+  const OfficeStatusCard({
+    super.key,
+    required this.badgeText,
+    required this.title,
+    required this.subtitle,
+    required this.progressText,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final cleanCode = officeLabel(code);
-    final isLong = cleanCode.length > 3;
-
     return Container(
-      width: 46,
-      height: 46,
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFFF0F4FF),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFF0EDE8),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: 3,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(3.0),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              cleanCode,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: isLong ? 11.0 : 13.0,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.2,
-                color: AppColors.primary,
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
+              children: [
+                // Circular Badge
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEDF0F7),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        badgeText,
+                        style: const TextStyle(
+                          color: Color(0xFF284376),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Text Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        progressText,
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Trailing Chevron
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFF9CA3AF),
+                  size: 22,
+                ),
+              ],
             ),
           ),
         ),
