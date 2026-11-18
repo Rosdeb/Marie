@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../review/presentation/providers/marked_questions_provider.dart';
 import '../../../review/presentation/providers/mistakes_review_provider.dart';
@@ -9,15 +10,61 @@ import '../../data/repositories/practice_repository_impl.dart';
 
 class QuizNotifier extends Notifier<QuizState> {
   Timer? _timer;
+  AppLifecycleListener? _lifecycle;
   late final PracticeRepository _practiceRepository;
+
+  /// Whether the quiz's clock is meant to be running.
+  ///
+  /// Distinct from whether the Timer is ticking. Leaving the quiz screen
+  /// stops the clock for good - the session is suspended - while the app
+  /// going to the background only pauses it, and the difference decides
+  /// whether coming back should start it again. Without the distinction, a
+  /// reader who left the quiz and later reopened the app would have found
+  /// the clock running on a quiz that was not on screen.
+  bool _clockWanted = false;
 
   @override
   QuizState build() {
     _practiceRepository = ref.watch(practiceRepositoryProvider);
+
+    /**
+     * The quiz is paused while the app is not in front of the reader.
+     *
+     * "Closing the app suspends it": a phone call, a lock screen or a switch
+     * to another app must not spend the quiz's time. Held here rather than on
+     * the screen because the clock is held here too, and a screen that is
+     * rebuilt - or popped and pushed again by the router - must not be able
+     * to disturb it.
+     */
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (lifecycleState) {
+        if (lifecycleState == AppLifecycleState.resumed) {
+          _resumeClock();
+        } else {
+          _pauseClock();
+        }
+      },
+    );
+
     ref.onDispose(() {
       _timer?.cancel();
+      _lifecycle?.dispose();
     });
     return QuizState();
+  }
+
+  /// Stops the ticking, leaving the remaining time exactly where it is.
+  void _pauseClock() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  /// Starts ticking again, if the clock was running when it was paused.
+  void _resumeClock() {
+    if (!_clockWanted) return;
+    if (_timer?.isActive ?? false) return;
+    if (state.isSubmitted || state.questions.isEmpty) return;
+    _startTimer();
   }
 
   void setOffice(String office) {
@@ -319,8 +366,32 @@ class QuizNotifier extends Notifier<QuizState> {
       final timeLimitMinutes =
           (data['timeLimitMinutes'] as num?)?.toInt() ?? 20;
       final totalSec = timeLimitMinutes * 60;
-      final remaining = (data['remainingSeconds'] as num?)?.toInt() ?? totalSec;
-      final elapsed = (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
+      final fromServer =
+          (data['remainingSeconds'] as num?)?.toInt() ?? totalSec;
+
+      /**
+       * The clock this session comes back with.
+       *
+       * The server counts the time the reader actually spent, which is the
+       * right figure after the app has been closed, but it is short by
+       * whatever was spent on the question that was on screen and never
+       * confirmed. Where the app is still holding this very session - the
+       * reader only left the screen - its own clock has that second-by-second
+       * figure, so the lower of the two is taken: the app's where it has one,
+       * and never more time than the server would allow.
+       */
+      final keptOwnClock =
+          state.sessionId == sessionId &&
+          state.totalSeconds > 0 &&
+          !state.isSubmitted;
+
+      var remaining = keptOwnClock
+          ? (state.remainingSeconds < fromServer
+                ? state.remainingSeconds
+                : fromServer)
+          : fromServer;
+      if (remaining < 0) remaining = 0;
+      if (remaining > totalSec) remaining = totalSec;
 
       state = QuizState(
         sessionId: data['sessionId'] as String? ?? sessionId,
@@ -340,11 +411,10 @@ class QuizNotifier extends Notifier<QuizState> {
         mode: data['mode'] as String? ?? 'by_level',
         selectedTheme: data['theme'] as String? ?? '',
         isSubmitted: false,
-        // The clock the server has, clamped to the limit: a session left open
-        // overnight comes back with no time rather than with a negative one.
-        elapsedSeconds: elapsed > totalSec ? totalSec : elapsed,
+        // Read off the time left, so the two can never disagree.
+        elapsedSeconds: totalSec - remaining,
         totalSeconds: totalSec,
-        remainingSeconds: remaining < 0 ? 0 : remaining,
+        remainingSeconds: remaining,
       );
 
       /**
@@ -471,23 +541,41 @@ class QuizNotifier extends Notifier<QuizState> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.remainingSeconds > 1 &&
-          state.elapsedSeconds < state.totalSeconds) {
-        final currentSpent =
-            (state.timeSpentPerQuestion[state.currentIndex] ?? 0) + 1;
-        final updatedSpent = Map<int, int>.from(state.timeSpentPerQuestion);
-        updatedSpent[state.currentIndex] = currentSpent;
+    _clockWanted = true;
 
-        state = state.copyWith(
-          elapsedSeconds: state.elapsedSeconds + 1,
-          remainingSeconds: state.remainingSeconds - 1,
-          timeSpentPerQuestion: updatedSpent,
-        );
-      } else {
-        _timer?.cancel();
+    // A session with no time limit has no countdown to run.
+    if (state.totalSeconds <= 0) return;
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      /**
+       * The time left is the one clock.
+       *
+       * It used to stop on either "more than a second left" or "elapsed
+       * still under the total", which are two clocks saying the same thing
+       * and able to disagree the moment a resumed session set them from two
+       * separate figures. Counting the remaining seconds down and reading
+       * the elapsed off it leaves nothing to disagree about - and it reaches
+       * 00:00 now, where before it submitted at 00:01.
+       */
+      if (state.remainingSeconds <= 0) {
+        _pauseClock();
+        _clockWanted = false;
         submitQuiz();
+        return;
       }
+
+      final currentSpent =
+          (state.timeSpentPerQuestion[state.currentIndex] ?? 0) + 1;
+      final updatedSpent = Map<int, int>.from(state.timeSpentPerQuestion);
+      updatedSpent[state.currentIndex] = currentSpent;
+
+      final remaining = state.remainingSeconds - 1;
+
+      state = state.copyWith(
+        elapsedSeconds: state.totalSeconds - remaining,
+        remainingSeconds: remaining,
+        timeSpentPerQuestion: updatedSpent,
+      );
     });
   }
 
@@ -852,12 +940,17 @@ class QuizNotifier extends Notifier<QuizState> {
     }
   }
 
+  /// Leaving the quiz screen: the session is suspended, so the clock is
+  /// stopped rather than paused and coming back to the app will not restart
+  /// it. Reopening the session does, through resumeSession.
   void stopTimer() {
-    _timer?.cancel();
+    _clockWanted = false;
+    _pauseClock();
   }
 
   void reset() {
-    _timer?.cancel();
+    _clockWanted = false;
+    _pauseClock();
     state = QuizState();
   }
 }
