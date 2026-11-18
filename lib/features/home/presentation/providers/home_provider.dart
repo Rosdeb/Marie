@@ -33,13 +33,11 @@ class HomeState {
 }
 
 class HomeNotifier extends Notifier<HomeState> {
-  late ApiClient _apiClient;
-  late LocalStorage _storage;
+  ApiClient get _apiClient => ref.read(apiClientProvider);
+  final LocalStorage _storage = LocalStorage();
 
   @override
   HomeState build() {
-    _apiClient = ref.watch(apiClientProvider);
-    _storage = ref.watch(localStorageProvider);
     final isAuth = ref.watch(authProvider.select((s) => s.isAuthenticated));
     if (isAuth) {
       Future.microtask(_init);
@@ -53,7 +51,9 @@ class HomeNotifier extends Notifier<HomeState> {
     try {
       final cachedJson = await _storage.getHomeData();
       if (cachedJson != null) {
-        final cachedData = HomeData.fromJson(cachedJson);
+        final cachedData = await _dropFinishedPaused(
+          HomeData.fromJson(cachedJson),
+        );
         state = state.copyWith(data: cachedData);
       } else {
         final user = ref.read(authProvider).currentUser;
@@ -77,22 +77,46 @@ class HomeNotifier extends Notifier<HomeState> {
     state = const HomeState(isLoading: false, data: null);
   }
 
-  void clearPausedSession() {
+  /// Removes the "Paused quiz" card.
+  ///
+  /// Pass [finishedSessionId] when that session is known to be finished. It is
+  /// remembered, because `/home` can keep returning a finished session as
+  /// paused, and without this the card came straight back on the next load and
+  /// answered "That session was already finished" every time it was tapped.
+  void clearPausedSession({String? finishedSessionId}) {
+    if (finishedSessionId != null && finishedSessionId.isNotEmpty) {
+      _finishedSessionIds.add(finishedSessionId);
+      _storage.addFinishedSessionId(finishedSessionId);
+    }
     final current = state.data;
     if (current != null && current.pausedSession != null) {
-      final updatedData = HomeData(
-        greeting: current.greeting,
-        pausedSession: null,
-        learningPath: current.learningPath,
-        questionOfTheDay: current.questionOfTheDay,
-        mistakes: current.mistakes,
-        markedQuestions: current.markedQuestions,
-        thisWeek: current.thisWeek,
-        offices: current.offices,
-        badges: current.badges,
-      );
-      state = state.copyWith(data: updatedData);
+      state = state.copyWith(data: _withoutPaused(current));
     }
+  }
+
+  final Set<String> _finishedSessionIds = {};
+
+  Future<HomeData> _dropFinishedPaused(HomeData data) async {
+    final paused = data.pausedSession;
+    if (paused == null) return data;
+    _finishedSessionIds.addAll(await _storage.getFinishedSessionIds());
+    return _finishedSessionIds.contains(paused.sessionId)
+        ? _withoutPaused(data)
+        : data;
+  }
+
+  HomeData _withoutPaused(HomeData current) {
+    return HomeData(
+      greeting: current.greeting,
+      pausedSession: null,
+      learningPath: current.learningPath,
+      questionOfTheDay: current.questionOfTheDay,
+      mistakes: current.mistakes,
+      markedQuestions: current.markedQuestions,
+      thisWeek: current.thisWeek,
+      offices: current.offices,
+      badges: current.badges,
+    );
   }
 
   Future<void> load() async {
@@ -122,7 +146,7 @@ class HomeNotifier extends Notifier<HomeState> {
       }
 
       if (body != null) {
-        final homeData = HomeData.fromJson(body);
+        final homeData = await _dropFinishedPaused(HomeData.fromJson(body));
         state = HomeState(isLoading: false, data: homeData);
         await _storage.saveHomeData(body);
         return;

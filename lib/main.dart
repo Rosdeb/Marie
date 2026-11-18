@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/storage/local_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -36,6 +38,10 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    ApiClient.onUnauthorized = () {
+      ref.read(authProvider.notifier).logout();
+      AppRouter.router.go('/onboarding');
+    };
     if (!kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         PushNotificationService.instance.initialize(

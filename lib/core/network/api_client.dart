@@ -7,10 +7,13 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../error/exceptions.dart';
 import '../storage/local_storage.dart';
-import 'server_availability_controller.dart';
 
 class ApiClient {
   static const Duration _requestTimeout = Duration(seconds: 20);
+
+  /// Global callback invoked when an authenticated session has expired and cannot be renewed.
+  /// Used for seamless auto-logout back to onboarding/login.
+  static VoidCallback? onUnauthorized;
 
   final http.Client _client;
   final LocalStorage localStorage;
@@ -177,7 +180,11 @@ class ApiClient {
         !path.contains(ApiConstants.login);
 
     if (!looksExpired) return _processResponse(response);
-    if (!await _refreshSession()) return _processResponse(response);
+    if (!await _refreshSession()) {
+      await localStorage.clearAuth();
+      onUnauthorized?.call();
+      return _processResponse(response);
+    }
 
     final headers = await _headers(requiresAuth: true);
     final retried = await resend(headers).timeout(_requestTimeout);
@@ -194,14 +201,7 @@ class ApiClient {
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      ServerAvailabilityController.instance.clear();
       return decoded ?? {'statusCode': response.statusCode};
-    }
-
-    if (response.statusCode >= 500 || response.statusCode == 408) {
-      ServerAvailabilityController.instance.reportUnavailable(
-        'Our server is temporarily unavailable. Please try again shortly.',
-      );
     }
 
     String? errorMessage;

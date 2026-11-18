@@ -93,9 +93,14 @@ class PracticeChips extends ConsumerWidget {
   // ------------------------------------------------------------ the pickers
 
   Future<void> _pickOffice(BuildContext context, WidgetRef ref) async {
+    final practiceNotifier = ref.read(practiceProvider.notifier);
+    final quizNotifier = ref.read(quizProvider.notifier);
+    final officesNotifier = ref.read(officesProvider.notifier);
+    final currentOffice = ref.read(practiceProvider).jurisdiction;
+
     var offices = ref.read(officesProvider).offices;
     if (offices.isEmpty) {
-      await ref.read(officesProvider.notifier).fetchOffices();
+      await officesNotifier.fetchOffices();
       if (!context.mounted) return;
       offices = ref.read(officesProvider).offices;
     }
@@ -104,7 +109,7 @@ class PracticeChips extends ConsumerWidget {
       context,
       title: 'Office',
       items: offices,
-      isCurrent: (o) => o.code == ref.read(practiceProvider).jurisdiction,
+      isCurrent: (o) => o.code == currentOffice,
       label: (o) => o.name.isNotEmpty ? o.name : o.code,
       detail: (o) {
         if (o.disciplines.isNotEmpty) {
@@ -118,36 +123,41 @@ class PracticeChips extends ConsumerWidget {
       empty: 'No offices available.',
     );
 
-    if (picked == null) return;
-    ref.read(practiceProvider.notifier).setJurisdiction(picked.code);
-    ref.read(quizProvider.notifier).setOffice(picked.code);
+    if (picked == null || !context.mounted) return;
+    practiceNotifier.setJurisdiction(picked.code);
+    quizNotifier.setOffice(picked.code);
   }
 
   Future<void> _pickDiscipline(BuildContext context, WidgetRef ref) async {
+    final practiceNotifier = ref.read(practiceProvider.notifier);
+    final quizNotifier = ref.read(quizProvider.notifier);
+    final currentTopic = ref.read(practiceProvider).topic;
+    final currentMode = ref.read(practiceProvider).mode;
     final disciplines = ref.read(practiceProvider).disciplines;
 
     final picked = await _showPicker(
       context,
       title: 'Discipline',
       items: disciplines,
-      isCurrent: (d) => d.name == ref.read(practiceProvider).topic,
+      isCurrent: (d) => d.name == currentTopic,
       label: (d) => d.displayName,
       detail: (d) => '${d.questions} questions',
       empty: 'This office has no imported questions yet.',
     );
 
-    if (picked == null) return;
-    ref.read(practiceProvider.notifier).setTopic(picked.name);
-    ref.read(quizProvider.notifier).setSubdiscipline(picked.name);
+    if (picked == null || !context.mounted) return;
+    practiceNotifier.setTopic(picked.name);
+    quizNotifier.setSubdiscipline(picked.name);
 
     if (!context.mounted) return;
-    final mode = ref.read(practiceProvider).mode;
-    if (mode == 'by_theme' || mode == 'theme_across_offices') {
+    if (currentMode == 'by_theme' || currentMode == 'theme_across_offices') {
       context.pushReplacement('/practice/choose-theme');
     }
   }
 
   Future<void> _pickMode(BuildContext context, WidgetRef ref) async {
+    final practiceNotifier = ref.read(practiceProvider.notifier);
+    final currentMode = ref.read(practiceProvider).mode;
     final office = ref.read(practiceProvider).jurisdiction ?? '';
 
     final entries = _modeLabels.entries
@@ -162,17 +172,16 @@ class PracticeChips extends ConsumerWidget {
       context,
       title: 'How to practise',
       items: entries,
-      isCurrent: (e) => e.key == ref.read(practiceProvider).mode,
+      isCurrent: (e) => e.key == currentMode,
       label: (e) => e.value,
       detail: (e) => '',
       empty: '',
     );
 
-    if (picked == null) return;
-    final currentMode = ref.read(practiceProvider).mode;
+    if (picked == null || !context.mounted) return;
     if (currentMode == picked.key) return;
 
-    ref.read(practiceProvider.notifier).setMode(picked.key);
+    practiceNotifier.setMode(picked.key);
 
     if (!context.mounted) return;
 

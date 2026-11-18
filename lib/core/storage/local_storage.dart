@@ -167,8 +167,30 @@ class LocalStorage {
     await prefs.remove('$_sessionRemainingPrefix$sessionId');
   }
 
+  /// Sessions the phone knows are finished, so Home can drop a "Paused quiz"
+  /// card the server still offers for one of them.
+  static const String _finishedSessionsKey = 'finished_session_ids';
+  static const int _finishedSessionsLimit = 50;
+
+  Future<void> addFinishedSessionId(String sessionId) async {
+    final prefs = await _instance;
+    final ids = prefs.getStringList(_finishedSessionsKey) ?? <String>[];
+    if (ids.contains(sessionId)) return;
+    ids.add(sessionId);
+    if (ids.length > _finishedSessionsLimit) {
+      ids.removeRange(0, ids.length - _finishedSessionsLimit);
+    }
+    await prefs.setStringList(_finishedSessionsKey, ids);
+  }
+
+  Future<Set<String>> getFinishedSessionIds() async {
+    final prefs = await _instance;
+    return (prefs.getStringList(_finishedSessionsKey) ?? <String>[]).toSet();
+  }
+
   Future<void> clearAuth() async {
     final prefs = await _instance;
+    await prefs.remove(_finishedSessionsKey);
     await prefs.remove(AppConstants.accessTokenKey);
     await prefs.remove(AppConstants.refreshTokenKey);
     await prefs.remove(AppConstants.userDataKey);

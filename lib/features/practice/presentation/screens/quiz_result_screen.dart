@@ -94,6 +94,7 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
             _TopHeader(
               title: subtitleHeader,
               onClose: () {
+                ref.read(homeProvider.notifier).clearPausedSession();
                 ref.read(homeProvider.notifier).load();
                 ref.read(quizProvider.notifier).reset();
                 ref.read(bottomNavProvider.notifier).changeIndex(1);
@@ -191,6 +192,7 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
                   ref.read(practiceProvider.notifier).setTopic(currentDiscipline);
                 }
 
+                ref.read(homeProvider.notifier).clearPausedSession();
                 ref.read(homeProvider.notifier).load();
                 ref.read(quizProvider.notifier).reset();
                 ref.read(bottomNavProvider.notifier).changeIndex(1);

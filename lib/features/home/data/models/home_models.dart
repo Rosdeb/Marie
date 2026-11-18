@@ -434,6 +434,10 @@ class HomeData {
     final today = sub('today') ?? const {};
 
     final pausedMap = cont['pausedSession'];
+    final isCompletedSession = pausedMap is Map &&
+        (pausedMap['status'] == 'completed' ||
+            pausedMap['status'] == 'finished' ||
+            pausedMap['isCompleted'] == true);
     final pathMap = cont['learningPath'];
     final qotdMap = today['questionOfTheDay'];
     final mistakesMap = today['mistakes'];
@@ -446,7 +450,7 @@ class HomeData {
 
     return HomeData(
       greeting: HomeGreeting.fromJson(sub('greeting') ?? const {}),
-      pausedSession: pausedMap is Map
+      pausedSession: (pausedMap is Map && !isCompletedSession)
           ? HomePausedSession.fromJson(Map<String, dynamic>.from(pausedMap))
           : null,
       learningPath: pathMap is Map
