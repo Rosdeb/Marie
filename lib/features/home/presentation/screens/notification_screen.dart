@@ -61,9 +61,11 @@ class NotificationScreen extends ConsumerWidget {
           : RefreshIndicator(
               onRefresh: () =>
                   ref.read(notificationProvider.notifier).fetchNotifications(),
-              child: notifications.isEmpty
-                  ? _buildEmptyState(context)
-                  : SafeArea(
+              child: notifState.errorMessage != null && notifications.isEmpty
+                  ? _buildErrorState(context, ref, notifState.errorMessage!)
+                  : notifications.isEmpty
+                      ? _buildEmptyState(context)
+                      : SafeArea(
                       child: ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(
                           parent: BouncingScrollPhysics(),
@@ -175,6 +177,69 @@ class NotificationScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, String error) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  size: 36,
+                  color: AppColors.error,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Could not load notifications',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  error,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () => ref
+                    .read(notificationProvider.notifier)
+                    .fetchNotifications(),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try Again'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

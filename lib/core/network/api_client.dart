@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../error/exceptions.dart';
 import '../storage/local_storage.dart';
+import 'server_availability_controller.dart';
 
 class ApiClient {
   static const Duration _requestTimeout = Duration(seconds: 20);
@@ -193,7 +194,14 @@ class ApiClient {
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      ServerAvailabilityController.instance.clear();
       return decoded ?? {'statusCode': response.statusCode};
+    }
+
+    if (response.statusCode >= 500 || response.statusCode == 408) {
+      ServerAvailabilityController.instance.reportUnavailable(
+        'Our server is temporarily unavailable. Please try again shortly.',
+      );
     }
 
     String? errorMessage;

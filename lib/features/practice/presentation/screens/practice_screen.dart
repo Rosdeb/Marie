@@ -400,8 +400,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       spacing: 10,
       runSpacing: 10,
       children: disciplines.map((d) {
-        final isSelected =
-            activeDiscipline.toLowerCase() == d.name.toLowerCase();
+        final isSelected = activeDiscipline.replaceAll(' ', '').toLowerCase() ==
+            d.name.toLowerCase();
         final levelCount = d.levels.where((level) => level.isAvailable).length;
         final sub =
             '$levelCount levels${d.questions > 0 ? " • ${d.questions} Qs" : ""}';
@@ -498,7 +498,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
               children: [
                 Flexible(
                   child: Text(
-                    title,
+                    title.replaceAll(' ', '').toLowerCase() == 'unitarypatent'
+                        ? 'Unitary Patent'
+                        : title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -724,7 +726,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                                       Text(
                                         o.disciplines.isNotEmpty
                                             ? o.disciplines
-                                                  .map((d) => d.displayName)
+                                                  .map((d) => d.displayName
+                                                              .replaceAll(' ', '')
+                                                              .toLowerCase() ==
+                                                          'unitarypatent'
+                                                      ? 'Unitary Patent'
+                                                      : d.displayName)
                                                   .join(' · ')
                                             : (o.territory.isNotEmpty
                                                   ? o.territory

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../network/server_availability_controller.dart';
 import '../theme/app_colors.dart';
+import '../widgets/floating_error_bar.dart';
 
 class ServerErrorScreen extends StatefulWidget {
   const ServerErrorScreen({super.key});
@@ -29,11 +30,9 @@ class _ServerErrorScreenState extends State<ServerErrorScreen> {
       }
     } else {
       setState(() => _isRetrying = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('The server is still unavailable. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
+      FloatingErrorBar.show(
+        context,
+        message: 'The server is still unavailable. Please try again.',
       );
     }
   }
