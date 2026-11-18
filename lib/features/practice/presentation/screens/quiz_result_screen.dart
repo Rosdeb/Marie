@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
+import '../../../home/presentation/providers/home_provider.dart';
 import '../../data/models/quiz_models.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
@@ -93,6 +94,7 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
             _TopHeader(
               title: subtitleHeader,
               onClose: () {
+                ref.read(homeProvider.notifier).load();
                 ref.read(quizProvider.notifier).reset();
                 ref.read(bottomNavProvider.notifier).changeIndex(1);
                 context.go('/main');
@@ -189,6 +191,7 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
                   ref.read(practiceProvider.notifier).setTopic(currentDiscipline);
                 }
 
+                ref.read(homeProvider.notifier).load();
                 ref.read(quizProvider.notifier).reset();
                 ref.read(bottomNavProvider.notifier).changeIndex(1);
                 context.go('/main');

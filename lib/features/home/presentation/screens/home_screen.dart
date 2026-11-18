@@ -585,6 +585,8 @@ class _ContinueSection extends ConsumerWidget {
               if (ok) {
                 context.push('/practice/active-quiz');
               } else {
+                ref.read(homeProvider.notifier).clearPausedSession();
+                ref.read(homeProvider.notifier).load();
                 FloatingErrorBar.show(
                   context,
                   message:

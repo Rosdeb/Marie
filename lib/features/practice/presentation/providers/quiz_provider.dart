@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/local_storage.dart';
+import '../../../home/presentation/providers/home_provider.dart';
 import '../../../review/presentation/providers/marked_questions_provider.dart';
 import '../../../review/presentation/providers/mistakes_review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
@@ -332,6 +333,8 @@ class QuizNotifier extends Notifier<QuizState> {
       final data = response['data'] as Map<String, dynamic>? ?? {};
 
       if ((data['status'] as String?) == 'completed') {
+        ref.read(homeProvider.notifier).clearPausedSession();
+        ref.read(homeProvider.notifier).load();
         state = state.copyWith(
           isLoading: false,
           errorMessage: 'That session was already finished.',
@@ -842,6 +845,8 @@ class QuizNotifier extends Notifier<QuizState> {
          * and nothing in a session can reach the starred list.
          */
         ref.read(mistakesReviewProvider.notifier).refreshCounts();
+        ref.read(homeProvider.notifier).clearPausedSession();
+        ref.read(homeProvider.notifier).load();
 
         state = state.copyWith(
           isSubmitting: false,

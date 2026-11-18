@@ -77,6 +77,24 @@ class HomeNotifier extends Notifier<HomeState> {
     state = const HomeState(isLoading: false, data: null);
   }
 
+  void clearPausedSession() {
+    final current = state.data;
+    if (current != null && current.pausedSession != null) {
+      final updatedData = HomeData(
+        greeting: current.greeting,
+        pausedSession: null,
+        learningPath: current.learningPath,
+        questionOfTheDay: current.questionOfTheDay,
+        mistakes: current.mistakes,
+        markedQuestions: current.markedQuestions,
+        thisWeek: current.thisWeek,
+        offices: current.offices,
+        badges: current.badges,
+      );
+      state = state.copyWith(data: updatedData);
+    }
+  }
+
   Future<void> load() async {
     final token = await _storage.getAccessToken();
     final isAuth =
