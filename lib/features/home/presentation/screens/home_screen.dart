@@ -1102,10 +1102,13 @@ class _MyOfficesSection extends ConsumerWidget {
           ),
         ...offices.map((o) {
           final shortCode = o.code.isNotEmpty ? o.code : o.label;
+          final territory = officeTerritory(shortCode);
           final fullName = officeFullName(shortCode);
-          final displayTitle = fullName.isNotEmpty
-              ? fullName
-              : officeLabel(shortCode);
+          final displayTitle = territory.isNotEmpty && fullName.isNotEmpty
+              ? '$territory – $fullName'
+              : (fullName.isNotEmpty
+                  ? fullName
+                  : (territory.isNotEmpty ? territory : officeLabel(shortCode)));
 
           return _Line(
             title: displayTitle,
@@ -1114,46 +1117,29 @@ class _MyOfficesSection extends ConsumerWidget {
                 : 'No questions imported yet',
             leading: _OfficeCircleBadge(code: shortCode),
             trailing: o.hasContent
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 52,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: (o.percentage / 100).clamp(0.0, 1.0),
-                            minHeight: 6,
-                            backgroundColor: AppColors.border,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              o.percentage >= 75
-                                  ? const Color(0xFF10B981)
-                                  : (o.percentage >= 35
-                                        ? AppColors.primary
-                                        : const Color(0xFFF59E0B)),
-                            ),
-                          ),
+                ? SizedBox(
+                    width: 52,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (o.percentage / 100).clamp(0.0, 1.0),
+                        minHeight: 6,
+                        backgroundColor: AppColors.border,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          o.percentage >= 75
+                              ? const Color(0xFF10B981)
+                              : (o.percentage >= 35
+                                    ? AppColors.primary
+                                    : const Color(0xFFF59E0B)),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
+                    ),
                   )
-                : const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 13,
-                    color: AppColors.textSecondary,
-                  ),
-            onTap: o.hasContent
-                ? () {
-                    ref.read(practiceProvider.notifier).setJurisdiction(o.code);
-                    ref.read(bottomNavProvider.notifier).changeIndex(1);
-                  }
                 : null,
+            onTap: () {
+              ref.read(practiceProvider.notifier).setJurisdiction(o.code);
+              ref.read(bottomNavProvider.notifier).changeIndex(1);
+            },
           );
         }),
         // "+ Add an office" - a plan is what adds one, so it leads to the
