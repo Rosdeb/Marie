@@ -179,7 +179,9 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
             child: mistakesState.isLoading && filtered.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : filtered.isEmpty
-                ? _buildEmptyState(screenBg, inkDark, mutedText)
+                ? (mistakesState.hasFilter
+                    ? _buildEmptyFilterState(inkDark, mutedText, totalCount)
+                    : _buildEmptyState(screenBg, inkDark, mutedText))
                 : RefreshIndicator(
                     onRefresh: () => ref
                         .read(mistakesReviewProvider.notifier)
@@ -285,7 +287,8 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
 
   Widget _buildEmptyState(Color bg, Color ink, Color muted) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -322,6 +325,78 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
               'Questions you answer incorrectly during practice quizzes will appear here so you can review and master them.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: muted, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterState(Color ink, Color muted, int totalCount) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.filter_alt_off_outlined,
+                size: 48,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'No mistakes match these filters',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Change or clear the filters to see your $totalCount ${totalCount == 1 ? 'mistake' : 'mistakes'}.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: muted, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => ref
+                  .read(mistakesReviewProvider.notifier)
+                  .clearFilters(),
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+              label: const Text('Clear filters'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

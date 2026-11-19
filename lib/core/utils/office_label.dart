@@ -23,6 +23,7 @@ library;
 /// Codes whose reader-facing short name is not the code itself.
 const Map<String, String> _renamed = {
   'KIPO': 'MOIP',
+  'INDIA': 'IPO',
 };
 
 String _normalizeOfficeKey(String? code) {

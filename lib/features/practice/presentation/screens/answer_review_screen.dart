@@ -111,62 +111,16 @@ class AnswerReviewScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Status chip + action buttons on one row; question text
+                  // below on its own full-width line.
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // The status, on every question rather than only
-                            // on the unanswered ones: "Each question shows its
-                            // number, its status (Incorrect, Unanswered)".
-                            // Correct is said too, because a review that only
-                            // labels failures reads as a list of failures.
-                            _StatusChip(
-                              isUnanswered: isUnanswered,
-                              isCorrect: isQuestionCorrect,
-                            ),
-                            const SizedBox(height: 6),
-
-                            // Office, discipline, level and theme - what this
-                            // question was, which a reader looking back over
-                            // twenty of them cannot otherwise tell.
-                            if ([
-                              question.office,
-                              question.discipline,
-                              question.level,
-                              question.theme,
-                            ].any((p) => p.isNotEmpty)) ...[
-                              Text(
-                                [
-                                  officeLabel(question.office),
-                                  question.discipline,
-                                  question.level,
-                                  question.theme,
-                                ].where((p) => p.isNotEmpty).join(' · '),
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.3,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                            ],
-                            Text(
-                              '${qIndex + 1}. ${question.questionText}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                height: 1.4,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
+                      _StatusChip(
+                        isUnanswered: isUnanswered,
+                        isCorrect: isQuestionCorrect,
                       ),
-                      const SizedBox(width: 8),
+                      const Spacer(),
                       // Star mark button
                       InkWell(
                         onTap: () {
@@ -268,6 +222,42 @@ class AnswerReviewScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+
+                  // Office · discipline · level · theme
+                  if ([
+                    question.office,
+                    question.discipline,
+                    question.level,
+                    question.theme,
+                  ].any((p) => p.isNotEmpty)) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      [
+                        officeLabel(question.office),
+                        question.discipline,
+                        question.level,
+                        question.theme,
+                      ].where((p) => p.isNotEmpty).join(' · '),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+
+                  // Question text – full card width.
+                  const SizedBox(height: 6),
+                  Text(
+                    '${qIndex + 1}. ${question.questionText}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      height: 1.4,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   ...List.generate(question.options.length, (optIndex) {
                     final option = question.options[optIndex];
@@ -302,108 +292,114 @@ class AnswerReviewScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: borderColor),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              // Hollow when nothing was answered: a filled
-                              // green disc reads as "you chose this".
-                              color: isCorrect && !isUnanswered
-                                  ? AppColors.success
-                                  : (isUserChoice
-                                        ? AppColors.error
-                                        : Colors.grey.shade300),
-                              shape: BoxShape.circle,
-                              border: isCorrect && isUnanswered
-                                  ? Border.all(
-                                      color: AppColors.success,
-                                      width: 1.5,
-                                    )
-                                  : null,
-                            ),
-                            child: Text(
-                              /**
-                               * The letter is the position, not the stored
-                               * key.
-                               *
-                               * Marie, 13 November, point 2: the same answer
-                               * carried a different letter on the question
-                               * screen and on this one. The quiz prints
-                               * A, B, C, D down the list it shows; this
-                               * printed `option.key`, which is the letter the
-                               * workbook gave the option, and the session
-                               * shows them in its own fixed order. So the
-                               * right answer could be C here and B there.
-                               *
-                               * The server sends the options in the order the
-                               * reader saw them, so counting down the list is
-                               * exactly what the reader saw. The key is still
-                               * what gets sent back; it is simply never
-                               * printed.
-                               */
-                              String.fromCharCode(65 + optIndex),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isCorrect && isUnanswered
-                                    ? AppColors.success
-                                    : Colors.white,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  // Hollow when nothing was answered: a filled
+                                  // green disc reads as "you chose this".
+                                  color: isCorrect && !isUnanswered
+                                      ? AppColors.success
+                                      : (isUserChoice
+                                            ? AppColors.error
+                                            : Colors.grey.shade300),
+                                  shape: BoxShape.circle,
+                                  border: isCorrect && isUnanswered
+                                      ? Border.all(
+                                          color: AppColors.success,
+                                          width: 1.5,
+                                        )
+                                      : null,
+                                ),
+                                child: Text(
+                                  // Position-based letter, not the stored key.
+                                  // See the note above on why these differ.
+                                  String.fromCharCode(65 + optIndex),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isCorrect && isUnanswered
+                                        ? AppColors.success
+                                        : Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              option.text,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: isCorrect
-                                    ? AppColors.success
-                                    : (isUserChoice
-                                          ? AppColors.error
-                                          : AppColors.textPrimary),
-                              ),
-                            ),
-                          ),
-                          // Named as well as coloured: "Your answer" in red,
-                          // "Correct answer" in green. A tick is only shown
-                          // when the reader actually chose the right one.
-                          if (isCorrect) ...[
-                            const Text(
-                              'Correct answer',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.success,
-                              ),
-                            ),
-                            if (!isUnanswered) ...[
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.check_circle,
-                                size: 18,
-                                color: AppColors.success,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  option.text,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: isCorrect
+                                        ? AppColors.success
+                                        : (isUserChoice
+                                              ? AppColors.error
+                                              : AppColors.textPrimary),
+                                  ),
+                                ),
                               ),
                             ],
-                          ],
-                          if (isUserChoice && !isCorrect) ...[
-                            const Text(
-                              'Your answer',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.error,
+                          ),
+                          // "Correct answer" / "Your answer" on their own line,
+                          // indented to align under the option text.
+                          if (isCorrect) ...[
+                            const SizedBox(height: 4),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 34),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (!isUnanswered) ...[
+                                    const Icon(
+                                      Icons.check_circle,
+                                      size: 14,
+                                      color: AppColors.success,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  const Text(
+                                    'Correct answer',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.cancel,
-                              size: 18,
-                              color: AppColors.error,
+                          ],
+                          if (isUserChoice && !isCorrect) ...[
+                            const SizedBox(height: 4),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 34),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.cancel,
+                                    size: 14,
+                                    color: AppColors.error,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Your answer',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ],

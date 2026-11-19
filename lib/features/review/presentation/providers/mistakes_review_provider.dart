@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../practice/data/models/quiz_models.dart';
+import '../../../practice/presentation/providers/offices_provider.dart';
 import '../../data/datasources/marked_remote_datasource.dart'
     show ReviewFilterOptions;
 import '../../data/datasources/mistakes_remote_datasource.dart';
@@ -206,9 +207,19 @@ class MistakesReviewNotifier extends Notifier<MistakesReviewState> {
 
       final filters = await _remote.filters(
         // The office decides which disciplines and themes exist.
+        // Subject is intentionally omitted: passing the chosen discipline
+        // narrows the available options to that discipline alone, which locks
+        // the other menus when no results match (e.g. EPO + Trademarks → empty
+        // disciplines list → user cannot change discipline without clearing).
         office: state.selectedOffice,
-        subject: subject,
       );
+
+      // Scope disciplines to those the selected office actually carries.
+      // The server's filters endpoint returns all disciplines regardless of the
+      // office parameter, so EPO would show Trademarks, Design, etc. without
+      // this step. The offices catalogue (populated from /practice/offices)
+      // is the authoritative list of what each office supports.
+      final scopedFilters = _scopeFiltersByOffice(filters, state.selectedOffice);
 
       state = state.copyWith(
         entries: page.rows.map(MistakeEntry.fromRow).toList(),
@@ -216,7 +227,7 @@ class MistakesReviewNotifier extends Notifier<MistakesReviewState> {
         // Review screen or on Home.
         total: counts.total,
         matching: counts.matching,
-        filters: filters,
+        filters: scopedFilters,
         isLoading: false,
       );
     } catch (e) {
@@ -236,6 +247,37 @@ class MistakesReviewNotifier extends Notifier<MistakesReviewState> {
     } catch (e) {
       debugPrint('[Mistakes] counts failed: $e');
     }
+  }
+
+  /// Keeps only the disciplines the selected office actually carries.
+  ///
+  /// When no office is selected the full list is returned unchanged. The
+  /// offices catalogue is the source of truth — it comes from the imported
+  /// workbooks and is therefore always in sync with what the server holds.
+  ReviewFilterOptions _scopeFiltersByOffice(
+    ReviewFilterOptions filters,
+    String? officeCode,
+  ) {
+    if (officeCode == null || officeCode.isEmpty) return filters;
+    final offices = ref.read(officesProvider).offices;
+    final office = offices.where((o) => o.code == officeCode).firstOrNull;
+    if (office == null || office.disciplines.isEmpty) return filters;
+
+    final allowed = office.disciplines
+        .map((d) => d.name.toLowerCase())
+        .toSet();
+
+    final scoped = filters.disciplines.where((d) {
+      return allowed.contains(d.name.toLowerCase()) ||
+          allowed.contains(d.displayName.toLowerCase());
+    }).toList();
+
+    return ReviewFilterOptions(
+      offices: filters.offices,
+      disciplines: scoped,
+      levels: filters.levels,
+      themes: filters.themes,
+    );
   }
 
   /// What a review session should be started with.
