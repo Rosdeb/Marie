@@ -165,7 +165,9 @@ class ActiveQuizScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 14),
 
-                        // Question Metadata Header Row
+                        // Badges row: office · discipline · level + progress
+                        // counter. Mark and Report are on the next line so the
+                        // badges have enough room to show without clipping.
                         Row(
                           children: [
                             Expanded(
@@ -257,8 +259,26 @@ class ActiveQuizScreen extends ConsumerWidget {
                                 color: AppColors.textSecondary,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            // Star mark button
+                          ],
+                        ),
+
+                        // Mark / Report / theme on a second line.
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            if (question.theme.isNotEmpty)
+                              Expanded(
+                                child: Text(
+                                  question.theme,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              )
+                            else
+                              const Spacer(),
                             InkWell(
                               onTap: () {
                                 ref
@@ -311,10 +331,6 @@ class ActiveQuizScreen extends ConsumerWidget {
                                   context,
                                   ref,
                                   questionId: question.id,
-                                  // Whatever is selected at the moment of reporting
-                                  // (F7). Null when nothing has been chosen yet,
-                                  // which the dashboard shows as "not recorded"
-                                  // rather than inventing a choice.
                                   chosenAnswer:
                                       selectedOption != null &&
                                           selectedOption >= 0 &&
@@ -359,17 +375,6 @@ class ActiveQuizScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        if (question.theme.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            question.theme,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 14),
 
                         // Question Card

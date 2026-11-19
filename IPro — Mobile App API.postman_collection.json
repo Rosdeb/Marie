@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "e2194ae2-b6e7-4793-92f8-b3b2980fec40",
-    "name": "IPro — Mobile App API",
-    "description": "# IPro — Mobile App API\n\nEverything the IPro mobile app needs, grouped by the Figma sections so a\nfolder matches the screens you are building.\n\n## Before you start\n\nRun **01 · Account › Sign in**. It stores `accessToken` for you and every\nother request picks it up automatically. Nothing else to set up.\n\nTest login: `devsushil25@gmail.com` / `12345678`\n\n## Where baseUrl points\n\n`https://sabbir2004.ssh.bd/api/v1` is a tunnel to the development machine,\nnot a hosted server. It answers only while that machine is running the\nbackend; when it is off you will get a **502**, which means \"nobody is\nlistening\", not \"your request was wrong\".\n\nRunning the backend yourself? Change the collection variable `baseUrl` to\n`http://localhost:2004/api/v1`.\n\n## The two rules that shape this API\n\n**The paywall is the office.** A subscription unlocks offices, never levels\nand never disciplines. Every plan includes all four levels (Beginner,\nIntermediate, Advanced, Expert) and every discipline of the offices it\ngrants. Read what a user may open from `GET /subscription/my-access`:\n`officeCodes` is the union of every plan they hold.\n\n**A session is always 20 questions.** What changes with the level is the time\nallowed: Beginner 20 min, Intermediate 30, Advanced 40, Expert 50. The only\nexception is a pool with fewer than 20 questions, where the response carries\n`isShortSession: true` and a `note` you should show the user.\n\n## Profiles\n\nAt sign-up a user chooses **Paralegal** or **Attorney**. A paralegal never\nsees a question marked Attorney — about 22% of the catalogue — so menus,\ncounts and pools all differ by profile. The demo asks for it before it\nstarts, since there is no account yet.\n\n## Privacy\n\nA user's profile picture is never visible to another user, anywhere. First\nname and profession may be shared only if the user switches them on\n(`PATCH /user/privacy-settings`), and both start off. Everything else —\nsurname, e-mail, phone, date of birth — is the user's alone. Use\n`GET /user/public/:id` whenever you show one user to another.\n\n## What is in the database right now\n\nOne office is imported: **IPI (Switzerland)**, 2,400 questions across 12\nsheets — Patents, Trademarks and Designs, four levels each. The other\nfourteen offices are listed by the catalogue with `isAvailable: false`\nuntil their workbooks are imported, so a request for them answers \"no\nquestions yet\". That is correct behaviour, not a bug.\n\n## Requests that change data\n\nMost of this collection only reads. These do not — read the note on each\nbefore sending, and do **not** use \"Run collection\" on the whole thing:\n\n| Request | What it does |\n|---|---|\n| 01 · Sign up | creates a user |\n| 01 · Change password | changes the password you signed in with |\n| 01 · Sign out | invalidates the token |\n| 02 · Update my profile | overwrites profile fields |\n| 02 · Set profile type | changes which questions the user sees |\n| 02 · Privacy settings — update | changes sharing |\n| 02 · Delete my account | deletes the account |\n| 03/04 · Submit a session | scores it and records mistakes |\n| 06 · Choose offices | allowed once per billing period |\n| 06 · Sync from RevenueCat | rewrites the user's subscriptions |\n| 07 · Claim the 10% discount | issues a promo code |\n| 10 · Send a report | files a real report for the content team |",
+    "name": "IPro \u2014 Mobile App API",
+    "description": "# IPro \u2014 Mobile App API\n\nEverything the IPro mobile app needs, grouped by the Figma sections so a\nfolder matches the screens you are building.\n\n## Before you start\n\nRun **01 \u00b7 Account \u203a Sign in**. It stores `accessToken` for you and every\nother request picks it up automatically. Nothing else to set up.\n\nTest login: `devsushil25@gmail.com` / `12345678`\n\n## Where baseUrl points\n\n`https://sabbir2004.ssh.bd/api/v1` is a tunnel to the development machine,\nnot a hosted server. It answers only while that machine is running the\nbackend; when it is off you will get a **502**, which means \"nobody is\nlistening\", not \"your request was wrong\".\n\nRunning the backend yourself? Change the collection variable `baseUrl` to\n`http://localhost:2004/api/v1`.\n\n## The two rules that shape this API\n\n**The paywall is the office.** A subscription unlocks offices, never levels\nand never disciplines. Every plan includes all four levels (Beginner,\nIntermediate, Advanced, Expert) and every discipline of the offices it\ngrants. Read what a user may open from `GET /subscription/my-access`:\n`officeCodes` is the union of every plan they hold.\n\n**A session is always 20 questions.** What changes with the level is the time\nallowed: Beginner 20 min, Intermediate 30, Advanced 40, Expert 50. The only\nexception is a pool with fewer than 20 questions, where the response carries\n`isShortSession: true` and a `note` you should show the user.\n\n## Profiles\n\nAt sign-up a user chooses **Paralegal** or **Attorney**. A paralegal never\nsees a question marked Attorney \u2014 about 22% of the catalogue \u2014 so menus,\ncounts and pools all differ by profile. The demo asks for it before it\nstarts, since there is no account yet.\n\n## Privacy\n\nA user's profile picture is never visible to another user, anywhere. First\nname and profession may be shared only if the user switches them on\n(`PATCH /user/privacy-settings`), and both start off. Everything else \u2014\nsurname, e-mail, phone, date of birth \u2014 is the user's alone. Use\n`GET /user/public/:id` whenever you show one user to another.\n\n## What is in the database right now\n\nOne office is imported: **IPI (Switzerland)**, 2,400 questions across 12\nsheets \u2014 Patents, Trademarks and Designs, four levels each. The other\nfourteen offices are listed by the catalogue with `isAvailable: false`\nuntil their workbooks are imported, so a request for them answers \"no\nquestions yet\". That is correct behaviour, not a bug.\n\n## Requests that change data\n\nMost of this collection only reads. These do not \u2014 read the note on each\nbefore sending, and do **not** use \"Run collection\" on the whole thing:\n\n| Request | What it does |\n|---|---|\n| 01 \u00b7 Sign up | creates a user |\n| 01 \u00b7 Change password | changes the password you signed in with |\n| 01 \u00b7 Sign out | invalidates the token |\n| 02 \u00b7 Update my profile | overwrites profile fields |\n| 02 \u00b7 Set profile type | changes which questions the user sees |\n| 02 \u00b7 Privacy settings \u2014 update | changes sharing |\n| 02 \u00b7 Delete my account | deletes the account |\n| 03/04 \u00b7 Submit a session | scores it and records mistakes |\n| 06 \u00b7 Choose offices | allowed once per billing period |\n| 06 \u00b7 Sync from RevenueCat | rewrites the user's subscriptions |\n| 07 \u00b7 Claim the 10% discount | issues a promo code |\n| 10 \u00b7 Send a report | files a real report for the content team |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "36973469"
   },
@@ -329,7 +329,7 @@
           "response": []
         },
         {
-          "name": "Forgot password — send OTP",
+          "name": "Forgot password \u2014 send OTP",
           "request": {
             "auth": {
               "type": "noauth"
@@ -360,12 +360,12 @@
                 "forgot-password"
               ]
             },
-            "description": "Returns `data.token`, a 15-minute reset token. Send it as the Bearer token on the next two calls — **not** the normal access token."
+            "description": "Returns `data.token`, a 15-minute reset token. Send it as the Bearer token on the next two calls \u2014 **not** the normal access token."
           },
           "response": []
         },
         {
-          "name": "Forgot password — verify OTP",
+          "name": "Forgot password \u2014 verify OTP",
           "request": {
             "auth": {
               "type": "noauth"
@@ -465,7 +465,7 @@
                 "change-password"
               ]
             },
-            "description": "Figma: Settings › Change Password."
+            "description": "Figma: Settings \u203a Change Password."
           },
           "response": []
         },
@@ -539,7 +539,7 @@
                 "get-my-profile"
               ]
             },
-            "description": "The signed-in user’s own record, in full."
+            "description": "The signed-in user\u2019s own record, in full."
           },
           "response": []
         },
@@ -558,7 +558,7 @@
                 "update-my-profile"
               ]
             },
-            "description": "**multipart/form-data**, not JSON — the route runs an upload handler.\n\nFields: `name`, `firstName`, `lastName`, `profession`, `email`, `phoneNumber`, and `profile` for the picture file. Do not set Content-Type by hand; let the client add the multipart boundary."
+            "description": "**multipart/form-data**, not JSON \u2014 the route runs an upload handler.\n\nFields: `name`, `firstName`, `lastName`, `profession`, `email`, `phoneNumber`, and `profile` for the picture file. Do not set Content-Type by hand; let the client add the multipart boundary."
           },
           "response": []
         },
@@ -596,7 +596,7 @@
           "response": []
         },
         {
-          "name": "Privacy settings — read",
+          "name": "Privacy settings \u2014 read",
           "event": [
             {
               "listen": "test",
@@ -627,7 +627,7 @@
           "response": []
         },
         {
-          "name": "Privacy settings — update",
+          "name": "Privacy settings \u2014 update",
           "request": {
             "method": "PATCH",
             "header": [
@@ -660,7 +660,7 @@
           "response": []
         },
         {
-          "name": "Another user’s public profile",
+          "name": "Another user\u2019s public profile",
           "request": {
             "method": "GET",
             "header": [],
@@ -695,7 +695,7 @@
                 "my-account"
               ]
             },
-            "description": "Figma: Settings › Delete Account."
+            "description": "Figma: Settings \u203a Delete Account."
           },
           "response": []
         }
@@ -706,7 +706,7 @@
       "name": "Demo (no account)",
       "item": [
         {
-          "name": "Choose your demo — office catalogue",
+          "name": "Choose your demo \u2014 office catalogue",
           "event": [
             {
               "listen": "test",
@@ -735,7 +735,7 @@
                 "offices"
               ]
             },
-            "description": "All 15 offices with their disciplines, sheet counts and question counts, derived from the imported content. `isAvailable: false` means nothing is imported for that office yet — do not offer it."
+            "description": "All 15 offices with their disciplines, sheet counts and question counts, derived from the imported content. `isAvailable: false` means nothing is imported for that office yet \u2014 do not offer it."
           },
           "response": []
         },
@@ -849,7 +849,7 @@
                 "submit"
               ]
             },
-            "description": "Send every question. `selectedKey: null` means left unanswered, which counts as wrong — and it still appears in the review with the correct answer."
+            "description": "Send every question. `selectedKey: null` means left unanswered, which counts as wrong \u2014 and it still appears in the review with the correct answer."
           },
           "response": []
         },
@@ -873,7 +873,7 @@
                 "review"
               ]
             },
-            "description": "Runs to the full 20, unanswered questions included.\n\nEach question lists its four options **once each**, marking in place the one the user chose (`isChosen`) and the correct one (`isCorrect`), plus the explanation and the legal basis. The legal basis is text with no link — the workbooks carry no URL."
+            "description": "Runs to the full 20, unanswered questions included.\n\nEach question lists its four options **once each**, marking in place the one the user chose (`isChosen`) and the correct one (`isCorrect`), plus the explanation and the legal basis. The legal basis is text with no link \u2014 the workbooks carry no URL."
           },
           "response": []
         },
@@ -913,7 +913,7 @@
           "response": []
         }
       ],
-      "description": "Figma: **Demo quiz** section (20 screens).\n\nEvery request here works without a token. The demo asks \"Paralegal or\nattorney?\" first and sends the answer as `profileType`, because there is no\naccount to read it from.\n\nA demo is 20 questions in 20 minutes drawn across all four levels — it is\n**not** a Beginner quiz and must not be presented as one."
+      "description": "Figma: **Demo quiz** section (20 screens).\n\nEvery request here works without a token. The demo asks \"Paralegal or\nattorney?\" first and sends the answer as `profileType`, because there is no\naccount to read it from.\n\nA demo is 20 questions in 20 minutes drawn across all four levels \u2014 it is\n**not** a Beginner quiz and must not be presented as one."
     },
     {
       "name": "Practice",
@@ -945,7 +945,7 @@
                 "offices"
               ]
             },
-            "description": "`hasAccess` says whether this user’s subscription includes the office — that is the only paywall."
+            "description": "`hasAccess` says whether this user\u2019s subscription includes the office \u2014 that is the only paywall."
           },
           "response": []
         },
@@ -1032,7 +1032,7 @@
           "response": []
         },
         {
-          "name": "Start — by level",
+          "name": "Start \u2014 by level",
           "event": [
             {
               "listen": "test",
@@ -1082,7 +1082,7 @@
           "response": []
         },
         {
-          "name": "Start — by theme",
+          "name": "Start \u2014 by theme",
           "event": [
             {
               "listen": "test",
@@ -1130,7 +1130,7 @@
           "response": []
         },
         {
-          "name": "Start — random",
+          "name": "Start \u2014 random",
           "event": [
             {
               "listen": "test",
@@ -1178,7 +1178,7 @@
           "response": []
         },
         {
-          "name": "Start — theme across offices",
+          "name": "Start \u2014 theme across offices",
           "event": [
             {
               "listen": "test",
@@ -1226,7 +1226,7 @@
           "response": []
         },
         {
-          "name": "Start — review my mistakes",
+          "name": "Start \u2014 review my mistakes",
           "event": [
             {
               "listen": "test",
@@ -1274,7 +1274,7 @@
           "response": []
         },
         {
-          "name": "Start — learning path",
+          "name": "Start \u2014 learning path",
           "event": [
             {
               "listen": "test",
@@ -1318,6 +1318,34 @@
               ]
             },
             "description": "Step order, 20 at a time, resuming where the user stopped. A session stops at the end of a level even if that is fewer than 20."
+          },
+          "response": []
+        },
+        {
+          "name": "Start \u2014 retry wrong ones",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"retry\",\n  \"sessionId\": \"{{sessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/practice/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "practice",
+                "session"
+              ]
+            },
+            "description": "Retry the wrong and unanswered questions of a finished session.\n\n`sessionId` is the id of the session to retry. The server reads the office, discipline and level from that session \u2014 do not send them here.\n\nThe response is a new session containing only the questions that were wrong or unanswered."
           },
           "response": []
         },
@@ -1398,7 +1426,7 @@
           "response": []
         }
       ],
-      "description": "Figma: **practice section** (11 screens).\n\nThe flow is: office → discipline → level (or theme) → session. All seven\nmodes go through the same `POST /practice/session`; only `mode` and the\nfields it needs change.\n\n| mode | needs | pool |\n|---|---|---|\n| `by_level` | office, subject, level | one sheet |\n| `by_theme` | office, subject, theme | that theme, all four levels |\n| `random` | office (+ optional subject) | the whole office |\n| `theme_across_offices` | subject, theme, offices[] | that theme in those offices |\n| `review_mistakes` | optional office | what the user got wrong and has not since got right |\n| `learning_path` | office, subject | Step order, resuming where they stopped |\n| `demo` | office, profileType | the 20 demo questions |\n\nA theme quiz never takes a level: it always runs across all four."
+      "description": "Figma: **practice section** (11 screens).\n\nThe flow is: office \u2192 discipline \u2192 level (or theme) \u2192 session. All seven\nmodes go through the same `POST /practice/session`; only `mode` and the\nfields it needs change.\n\n| mode | needs | pool |\n|---|---|---|\n| `by_level` | office, subject, level | one sheet |\n| `by_theme` | office, subject, theme | that theme, all four levels |\n| `random` | office (+ optional subject) | the whole office |\n| `theme_across_offices` | subject, theme, offices[] | that theme in those offices |\n| `review_mistakes` | optional office | what the user got wrong and has not since got right |\n| `learning_path` | office, subject | Step order, resuming where they stopped |\n| `demo` | office, profileType | the 20 demo questions |\n\nA theme quiz never takes a level: it always runs across all four."
     },
     {
       "name": "Progress",
@@ -1573,7 +1601,7 @@
                 "my-access"
               ]
             },
-            "description": "**The endpoint that decides what to unlock.** `officeCodes` is the union of the offices of every plan held.\n\n`needsOfficeSelection: true` means a plan is paid for but has no office chosen yet — send the user to the selection screen before anything else."
+            "description": "**The endpoint that decides what to unlock.** `officeCodes` is the union of the offices of every plan held.\n\n`needsOfficeSelection: true` means a plan is paid for but has no office chosen yet \u2014 send the user to the selection screen before anything else."
           },
           "response": []
         },
@@ -1640,12 +1668,12 @@
                 "offices"
               ]
             },
-            "description": "Focus sends `{ \"single\": \"CNIPA\" }`. Track sends `{ \"national\": \"...\", \"regional\": \"...\" }` — WIPO comes with Track automatically, do not send it.\n\nAllowed **once per billing period**; `canChangeOffices` on my-access says whether the button should be enabled."
+            "description": "Focus sends `{ \"single\": \"CNIPA\" }`. Track sends `{ \"national\": \"...\", \"regional\": \"...\" }` \u2014 WIPO comes with Track automatically, do not send it.\n\nAllowed **once per billing period**; `canChangeOffices` on my-access says whether the button should be enabled."
           },
           "response": []
         }
       ],
-      "description": "Figma: the subscription screens in **Demo quiz** and **Profile Section**.\n\n**The purchase happens in your app**, through App Store / Google Play billing\nwith the RevenueCat SDK. This server never charges anyone — it tells you what\nthe user holds.\n\nCall `Purchases.logIn()` with our Mongo user id so RevenueCat's\n`app_user_id` matches, then call **Sync** after any purchase or restore."
+      "description": "Figma: the subscription screens in **Demo quiz** and **Profile Section**.\n\n**The purchase happens in your app**, through App Store / Google Play billing\nwith the RevenueCat SDK. This server never charges anyone \u2014 it tells you what\nthe user holds.\n\nCall `Purchases.logIn()` with our Mongo user id so RevenueCat's\n`app_user_id` matches, then call **Sync** after any purchase or restore."
     },
     {
       "name": "Referral (LinkedIn)",
@@ -1994,7 +2022,7 @@
           "response": []
         }
       ],
-      "description": "Figma: Settings › Privacy policy / Legal notice / EULA.\n\nAll public: the app must be able to show these before anyone signs in."
+      "description": "Figma: Settings \u203a Privacy policy / Legal notice / EULA.\n\nAll public: the app must be able to show these before anyone signs in."
     },
     {
       "name": "Report a problem",
@@ -2078,7 +2106,7 @@
           "response": []
         }
       ],
-      "description": "Figma: **report-form-screen** and **report-ack-screen**.\n\nEvery report carries the office, the sheet and the Case_No of the question,\nso the content team can find the exact row in the workbook. Those three are\nread from the stored question — you only send the question and the comment."
+      "description": "Figma: **report-form-screen** and **report-ack-screen**.\n\nEvery report carries the office, the sheet and the Case_No of the question,\nso the content team can find the exact row in the workbook. Those three are\nread from the stored question \u2014 you only send the question and the comment."
     }
   ],
   "auth": {

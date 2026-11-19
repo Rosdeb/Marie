@@ -440,6 +440,7 @@ class SettingsScreen extends ConsumerWidget {
               icon: Icons.mark_email_read_outlined,
               title: 'Receive news and offers by e-mail',
               value: profile.marketingEmails,
+              maxLines: 2,
               onChanged: (val) async {
                 final ok = await ref.read(accountProvider.notifier).updatePrivacySettings(
                       showFirstName: profile.showFirstName,
@@ -549,6 +550,7 @@ class SettingsScreen extends ConsumerWidget {
     required String title,
     required bool value,
     required ValueChanged<bool> onChanged,
+    int maxLines = 1,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -577,15 +579,17 @@ class SettingsScreen extends ConsumerWidget {
           Expanded(
             child: Text(
               title,
-              maxLines: 1,
+              maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
+                height: 1.25,
               ),
             ),
           ),
+          const SizedBox(width: 8),
           Transform.scale(
             scaleX: 0.7,
             scaleY: 0.7,
