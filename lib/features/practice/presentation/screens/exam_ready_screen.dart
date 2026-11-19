@@ -162,7 +162,7 @@ class ExamReadyScreen extends ConsumerWidget {
                       label: 'Questions',
                       value: questions == null
                           ? 'Confirmed when the session starts'
-                          : '$questions questions',
+                          : '$questions ${questions == 1 ? 'question' : 'questions'}',
                     ),
                     const Divider(height: 24, color: AppColors.border),
                     _buildInfoRow(
@@ -170,7 +170,7 @@ class ExamReadyScreen extends ConsumerWidget {
                       label: 'Time limit',
                       value: minutes == null
                           ? 'Confirmed when the session starts'
-                          : '$minutes minutes',
+                          : '$minutes ${minutes == 1 ? 'minute' : 'minutes'}',
                     ),
 
                     if (questions != null && questions < 20) ...[
@@ -186,8 +186,8 @@ class ExamReadyScreen extends ConsumerWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'This theme has $questions questions: '
-                              'this session has $questions.',
+                              'This theme has $questions ${questions == 1 ? 'question' : 'questions'}: '
+                              'this session has $questions ${questions == 1 ? 'question' : 'questions'}.',
                               style: const TextStyle(
                                 fontSize: 12.5,
                                 height: 1.4,

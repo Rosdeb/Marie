@@ -143,7 +143,7 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '$matchingCount of $totalCount questions',
+                  '$matchingCount of $totalCount ${totalCount == 1 ? 'question' : 'questions'}',
                   style: const TextStyle(
                     fontSize: 13,
                     color: mutedText,

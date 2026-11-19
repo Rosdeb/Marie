@@ -180,7 +180,7 @@ class _DemoConfigScreenState extends ConsumerState<DemoConfigScreen> {
                           title: d.displayName,
                           // "each with '20 questions · 20 min'" - the real
                           // count, and the real limit.
-                          note: '${d.demoQuestions} questions · $minutes min',
+                          note: '${d.demoQuestions} ${d.demoQuestions == 1 ? 'question' : 'questions'} · $minutes min',
                           selected: d.name == _discipline,
                           onTap: () => setState(() => _discipline = d.name),
                         ),
@@ -548,7 +548,7 @@ class _Summary extends StatelessWidget {
       // across all four levels, in random order.
       ('Content', 'All four levels, in random order'),
       ('Questions', '$questions'),
-      ('Time limit', '$minutes minutes'),
+      ('Time limit', '$minutes ${minutes == 1 ? 'minute' : 'minutes'}'),
     ];
 
     return Container(

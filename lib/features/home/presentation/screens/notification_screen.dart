@@ -156,10 +156,10 @@ class NotificationScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item.message,
+                    item.title,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textPrimary,
                       height: 1.35,
                     ),
                   ),
@@ -168,7 +168,7 @@ class NotificationScreen extends ConsumerWidget {
                     item.timeAgo,
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textSecondary.withValues(alpha: 0.8),
+                      color: AppColors.textPrimary.withValues(alpha: 0.8),
                     ),
                   ),
                 ],

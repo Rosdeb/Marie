@@ -106,7 +106,7 @@ class ChooseThemeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: TopicCard(
                       title: theme.theme,
-                      subtitle: '${theme.questions} questions · $perSession per session',
+                      subtitle: '${theme.questions} ${theme.questions == 1 ? 'question' : 'questions'} · $perSession per session',
                       // shortNote: (theme.isShortSession && (theme.note?.isNotEmpty ?? false))
                       //     ? theme.note
                       //     : null,

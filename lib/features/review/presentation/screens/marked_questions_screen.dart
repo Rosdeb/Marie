@@ -387,7 +387,7 @@ class _MarkedQuestionsScreenState extends ConsumerState<MarkedQuestionsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Text(
-                '$totalMarked questions marked by you',
+                '$totalMarked ${totalMarked == 1 ? 'question' : 'questions'} marked by you',
                 style: const TextStyle(
                   fontSize: 13,
                   color: mutedText,

@@ -215,7 +215,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   title: 'Mistakes to review',
                   subtitle: mistakesState.isLoading && totalMistakes == 0
                       ? 'Counting…'
-                      : '$totalMistakes questions to review',
+                      : '$totalMistakes ${totalMistakes == 1 ? 'question' : 'questions'} to review',
                   onTap: () {
                     if (!isAuth) {
                       AuthGateBottomSheet.show(
@@ -236,7 +236,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   // puts a question in this list.
                   subtitle: markedState.isLoading && markedCount == 0
                       ? 'Counting…'
-                      : '$markedCount questions you marked',
+                      : '$markedCount ${markedCount == 1 ? 'question' : 'questions'} you marked',
                   onTap: () {
                     if (!isAuth) {
                       AuthGateBottomSheet.show(

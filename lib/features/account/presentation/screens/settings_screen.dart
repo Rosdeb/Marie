@@ -384,7 +384,7 @@ class SettingsScreen extends ConsumerWidget {
                         FloatingSuccessBar.show(
                           context,
                           message: val != null
-                              ? 'Daily goal set to $val minutes'
+                              ? 'Daily goal set to $val ${val == 1 ? 'minute' : 'minutes'}'
                               : 'Daily goal turned off',
                         );
                       }

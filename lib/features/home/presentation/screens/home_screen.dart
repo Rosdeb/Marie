@@ -785,7 +785,7 @@ class _TodaySection extends ConsumerWidget {
         _Line(
           title: 'Mistakes to review',
           subtitle: count > 0
-              ? '$count questions to review'
+              ? '$count ${count == 1 ? 'question' : 'questions'} to review'
               : '0 questions to review',
           leading: const Icon(
             Icons.replay_rounded,
@@ -1376,7 +1376,7 @@ class _DiscoverSection extends StatelessWidget {
         if (showDemo)
           _Line(
             title: 'Try a free demo',
-            subtitle: '20 question . no account required',
+            subtitle: '20 questions · no account required',
             leading: const Icon(
               Icons.play_circle_outline_rounded,
               size: 22,

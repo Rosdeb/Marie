@@ -96,7 +96,7 @@ class ChooseLevelScreen extends ConsumerWidget {
                         ref: ref,
                         title: level.level,
                         subtitle:
-                            '${level.questions} questions available in this level',
+                            '${level.questions} ${level.questions == 1 ? 'question' : 'questions'} available in this level',
                         questionBadge: '${level.questionsPerSession}',
                         durationMinutes: level.minutes,
                         isSelected: selection.level == level.level,
@@ -250,7 +250,7 @@ class ChooseLevelScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '$questionBadge questions',
+                              '$questionBadge ${int.tryParse(questionBadge) == 1 ? 'question' : 'questions'}',
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
