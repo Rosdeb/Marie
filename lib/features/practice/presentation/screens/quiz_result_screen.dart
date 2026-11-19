@@ -145,12 +145,19 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
              * five, and when a session finally comes back with none wrong the
              * button is not drawn at all.
              *
-             * The count it will start is the one printed above it - "Wrong or
-             * unanswered" - because both are this session's own questions.
+             * It counts the wrong ones only, not the tile above it. A
+             * question left unanswered counts against the score, so the tile
+             * is right to add it in, but it is not a mistake the reader made
+             * and the retry no longer serves it. Reading the tile here would
+             * draw the button after a session that was only skipped through,
+             * and it would open on nothing.
+             *
+             * The button says how many it will start, since that number is
+             * now its own rather than the one printed above.
              */
-            if (tally.wrong + tally.unanswered > 0) ...[
+            if (tally.wrong > 0) ...[
               CustomButton(
-                text: 'Retry the wrong ones',
+                text: 'Retry the wrong ones (${tally.wrong})',
                 isSecondary: true,
                 isLoading: _pending == _retry,
                 onPressed: _pending != null
