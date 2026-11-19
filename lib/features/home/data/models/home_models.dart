@@ -308,6 +308,16 @@ class HomeThisWeek {
 class HomeOffice {
   final String code;
   final String label;
+
+  /// Lines 1 and 2 of the card, as the server writes them.
+  ///
+  /// The app keeps its own copy of the table for screens with no server data
+  /// to hand, and the two drifted: Marie's point 15 asks for "European Union
+  /// Intellectual Property Office" where the app had shortened it. Where
+  /// these arrive they win, so there is one table to correct, not two.
+  final String? territory;
+  final String? fullName;
+
   final int questionsAnswered;
   final int questionsTotal;
   final int percentage;
@@ -320,6 +330,8 @@ class HomeOffice {
   const HomeOffice({
     required this.code,
     required this.label,
+    this.territory,
+    this.fullName,
     required this.questionsAnswered,
     required this.questionsTotal,
     required this.percentage,
@@ -329,6 +341,8 @@ class HomeOffice {
   factory HomeOffice.fromJson(Map<String, dynamic> json) => HomeOffice(
     code: json['code'] as String? ?? '',
     label: json['label'] as String? ?? '',
+    territory: json['territory'] as String?,
+    fullName: json['fullName'] as String?,
     questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
     questionsTotal: (json['questionsTotal'] as num?)?.toInt() ?? 0,
     percentage: (json['percentage'] as num?)?.toInt() ?? 0,

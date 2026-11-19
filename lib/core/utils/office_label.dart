@@ -21,8 +21,16 @@
 library;
 
 /// Codes whose reader-facing short name is not the code itself.
+///
+/// Marie's point 15 gives the acronym for each office beside its dashboard
+/// code, and three of them differ: JUB reads UPC, KIPO reads MOIP, and INDIA
+/// reads IPO. The codes themselves never move - they are what the workbooks,
+/// the DEMO sheets and the store entitlements are keyed on. JUB is not here
+/// because the questions are already stored under UPC; it is only Marie's
+/// file names that say JUB.
 const Map<String, String> _renamed = {
   'KIPO': 'MOIP',
+  'INDIA': 'IPO',
 };
 
 String _normalizeOfficeKey(String? code) {
@@ -45,19 +53,27 @@ String _normalizeOfficeKey(String? code) {
   return key;
 }
 
+/// Line 2 of the card: the name of the office.
+///
+/// Written out in full, exactly as Marie's point 15 writes it. Several of
+/// these used to be shortened to fit - "European Union IP Office", "China
+/// National IP Administration", "Swiss Federal Institute of IP" - and an
+/// abbreviation is not the office's name. The card wraps.
 const Map<String, String> _officeFullNames = {
   'WIPO': 'World Intellectual Property Organization',
   'EPO': 'European Patent Office',
-  'EUIPO': 'European Union IP Office',
+  'EUIPO': 'European Union Intellectual Property Office',
   'UPC': 'Unified Patent Court',
-  'USPTO': 'United States Patent & Trademark Office',
-  'UKIPO': 'UK Intellectual Property Office',
+  'USPTO': 'United States Patent and Trademark Office',
+  // The office calls itself the Intellectual Property Office; "United
+  // Kingdom" is line 1, where the country goes.
+  'UKIPO': 'Intellectual Property Office',
   'JPO': 'Japan Patent Office',
-  'CNIPA': 'China National IP Administration',
+  'CNIPA': 'China National Intellectual Property Administration',
   'KIPO': 'Ministry of Intellectual Property',
-  'INDIA': 'Indian Patent Office',
+  'INDIA': 'Office of the Controller General of Patents, Designs and Trade Marks',
   'INPI': 'National Institute of Industrial Property',
-  'IPI': 'Swiss Federal Institute of IP',
+  'IPI': 'Swiss Federal Institute of Intellectual Property',
   'DPMA': 'German Patent and Trade Mark Office',
   'IPAU': 'IP Australia',
   'CIPO': 'Canadian Intellectual Property Office',
@@ -67,7 +83,9 @@ const Map<String, String> _officeTerritories = {
   'WIPO': 'International',
   'EPO': 'Europe',
   'EUIPO': 'European Union',
-  'UPC': 'Europe',
+  // The Unitary Patent is what tells this court from the EPO, which is also
+  // "Europe".
+  'UPC': 'Europe – Unitary Patent',
   'USPTO': 'United States',
   'UKIPO': 'United Kingdom',
   'JPO': 'Japan',

@@ -1104,8 +1104,8 @@ class _MyOfficesSection extends ConsumerWidget {
           ),
         ...offices.map((o) {
           final shortCode = o.code.isNotEmpty ? o.code : o.label;
-          final territory = officeTerritory(shortCode);
-          final fullName = officeFullName(shortCode);
+          final territory = officeTerritory(shortCode, territory: o.territory);
+          final fullName = officeFullName(shortCode, fullName: o.fullName);
           final badge = officeLabel(shortCode);
 
           final title = territory.isNotEmpty
