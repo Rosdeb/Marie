@@ -489,56 +489,80 @@ class ActiveQuizScreen extends ConsumerWidget {
                                       horizontal: 16,
                                       vertical: 14,
                                     ),
-                                    child: Row(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          width: 28,
-                                          height: 28,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            color: highlighted
-                                                ? accent
-                                                : AppColors.background,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Text(
-                                            optionLetter,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                              color: highlighted
-                                                  ? Colors.white
-                                                  : AppColors.textSecondary,
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 28,
+                                              height: 28,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: highlighted
+                                                    ? accent
+                                                    : AppColors.background,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                optionLetter,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                  color: highlighted
+                                                      ? Colors.white
+                                                      : AppColors.textSecondary,
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            option.text,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w400,
-                                              color: highlighted
-                                                  ? accent
-                                                  : AppColors.textPrimary,
-                                              height: 1.35,
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                option.text,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: highlighted
+                                                      ? accent
+                                                      : AppColors.textPrimary,
+                                                  height: 1.35,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                        // Named, not only coloured: colour alone
-                                        // does not reach a colour-blind reader.
+                                        // Named label on its own line, indented
+                                        // to align under the option text.
                                         if (isTheCorrectOne ||
                                             isTheWrongChoice) ...[
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            isTheCorrectOne
-                                                ? 'Correct answer'
-                                                : 'Your answer',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: accent,
+                                          const SizedBox(height: 4),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 40,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  isTheCorrectOne
+                                                      ? Icons.check_circle
+                                                      : Icons.cancel,
+                                                  size: 14,
+                                                  color: accent,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  isTheCorrectOne
+                                                      ? 'Correct answer'
+                                                      : 'Your answer',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: accent,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
