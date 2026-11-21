@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../home/presentation/providers/home_provider.dart';
+import '../../../review/presentation/providers/mistakes_review_provider.dart';
+import '../../../review/presentation/providers/review_provider.dart';
 import '../../data/models/quiz_models.dart';
 import '../providers/practice_provider.dart';
 import '../providers/quiz_provider.dart';
@@ -55,6 +57,15 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
   /// one runs, so a second tap cannot start a second session.
   String? _pending;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(reviewStateProvider.notifier).fetchReviewData();
+      ref.read(mistakesReviewProvider.notifier).refreshCounts();
+    });
+  }
+
   /// Start one of them, and go to the quiz if it started.
   Future<void> _run(
     String action,
@@ -96,6 +107,8 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
               onClose: () {
                 ref.read(homeProvider.notifier).clearPausedSession();
                 ref.read(homeProvider.notifier).load();
+                ref.read(reviewStateProvider.notifier).fetchReviewData();
+                ref.read(mistakesReviewProvider.notifier).refreshCounts();
                 ref.read(quizProvider.notifier).reset();
                 ref.read(bottomNavProvider.notifier).changeIndex(1);
                 context.go('/main');
@@ -201,6 +214,8 @@ class _QuizResultScreenState extends ConsumerState<QuizResultScreen> {
 
                 ref.read(homeProvider.notifier).clearPausedSession();
                 ref.read(homeProvider.notifier).load();
+                ref.read(reviewStateProvider.notifier).fetchReviewData();
+                ref.read(mistakesReviewProvider.notifier).refreshCounts();
                 ref.read(quizProvider.notifier).reset();
                 ref.read(bottomNavProvider.notifier).changeIndex(1);
                 context.go('/main');

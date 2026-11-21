@@ -5,6 +5,7 @@ import '../../../../core/storage/local_storage.dart';
 import '../../../home/presentation/providers/home_provider.dart';
 import '../../../review/presentation/providers/marked_questions_provider.dart';
 import '../../../review/presentation/providers/mistakes_review_provider.dart';
+import '../../../review/presentation/providers/review_provider.dart';
 import '../../../subscription/presentation/providers/entitlement_provider.dart';
 import '../../data/models/quiz_models.dart';
 import '../../domain/repositories/practice_repository.dart';
@@ -846,6 +847,7 @@ class QuizNotifier extends Notifier<QuizState> {
          * and nothing in a session can reach the starred list.
          */
         ref.read(mistakesReviewProvider.notifier).refreshCounts();
+        ref.read(reviewStateProvider.notifier).fetchReviewData();
         ref
             .read(homeProvider.notifier)
             .clearPausedSession(finishedSessionId: sessionId);

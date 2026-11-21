@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/auth_gate_bottom_sheet.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../bottom_nav/presentation/providers/bottom_nav_provider.dart';
 import '../../../practice/presentation/providers/quiz_provider.dart';
 import '../../data/models/review_model.dart';
 import '../providers/marked_questions_provider.dart';
@@ -70,6 +71,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final filteredSessions = ref.watch(filteredReviewSessionsProvider);
     final currentFilter = ref.watch(reviewFilterProvider);
     final isAuth = ref.watch(authProvider).isAuthenticated;
+
+    ref.listen<int>(bottomNavProvider, (prev, next) {
+      if (next == 2 && prev != 2 && isAuth) {
+        ref.read(reviewStateProvider.notifier).fetchReviewData();
+        ref.read(mistakesReviewProvider.notifier).refreshCounts();
+        ref.read(markedQuestionsProvider.notifier).loadMarkedQuestions();
+      }
+    });
 
     // Aggregate statistics from backend summary if available, else sessions fold
     final summary = reviewState.summary;
@@ -139,7 +148,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           color: AppColors.primary,
           onRefresh: () async {
             if (isAuth) {
-              await ref.read(reviewStateProvider.notifier).fetchReviewData();
+              await Future.wait([
+                ref.read(reviewStateProvider.notifier).fetchReviewData(),
+                ref.read(mistakesReviewProvider.notifier).refreshCounts(),
+                ref.read(markedQuestionsProvider.notifier).loadMarkedQuestions(),
+              ]);
             }
           },
           child: SingleChildScrollView(
