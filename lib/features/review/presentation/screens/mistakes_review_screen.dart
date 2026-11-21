@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/office_label.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/floating_error_bar.dart';
 import '../../../practice/presentation/providers/practice_provider.dart';
@@ -243,6 +244,9 @@ class _MistakesReviewScreenState extends ConsumerState<MistakesReviewScreen> {
               allLabel: 'All offices',
               value: state.selectedOffice,
               options: state.availableOffices,
+              // The options are codes, kept for the request; the reader
+              // sees IPO, not INDIA, and MOIP, not KIPO.
+              display: officeLabel,
               onSelected: (val) =>
                   ref.read(mistakesReviewProvider.notifier).setOffice(val),
             ),
@@ -412,13 +416,19 @@ class _FilterDropdown extends StatelessWidget {
   final List<String> options;
   final ValueChanged<String?> onSelected;
 
+  /// How an option is written on screen, when it is a key and not a label.
+  final String Function(String)? display;
+
   const _FilterDropdown({
     required this.label,
     this.allLabel,
     required this.value,
     required this.options,
     required this.onSelected,
+    this.display,
   });
+
+  String _shown(String opt) => display?.call(opt) ?? opt;
 
   @override
   Widget build(BuildContext context) {
@@ -439,7 +449,7 @@ class _FilterDropdown extends StatelessWidget {
             (opt) => PopupMenuItem<String?>(
               value: opt,
               child: Text(
-                opt,
+                _shown(opt),
                 style: TextStyle(
                   fontWeight: opt == value
                       ? FontWeight.w600
@@ -466,7 +476,7 @@ class _FilterDropdown extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              hasValue ? value! : label,
+              hasValue ? _shown(value!) : label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
@@ -500,7 +510,7 @@ class _MistakeQuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tags = <String>[];
-    if (question.office.isNotEmpty) tags.add(question.office);
+    if (question.office.isNotEmpty) tags.add(officeLabel(question.office));
     if (question.displayDiscipline.isNotEmpty) {
       tags.add(question.displayDiscipline);
     }

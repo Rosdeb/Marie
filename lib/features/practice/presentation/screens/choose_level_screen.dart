@@ -20,6 +20,14 @@ class ChooseLevelScreen extends ConsumerWidget {
       orElse: () => DisciplineDetailModel(name: selection.topic ?? 'Patents'),
     );
 
+    // The server's label, so a sheet called "UnitaryPatent" reads
+    // "Unitary Patent" - older servers send no label, hence the fallback.
+    final disciplineLabel =
+        currentDiscipline.displayName.replaceAll(' ', '').toLowerCase() ==
+            'unitarypatent'
+        ? 'Unitary Patent'
+        : currentDiscipline.displayName;
+
     final levels = currentDiscipline.levels;
     final canContinue = levels.any(
       (item) => item.isAvailable && item.level == selection.level,
@@ -59,7 +67,7 @@ class ChooseLevelScreen extends ConsumerWidget {
               children: [
                 const PracticeChips(showMode: true),
                 Text(
-                  '${selection.topic ?? "Patents"} • ${selection.jurisdiction ?? "IPI"}',
+                  '$disciplineLabel •${selection.jurisdiction ?? "IPI"}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

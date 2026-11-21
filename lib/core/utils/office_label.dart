@@ -35,9 +35,11 @@ const Map<String, String> _renamed = {
 
 String _normalizeOfficeKey(String? code) {
   final key = (code ?? '').trim().toUpperCase();
+  // UKIPO before KIPO: "UKIPO" contains "KIPO", and checking KIPO first read
+  // the United Kingdom's office as Korea's and printed it MOIP.
+  if (key.contains('UKIPO')) return 'UKIPO';
   if (key.contains('KIPO') || key.contains('MOIP')) return 'KIPO';
   if (key.contains('USPTO')) return 'USPTO';
-  if (key.contains('UKIPO')) return 'UKIPO';
   if (key.contains('EUIPO')) return 'EUIPO';
   if (key.contains('CNIPA')) return 'CNIPA';
   if (key.contains('DPMA')) return 'DPMA';

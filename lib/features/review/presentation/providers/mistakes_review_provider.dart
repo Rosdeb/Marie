@@ -214,12 +214,27 @@ class MistakesReviewNotifier extends Notifier<MistakesReviewState> {
         office: state.selectedOffice,
       );
 
+      // The Office menu is asked for with no office. Filtered by the chosen
+      // office, the server offers that office alone, and the user could not
+      // switch to another one without clearing the filter first.
+      final offices = (state.selectedOffice ?? '').isEmpty
+          ? filters.offices
+          : (await _remote.filters()).offices;
+
       // Scope disciplines to those the selected office actually carries.
       // The server's filters endpoint returns all disciplines regardless of the
       // office parameter, so EPO would show Trademarks, Design, etc. without
       // this step. The offices catalogue (populated from /practice/offices)
       // is the authoritative list of what each office supports.
-      final scopedFilters = _scopeFiltersByOffice(filters, state.selectedOffice);
+      final scopedFilters = _scopeFiltersByOffice(
+        ReviewFilterOptions(
+          offices: offices,
+          disciplines: filters.disciplines,
+          levels: filters.levels,
+          themes: filters.themes,
+        ),
+        state.selectedOffice,
+      );
 
       state = state.copyWith(
         entries: page.rows.map(MistakeEntry.fromRow).toList(),
