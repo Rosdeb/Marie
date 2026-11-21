@@ -64,11 +64,23 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         .firstOrNull;
     final isIncluded =
         selectedOffice.isEmpty || entitlement.canAccessOffice(selectedOffice);
-    final officeDisplayName = officeObj?.name.isNotEmpty == true
-        ? officeObj!.name
-        : (officeFullName(selectedOffice).isNotEmpty
-              ? officeFullName(selectedOffice)
+    final countryName = officeTerritory(
+      selectedOffice,
+      territory: officeObj?.territory,
+    );
+    final officeFull = officeFullName(
+      selectedOffice,
+      fullName: officeObj?.fullName.isNotEmpty == true
+          ? officeObj!.fullName
+          : officeObj?.name,
+    );
+    final officeDisplayName = officeFull.isNotEmpty
+        ? officeFull
+        : (officeObj?.name.isNotEmpty == true
+              ? officeObj!.name
               : officeLabel(selectedOffice));
+    final title = countryName.isNotEmpty ? countryName : officeDisplayName;
+    final subtitle = countryName.isNotEmpty ? officeDisplayName : '';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -94,13 +106,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFF0EDE8)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
@@ -111,50 +123,56 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             children: [
                               // Office circle badge
                               Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
+                                width: 54,
+                                height: 54,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFEDF0F7),
                                   shape: BoxShape.circle,
-                                  color: const Color(0xFFF1F5FD),
-                                  border: Border.all(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.18,
-                                    ),
-                                    width: 1.2,
-                                  ),
                                 ),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(2.0),
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        officeLabel(selectedOffice),
-                                        style: const TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.primary,
-                                        ),
+                                alignment: Alignment.center,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      officeLabel(selectedOffice),
+                                      style: const TextStyle(
+                                        color: Color(0xFF284376),
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13.5,
+                                        letterSpacing: 0.3,
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      officeDisplayName,
+                                      title,
                                       style: const TextStyle(
                                         fontSize: 16.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
-                                        letterSpacing: -0.3,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF111827),
+                                        height: 1.2,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    if (subtitle.isNotEmpty && subtitle != title) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        subtitle,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF6B7280),
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 4),
                                     Row(
                                       children: [
                                         Container(
@@ -228,7 +246,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                          const Divider(height: 1, color: Color(0xFFF0EDE8)),
                           const SizedBox(height: 10),
                           const Text(
                             'Choose a discipline and a level. Every question of your selected office is included.',
@@ -639,111 +657,139 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
                   itemCount: allOffices.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (_, i) {
                     final o = allOffices[i];
                     final mine = entitlement.canAccessOffice(o.code);
                     final current =
                         o.code == ref.read(practiceProvider).jurisdiction;
 
+                    final shortCode = o.code;
+                    final territory =
+                        officeTerritory(shortCode, territory: o.territory);
+                    final fullName = officeFullName(
+                      shortCode,
+                      fullName: o.fullName.isNotEmpty ? o.fullName : o.name,
+                    );
+                    final badge = officeLabel(shortCode);
+
+                    final title = territory.isNotEmpty
+                        ? territory
+                        : (fullName.isNotEmpty ? fullName : badge);
+                    final subtitle = fullName.isNotEmpty ? fullName : badge;
+                    final disciplinesText = o.disciplines.isNotEmpty
+                        ? o.disciplines
+                            .map((d) => d.displayName
+                                        .replaceAll(' ', '')
+                                        .toLowerCase() ==
+                                    'unitarypatent'
+                                ? 'Unitary Patent'
+                                : d.displayName)
+                            .join(' · ')
+                        : (o.territory.isNotEmpty && o.territory != territory
+                            ? o.territory
+                            : 'All disciplines');
+
                     return Container(
                       decoration: BoxDecoration(
                         color: current ? const Color(0xFFF0F6FF) : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: current
                               ? AppColors.primary
-                              : const Color(0xFFE2E8F0),
+                              : const Color(0xFFF0EDE8),
                           width: current ? 1.5 : 1.0,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(18),
                           onTap: () => Navigator.of(sheetContext).pop(o),
                           child: Padding(
-                            padding: const EdgeInsets.all(13),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 16,
+                            ),
                             child: Row(
                               children: [
-                                // Office circle badge
+                                // Circular Badge
                                 Container(
-                                  width: 42,
-                                  height: 42,
+                                  width: 54,
+                                  height: 54,
                                   decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
                                     color: current
                                         ? AppColors.primary
-                                        : const Color(0xFFF1F5FD),
-                                    border: Border.all(
-                                      color: current
-                                          ? AppColors.primary
-                                          : AppColors.primary.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                      width: 1.2,
-                                    ),
+                                        : const Color(0xFFEDF0F7),
+                                    shape: BoxShape.circle,
                                   ),
-                                  child: Center(
+                                  alignment: Alignment.center,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4.0),
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(2.0),
-                                        child: Text(
-                                          officeLabel(o.code),
-                                          style: TextStyle(
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w800,
-                                            color: current
-                                                ? Colors.white
-                                                : AppColors.primary,
-                                          ),
+                                      child: Text(
+                                        badge,
+                                        style: TextStyle(
+                                          color: current
+                                              ? Colors.white
+                                              : const Color(0xFF284376),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13.5,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 16),
+                                // Text Content
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        o.name.isNotEmpty ? o.name : o.code,
-                                        style: TextStyle(
-                                          fontSize: 14.5,
-                                          fontWeight: current
-                                              ? FontWeight.w700
-                                              : FontWeight.w600,
-                                          color: AppColors.textPrimary,
+                                        title,
+                                        style: const TextStyle(
+                                          color: Color(0xFF111827),
+                                          fontSize: 16.5,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.2,
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      // Each office shows its disciplines or territory
                                       Text(
-                                        o.disciplines.isNotEmpty
-                                            ? o.disciplines
-                                                  .map((d) => d.displayName
-                                                              .replaceAll(' ', '')
-                                                              .toLowerCase() ==
-                                                          'unitarypatent'
-                                                      ? 'Unitary Patent'
-                                                      : d.displayName)
-                                                  .join(' · ')
-                                            : (o.territory.isNotEmpty
-                                                  ? o.territory
-                                                  : 'All disciplines'),
+                                        subtitle,
                                         style: const TextStyle(
-                                          fontSize: 12,
+                                          color: Color(0xFF6B7280),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w400,
                                           height: 1.3,
-                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        disciplinesText,
+                                        style: const TextStyle(
+                                          color: Color(0xFF6B7280),
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                          height: 1.3,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 10),
                                 if (mine)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
