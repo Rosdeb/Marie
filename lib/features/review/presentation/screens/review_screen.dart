@@ -226,54 +226,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     ),
                   ],
                 ),
-                if (summary != null &&
-                    (summary.sessionsSubmitted > 0 ||
-                        (summary.time?.spent.isNotEmpty ?? false))) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (summary.sessionsSubmitted > 0) ...[
-                        const Icon(
-                          Icons.assignment_outlined,
-                          size: 13,
-                          color: Color(0xFF8A909A),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${summary.sessionsSubmitted} sessions',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF8A909A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                      if (summary.sessionsSubmitted > 0 &&
-                          (summary.time?.spent.isNotEmpty ?? false))
-                        const Text(
-                          '  ·  ',
-                          style: TextStyle(color: Color(0xFF8A909A)),
-                        ),
-                      if (summary.time?.spent.isNotEmpty ?? false) ...[
-                        const Icon(
-                          Icons.timer_outlined,
-                          size: 13,
-                          color: Color(0xFF8A909A),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${summary.time!.spent} spent',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF8A909A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
                 const SizedBox(height: 16),
 
                 // Menu Action Cards
