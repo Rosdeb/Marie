@@ -89,7 +89,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         summary?.correctAnswers ??
         reviewState.sessions.fold<int>(0, (sum, s) => sum + s.correctCount);
     final avgAccuracy = summary != null
-        ? summary.averageScorePercentage
+        ? (summary.successPercentage > 0
+            ? summary.successPercentage
+            : summary.averageScorePercentage)
         : (totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0.0);
 
     /**
@@ -117,6 +119,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         : reviewState.mistakes.total;
 
     final markedCount = markedState.total;
+
+    final totalSessionsCount =
+        reviewState.meta?.total ??
+        summary?.sessionsSubmitted ??
+        reviewState.sessions.length;
 
     final needsFocusCount = reviewState.sessions
         .where((s) => s.accuracy < 70)
@@ -211,12 +218,62 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _StatCard(
-                        value: '${avgAccuracy.toStringAsFixed(0)}%',
+                        value: avgAccuracy % 1 == 0
+                            ? '${avgAccuracy.toInt()}%'
+                            : '${avgAccuracy.toStringAsFixed(1)}%',
                         label: 'Average',
                       ),
                     ),
                   ],
                 ),
+                if (summary != null &&
+                    (summary.sessionsSubmitted > 0 ||
+                        (summary.time?.spent.isNotEmpty ?? false))) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (summary.sessionsSubmitted > 0) ...[
+                        const Icon(
+                          Icons.assignment_outlined,
+                          size: 13,
+                          color: Color(0xFF8A909A),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${summary.sessionsSubmitted} sessions',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF8A909A),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                      if (summary.sessionsSubmitted > 0 &&
+                          (summary.time?.spent.isNotEmpty ?? false))
+                        const Text(
+                          '  ·  ',
+                          style: TextStyle(color: Color(0xFF8A909A)),
+                        ),
+                      if (summary.time?.spent.isNotEmpty ?? false) ...[
+                        const Icon(
+                          Icons.timer_outlined,
+                          size: 13,
+                          color: Color(0xFF8A909A),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${summary.time!.spent} spent',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF8A909A),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Menu Action Cards
@@ -301,7 +358,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     children: [
                       Expanded(
                         child: _FilterTab(
-                          label: 'All (${reviewState.sessions.length})',
+                          label: 'All ($totalSessionsCount)',
                           isSelected: currentFilter == ReviewFilter.all,
                           onTap: () => ref
                               .read(reviewFilterProvider.notifier)
@@ -404,8 +461,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       child: _SessionCard(
                         title: _formatSessionTitle(session),
                         subtitle: _formatSessionSubtitle(session),
-                        score:
-                            '${session.correctCount}/${session.totalQuestions}',
+                        score: session.formatted.isNotEmpty
+                            ? session.formatted
+                            : '${session.correctCount}/${session.totalQuestions}',
                         scoreColor: session.accuracy >= 60
                             ? const Color(0xFF2E7D32)
                             : const Color(0xFFD32F2F),
@@ -443,6 +501,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final disc = session.discipline.isNotEmpty
         ? session.discipline
         : session.topic;
+    if (session.theme.isNotEmpty) {
+      return disc.isNotEmpty ? '$disc · ${session.theme}' : session.theme;
+    }
     final lvl = _formatLevelOrMode(session);
     if (disc.isNotEmpty) {
       return '$disc · $lvl';
@@ -511,7 +572,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final date = session.completedDate.isNotEmpty
         ? session.completedDate
         : 'Recent';
-    return '$jurisdiction · $modeLabel · $date';
+    final timeStr =
+        session.timeTaken.isNotEmpty ? '${session.timeTaken} · ' : '';
+    return '$jurisdiction · $modeLabel · $timeStr$date';
   }
 
   static String _formatMode(String mode) {

@@ -66,6 +66,8 @@ class PracticeHistoryTimeSummary {
 class PracticeHistorySummary {
   final int sessionsSubmitted;
   final int questionsAnswered;
+  final int questionsAsked;
+  final int questionsSkipped;
   final int correctAnswers;
   final int wrongAnswers;
   final double successPercentage;
@@ -76,6 +78,8 @@ class PracticeHistorySummary {
   const PracticeHistorySummary({
     this.sessionsSubmitted = 0,
     this.questionsAnswered = 0,
+    this.questionsAsked = 0,
+    this.questionsSkipped = 0,
     this.correctAnswers = 0,
     this.wrongAnswers = 0,
     this.successPercentage = 0.0,
@@ -88,6 +92,8 @@ class PracticeHistorySummary {
     return PracticeHistorySummary(
       sessionsSubmitted: (json['sessionsSubmitted'] as num?)?.toInt() ?? 0,
       questionsAnswered: (json['questionsAnswered'] as num?)?.toInt() ?? 0,
+      questionsAsked: (json['questionsAsked'] as num?)?.toInt() ?? 0,
+      questionsSkipped: (json['questionsSkipped'] as num?)?.toInt() ?? 0,
       correctAnswers: (json['correctAnswers'] as num?)?.toInt() ?? 0,
       wrongAnswers: (json['wrongAnswers'] as num?)?.toInt() ?? 0,
       successPercentage: (json['successPercentage'] as num?)?.toDouble() ?? 0.0,
@@ -105,6 +111,8 @@ class PracticeHistorySummary {
   Map<String, dynamic> toJson() => {
     'sessionsSubmitted': sessionsSubmitted,
     'questionsAnswered': questionsAnswered,
+    'questionsAsked': questionsAsked,
+    'questionsSkipped': questionsSkipped,
     'correctAnswers': correctAnswers,
     'wrongAnswers': wrongAnswers,
     'successPercentage': successPercentage,
@@ -200,6 +208,7 @@ class ReviewSession {
   final String jurisdiction;
   final String office;
   final String discipline;
+  final String theme;
   final String mode;
 
   /// How the mode is written on screen, as the server writes it.
@@ -236,6 +245,7 @@ class ReviewSession {
     required this.jurisdiction,
     this.office = '',
     this.discipline = '',
+    this.theme = '',
     this.mode = '',
     this.modeLabel = '',
     required this.level,
@@ -267,6 +277,7 @@ class ReviewSession {
         '';
     final office = json['office'] as String? ?? 'IPI';
     final discipline = json['discipline'] as String? ?? '';
+    final theme = json['theme'] as String? ?? '';
     final mode = json['mode'] as String? ?? 'practice';
     final serverModeLabel = json['modeLabel'] as String? ?? '';
     final level = json['level'] as String? ?? '';
@@ -332,9 +343,11 @@ class ReviewSession {
               ? serverModeLabel
               : (modeLabels[normalizedMode] ?? 'Practice'));
 
-    final title = discipline.isNotEmpty
-        ? '$discipline - $modeLabel'
-        : '$office $modeLabel';
+    final title = theme.isNotEmpty
+        ? (discipline.isNotEmpty ? '$discipline · $theme' : theme)
+        : (discipline.isNotEmpty
+            ? '$discipline - $modeLabel'
+            : '$office $modeLabel');
 
     return ReviewSession(
       id: sId,
@@ -344,6 +357,7 @@ class ReviewSession {
       jurisdiction: office,
       office: office,
       discipline: discipline,
+      theme: theme,
       mode: mode,
       modeLabel: serverModeLabel,
       level: level,

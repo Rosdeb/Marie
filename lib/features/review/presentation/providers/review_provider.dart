@@ -75,7 +75,7 @@ class ReviewNotifier extends Notifier<ReviewState> {
     String? mode,
     String? office,
     int page = 1,
-    int limit = 10,
+    int limit = 20,
   }) async {
     final isAuth = ref.read(authProvider).isAuthenticated;
     if (!isAuth) {
