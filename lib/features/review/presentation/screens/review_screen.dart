@@ -167,13 +167,28 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Screen Title
-                const Text(
-                  'Review',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: primaryTextColor,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Review',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
+                      ),
+                    ),
+                    if (isAuth)
+                      _RefreshButton(
+                        onRefresh: () async {
+                          await Future.wait([
+                            ref.read(reviewStateProvider.notifier).fetchReviewData(),
+                            ref.read(mistakesReviewProvider.notifier).refreshCounts(),
+                            ref.read(markedQuestionsProvider.notifier).loadMarkedQuestions(),
+                          ]);
+                        },
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -808,6 +823,64 @@ class _SessionCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RefreshButton extends StatefulWidget {
+  const _RefreshButton({required this.onRefresh});
+
+  final Future<void> Function() onRefresh;
+
+  @override
+  State<_RefreshButton> createState() => _RefreshButtonState();
+}
+
+class _RefreshButtonState extends State<_RefreshButton> {
+  bool _loading = false;
+
+  Future<void> _handleTap() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      await widget.onRefresh();
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: _loading
+            ? const Padding(
+                padding: EdgeInsets.all(9),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              )
+            : const Icon(
+                Icons.refresh_rounded,
+                size: 20,
+                color: Color(0xFF1E242B),
+              ),
       ),
     );
   }
