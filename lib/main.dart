@@ -20,6 +20,29 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+    try {
+      final messaging = FirebaseMessaging.instance;
+      // Request notification permissions (required on iOS before retrieving APNs/FCM token)
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      final fcmToken = await messaging.getToken();
+      debugPrint('\n=================== 🔥 FCM TOKEN ===================');
+      debugPrint(fcmToken ?? 'Failed to retrieve FCM token (null)');
+      debugPrint('====================================================\n');
+
+      messaging.onTokenRefresh.listen((newToken) {
+        debugPrint('\n================ 🔥 FCM TOKEN REFRESHED ================');
+        debugPrint(newToken);
+        debugPrint('========================================================\n');
+      });
+    } catch (e) {
+      debugPrint('⚠️ [FCM Token Error]: $e');
+    }
   }
 
   SystemChrome.setSystemUIOverlayStyle(AppTheme.lightSystemOverlayStyle);
