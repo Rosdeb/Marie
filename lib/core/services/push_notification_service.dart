@@ -59,6 +59,7 @@ class PushNotificationService {
     await notifications.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('ic_notification'),
+        iOS: DarwinInitializationSettings(),
       ),
     );
     await notifications.show(
@@ -76,15 +77,18 @@ class PushNotificationService {
           icon: 'ic_notification',
           color: Color(0xFF384E78),
         ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       ),
       payload: jsonEncode(message.data),
     );
   }
 
   Future<void> initialize({required LocalStorage localStorage}) async {
-    if (_initialized ||
-        kIsWeb ||
-        defaultTargetPlatform != TargetPlatform.android) {
+    if (_initialized || kIsWeb) {
       return;
     }
     _initialized = true;
@@ -92,17 +96,30 @@ class PushNotificationService {
 
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('ic_notification'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
     );
     await _localNotifications.initialize(
       settings: initializationSettings,
       onDidReceiveNotificationResponse: _handleLocalNotificationTap,
     );
 
-    final androidNotifications = _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    await androidNotifications?.createNotificationChannel(_channel);
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final androidNotifications = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      await androidNotifications?.createNotificationChannel(_channel);
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
 
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleRemoteMessageTap);
@@ -182,6 +199,8 @@ class PushNotificationService {
       } catch (e) {
         debugPrint('[Push] setEnabled getToken error: $e');
       }
+    } else {
+      await _registerTokenWithServer(cachedToken.trim());
     }
     await storage.saveNotificationsEnabled(true);
     return true;
@@ -228,7 +247,10 @@ class PushNotificationService {
 
     // Nobody is signed in yet; registerCurrentDevice() runs again after login.
     final accessToken = await storage.getAccessToken();
-    if (accessToken == null || accessToken.isEmpty) return;
+    if (accessToken == null || accessToken.isEmpty) {
+      debugPrint('[Push] User not signed in; skipping server registration for now.');
+      return;
+    }
 
     try {
       await ApiClient(localStorage: storage).post(
@@ -236,10 +258,9 @@ class PushNotificationService {
         body: {'token': token, 'platform': _platform},
         requiresAuth: true,
       );
+      debugPrint('🚀 [Push] Device token registered with server successfully: $token');
     } catch (e) {
-      // Never surfaced: failing to register a device must not interrupt
-      // anything the person is doing. The next refresh or sign-in retries.
-      debugPrint('[Push] could not register device token: $e');
+      debugPrint('⚠️ [Push] could not register device token with server: $e');
     }
   }
 
@@ -314,6 +335,11 @@ class PushNotificationService {
           priority: Priority.high,
           icon: 'ic_notification',
           color: Color(0xFF384E78),
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
       payload: jsonEncode(message.data),

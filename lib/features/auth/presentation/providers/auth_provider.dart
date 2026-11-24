@@ -173,6 +173,7 @@ class AuthNotifier extends Notifier<AuthState> {
         isAuthenticated: true,
         currentUser: user,
       );
+      PushNotificationService.instance.registerCurrentDevice();
       return true;
     } catch (e) {
       state = state.copyWith(
