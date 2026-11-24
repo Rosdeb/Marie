@@ -362,6 +362,10 @@ class PushNotificationService {
     final route = requestedRoute != null && requestedRoute.startsWith('/')
         ? requestedRoute
         : '/notifications';
-    AppRouter.router.go(route);
+    try {
+      AppRouter.router.push(route);
+    } catch (_) {
+      AppRouter.router.go(route);
+    }
   }
 }

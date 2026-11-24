@@ -10,25 +10,39 @@ import '../providers/notification_provider.dart';
 class NotificationScreen extends ConsumerWidget {
   const NotificationScreen({super.key});
 
+  void _handleBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/main');
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifState = ref.watch(notificationProvider);
     final notifications = notifState.items;
     final unreadCount = notifState.unreadCount;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_rounded,
-            color: AppColors.textPrimary,
-            size: 18,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_rounded,
+              color: AppColors.textPrimary,
+              size: 18,
+            ),
+            onPressed: () => _handleBack(context),
           ),
-          onPressed: () => context.pop(),
-        ),
         title: const Text(
           'Notifications',
           style: TextStyle(
@@ -91,6 +105,7 @@ class NotificationScreen extends ConsumerWidget {
                       ),
                     ),
             ),
+      ),
     );
   }
 
